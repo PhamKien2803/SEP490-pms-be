@@ -1,7 +1,7 @@
 {
   "name": "be_kids_system",
   "version": "1.0.0",
-  "main": "functions/*.js",
+  "main": "src/server.js",
   "scripts": {
     "test": "echo \"No tests but I’m a legend\"",
     "dev": "nodemon src/server.js",

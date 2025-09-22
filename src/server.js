@@ -7,8 +7,8 @@ const connectDB = require("./configs/database");
 const { connectRedis } = require("./configs/redisConfig");
 const cookieParser = require("cookie-parser");
 // Khai báo routes
-const account = require("./routes/accountRoute");
-const auth = require("./routes/authRoute");
+const user = require("./routes/userRoute");
+// const auth = require("./routes/authRoute");
 // Khai báo dotenv
 dotenv.config();
 // Khai báo app
@@ -32,8 +32,8 @@ connectDB();
 connectRedis();
 
 // Sử dụng đường dẫn
-app.use("/api/account", account);
-app.use("/api/auth", auth);
+app.use("/api/user", user);
+// app.use("/api/auth", auth);
 // route test
 app.get("/", (req, res) => {
     res.send("👋 Welcome to the Blue Dolphin Management API");

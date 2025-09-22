@@ -2,12 +2,7 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 const connectDB = async () => {
-    const user = encodeURIComponent(process.env.MONGO_USER);
-    const pass = encodeURIComponent(process.env.MONGO_PASS);
-    const host = process.env.MONGO_HOST;
-    const dbName = process.env.MONGO_DB;
-
-    const uri = `mongodb+srv://${user}:${pass}@${host}/${dbName}?retryWrites=true&w=majority&tls=true`;
+    const uri = `${process.env.MONGO_DB}`;
 
     const options = {
         useNewUrlParser: true,

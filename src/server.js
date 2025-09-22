@@ -3,6 +3,12 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const morgan = require("morgan");
+const connectDB = require("./configs/database");
+const { connectRedis } = require("./configs/redisConfig");
+const cookieParser = require("cookie-parser");
+// Khai báo routes
+const account = require("./routes/accountRoute");
+const auth = require("./routes/authRoute");
 // Khai báo dotenv
 dotenv.config();
 // Khai báo app
@@ -21,13 +27,20 @@ app.use(cookieParser());
 
 // Connect to MongoDB
 connectDB();
+
+// Connect Redis
+connectRedis();
+
+// Sử dụng đường dẫn
+app.use("/api/account", account);
+app.use("/api/auth", auth);
 // route test
 app.get("/", (req, res) => {
-    res.send("Welcome to the Kindergarten Management API");
+    res.send("👋 Welcome to the Blue Dolphin Management API");
 });
 
 // Start server
 const PORT = process.env.PORT || 9999;
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
 });

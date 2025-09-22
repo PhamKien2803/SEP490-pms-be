@@ -4,7 +4,6 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const morgan = require("morgan");
 const connectDB = require("./configs/database");
-const { connectRedis } = require("./configs/redisConfig");
 const cookieParser = require("cookie-parser");
 // Khai báo routes
 const user = require("./routes/userRoute");
@@ -27,9 +26,6 @@ app.use(cookieParser());
 
 // Connect to MongoDB
 connectDB();
-
-// Connect Redis
-connectRedis();
 
 // Sử dụng đường dẫn
 app.use("/api/user", user);

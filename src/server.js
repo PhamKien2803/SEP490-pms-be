@@ -6,8 +6,8 @@ const morgan = require("morgan");
 const connectDB = require("./configs/database");
 const cookieParser = require("cookie-parser");
 // Khai báo routes
-const user = require("./routes/userRoute");
-// const auth = require("./routes/authRoute");
+const student = require("./routes/studentRoute");
+const auth = require("./routes/authRoute");
 // Khai báo dotenv
 dotenv.config();
 // Khai báo app
@@ -28,7 +28,9 @@ app.use(cookieParser());
 connectDB();
 
 // Sử dụng đường dẫn
-app.use("/api/user", user);
+app.use("/api/students", student);
+app.use("/api/auth", auth);
+
 // app.use("/api/auth", auth);
 // route test
 app.get("/", (req, res) => {

@@ -2,32 +2,40 @@ const { Model } = require("mongoose");
 const { HTTP_STATUS, RESPONSE_MESSAGE, USER_ROLES, VALIDATION_CONSTANTS } = require('../constants/useConstants');
 
 
-const findAllGeneric = (Model, populateFields = []) => async (req, res) => {
-    console.log("🚀 ~ findAllGeneric ~ Model:", Model)
-    try {
-        const { fields, ...filters } = req.query;
+// const findAllGeneric = (Model, populateFields = []) => async (req, res) => {
+//     console.log("🚀 ~ findAllGeneric ~ Model:", Model)
+//     try {
+//         const { fields, ...filters } = req.query;
 
-        const selectFields = fields ? fields.split(',').join(' ') : '';
-        console.log("🚀 ~ findAllGeneric ~ selectFields11111111:", selectFields)
-        if (Model.modelName !== 'WeeklyMenu') {
-            console.log("🚀 ~ findAllGeneric ~ selectFields:", selectFields)
-            filters.status = true;
-        }
+//         const selectFields = fields ? fields.split(',').join(' ') : '';
+//         console.log("🚀 ~ findAllGeneric ~ selectFields11111111:", selectFields)
+//         if (Model.modelName !== 'WeeklyMenu') {
+//             console.log("🚀 ~ findAllGeneric ~ selectFields:", selectFields)
+//             filters.status = true;
+//         }
 
-        let query = Model.find(filters).select(selectFields);
-        console.log("🚀 ~ findAllGeneric ~ query:", query)
-        populateFields.forEach((field) => {
-            query = query.populate(field);
-        });
+//         let query = Model.find(filters).select(selectFields);
+//         console.log("🚀 ~ findAllGeneric ~ query:", query)
+//         populateFields.forEach((field) => {
+//             query = query.populate(field);
+//         });
 
-        const data = await query.exec();
-        console.log("🚀 ~ findAllGeneric ~ data:", data)
+//         const data = await query.exec();
+//         console.log("🚀 ~ findAllGeneric ~ data:", data)
 
-        res.status(HTTP_STATUS.OK).json({ data });
-    } catch (err) {
-        res.status(HTTP_STATUS.SERVER_ERROR).json({ message: err.message });
+//         res.status(HTTP_STATUS.OK).json({ data });
+//     } catch (err) {
+//         res.status(HTTP_STATUS.SERVER_ERROR).json({ message: err.message });
+//     }
+// };
+
+const findAllGeneric = (Model) => async(req, res) =>{
+    try{
+        const {limit, offset} = req.query;
+    }catch(error){
+        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
     }
-};
+}
 
 
 const findIdGeneric = (Model, populateFields = []) => async (req, res) => {

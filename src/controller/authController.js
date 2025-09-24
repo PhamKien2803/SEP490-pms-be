@@ -84,7 +84,6 @@ exports.getCurrentUser = async (req, res) => {
     try {
         const { permissionListAll, userId } = req.user;
         const userProfile = await UserModel.findById(userId).lean();
-        console.log("🚀 ~ userProfile:", userProfile);
 
         return res.status(HTTP_STATUS.OK).json({
             message: "Thông tin người dùng",

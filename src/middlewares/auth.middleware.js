@@ -49,8 +49,6 @@ exports.verifyToken = async (req, res, next) => {
 
     req.user = {
       userId: user._id,
-      username: user.username || user.email,
-      roles: decoded.roles,
       functionList: uniqueFunctions,
       permissionListAll: permissionListAll
     };

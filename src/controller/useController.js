@@ -1,41 +1,55 @@
 const { Model } = require("mongoose");
 const { HTTP_STATUS, RESPONSE_MESSAGE, USER_ROLES, VALIDATION_CONSTANTS } = require('../constants/useConstants');
+const { sequencePattern } = require('../helpers/useHelpers')
 
+const findAllGeneric = (Model) => async (req, res) => {
+    try {
+        let { limit, page } = req.query;
 
-// const findAllGeneric = (Model, populateFields = []) => async (req, res) => {
-//     console.log("🚀 ~ findAllGeneric ~ Model:", Model)
-//     try {
-//         const { fields, ...filters } = req.query;
+        limit = parseInt(limit) || 30;
+        page = parseInt(page) || 1;
 
-//         const selectFields = fields ? fields.split(',').join(' ') : '';
-//         console.log("🚀 ~ findAllGeneric ~ selectFields11111111:", selectFields)
-//         if (Model.modelName !== 'WeeklyMenu') {
-//             console.log("🚀 ~ findAllGeneric ~ selectFields:", selectFields)
-//             filters.status = true;
-//         }
+        const offset = (page - 1) * limit;
 
-//         let query = Model.find(filters).select(selectFields);
-//         console.log("🚀 ~ findAllGeneric ~ query:", query)
-//         populateFields.forEach((field) => {
-//             query = query.populate(field);
-//         });
+        const queryString = {
+            active: { $eq: true },
+        };
 
-//         const data = await query.exec();
-//         console.log("🚀 ~ findAllGeneric ~ data:", data)
+        const totalCount = await Model.countDocuments(queryString);
 
-//         res.status(HTTP_STATUS.OK).json({ data });
-//     } catch (err) {
-//         res.status(HTTP_STATUS.SERVER_ERROR).json({ message: err.message });
-//     }
-// };
+        const data = await Model.find(queryString)
+            .skip(offset)
+            .limit(limit);
 
-const findAllGeneric = (Model) => async(req, res) =>{
-    try{
-        const {limit, offset} = req.query;
-    }catch(error){
+        if (!data || data.length === 0) {
+            return res
+                .status(HTTP_STATUS.BAD_REQUEST)
+                .json("Không tìm thấy dữ liệu");
+        }
+
+        return res.status(HTTP_STATUS.OK).json({
+            data,
+            page: {
+                totalCount,
+                limit,
+                page,
+            },
+        });
+    } catch (error) {
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
     }
+};
+
+const createGeneric = (Model) => async (req, res) => {
+    try {
+        // const {} = req.body;
+
+    } catch (error) {
+
+    }
 }
+
+
 
 
 const findIdGeneric = (Model, populateFields = []) => async (req, res) => {
@@ -63,41 +77,41 @@ const findIdGeneric = (Model, populateFields = []) => async (req, res) => {
 };
 
 
-const createGeneric = (Model, uniField = []) => async (req, res) => {
-    try {
-        if (uniField.length > 0) {
-            const filter = {};
-            for (const item of uniField) {
-                if (req.body[item] !== undefined) {
-                    filter[item] = req.body[item];
-                }
-            }
+// const createGeneric = (Model, uniField = []) => async (req, res) => {
+//     try {
+//         if (uniField.length > 0) {
+//             const filter = {};
+//             for (const item of uniField) {
+//                 if (req.body[item] !== undefined) {
+//                     filter[item] = req.body[item];
+//                 }
+//             }
 
-            filter.status = true;
+//             filter.status = true;
 
-            const existing = await Model.findOne(filter);
+//             const existing = await Model.findOne(filter);
 
-            if (existing) {
-                return res.status(400).json({
-                    message: `${RESPONSE_MESSAGE.UNIQUE_FIELDS}: ${Object.keys(filter)
-                        .filter(key => key !== 'status')
-                        .map(key => `${key}='${filter[key]}'`)
-                        .join(', ')}`,
-                });
-            }
-        }
+//             if (existing) {
+//                 return res.status(400).json({
+//                     message: `${RESPONSE_MESSAGE.UNIQUE_FIELDS}: ${Object.keys(filter)
+//                         .filter(key => key !== 'status')
+//                         .map(key => `${key}='${filter[key]}'`)
+//                         .join(', ')}`,
+//                 });
+//             }
+//         }
 
-        const newData = new Model(req.body);
-        const savedData = await newData.save();
+//         const newData = new Model(req.body);
+//         const savedData = await newData.save();
 
-        res.status(HTTP_STATUS.CREATED).json({
-            message: RESPONSE_MESSAGE.CREATED,
-            data: savedData,
-        });
-    } catch (err) {
-        res.status(HTTP_STATUS.SERVER_ERROR).json({ message: err.message });
-    }
-};
+//         res.status(HTTP_STATUS.CREATED).json({
+//             message: RESPONSE_MESSAGE.CREATED,
+//             data: savedData,
+//         });
+//     } catch (err) {
+//         res.status(HTTP_STATUS.SERVER_ERROR).json({ message: err.message });
+//     }
+// };
 
 const deletedSoftGeneric = (Model) => async (req, res) => {
     try {

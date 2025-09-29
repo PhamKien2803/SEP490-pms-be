@@ -42,10 +42,24 @@ const findAllGeneric = (Model) => async (req, res) => {
 
 const createGeneric = (Model) => async (req, res) => {
     try {
-        // const {} = req.body;
+        const modelName = (Model.modelName).toLowerCase();
+        console.log("🚀 ~ createGeneric ~ modelName:", modelName);
+        const sequence = await sequencePattern(modelName);
+        console.log("🚀 ~ createGeneric ~ sequence:", sequence);
+        const queryString = {
+            active: {$eq: true},
+            sequence: { $regex: sequence } 
+        };
+        const checkExits = await Model.find(queryString);
+        console.log("🚀 ~ createGeneric ~ checkExits:", checkExits);
+        const newData = {
+            active: true,
+            // `${modelName}Code`: 
+        }
 
     } catch (error) {
-
+        console.log("error createGeneric", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
     }
 }
 

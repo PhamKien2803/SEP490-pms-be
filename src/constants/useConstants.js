@@ -34,6 +34,9 @@ const TOKEN = {
     EX: 7 * 24 * 60 * 60
 }
 
+const SEQUENCE_CODE = {
+    FUNCTION : 'FC'
+}
 
 
 module.exports = {
@@ -41,4 +44,5 @@ module.exports = {
     RESPONSE_MESSAGE,
     VALIDATION_CONSTANTS,
     TOKEN,
+    SEQUENCE_CODE
 };

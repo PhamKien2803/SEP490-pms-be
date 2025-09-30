@@ -1,6 +1,7 @@
 const { Model } = require("mongoose");
 const { HTTP_STATUS, RESPONSE_MESSAGE, USER_ROLES, VALIDATION_CONSTANTS } = require('../constants/useConstants');
-const { sequencePattern } = require('../helpers/useHelpers')
+const { sequencePattern } = require('../helpers/useHelpers');
+const { SEQUENCE_CODE } = require('../constants/useConstants');
 
 const findAllGeneric = (Model) => async (req, res) => {
     try {
@@ -42,56 +43,44 @@ const findAllGeneric = (Model) => async (req, res) => {
 
 const createGeneric = (Model) => async (req, res) => {
     try {
-        const modelName = (Model.modelName).toLowerCase();
-        console.log("🚀 ~ createGeneric ~ modelName:", modelName);
-        const sequence = await sequencePattern(modelName);
-        console.log("🚀 ~ createGeneric ~ sequence:", sequence);
-        const queryString = {
-            active: {$eq: true},
-            sequence: { $regex: sequence } 
-        };
-        const checkExits = await Model.find(queryString);
-        console.log("🚀 ~ createGeneric ~ checkExits:", checkExits);
+        const modelName = Model.modelName.toLowerCase();
+        const sequence = await sequencePattern(Model.modelName);
+
+        const lastRecord = await Model.find({
+            active: true,
+            [`${modelName}Code`]: { $regex: `^${sequence}` }
+        })
+            .sort({ [`${modelName}Code`]: -1 })
+            .limit(1);
+
+        let sequenceCode;
+
+        if (lastRecord.length === 0) {
+            sequenceCode = `${sequence}001`;
+        } else {
+            const lastCode = lastRecord[0][`${modelName}Code`];
+            const lastNumber = parseInt(lastCode.slice(-3));
+            const nextNumber = (lastNumber + 1).toString().padStart(3, '0');
+            sequenceCode = `${sequence}${nextNumber}`;
+        }
+
         const newData = {
             active: true,
-            // `${modelName}Code`: 
-        }
+            [`${modelName}Code`]: sequenceCode,
+            ...req.body
+        };
+
+        const created = await Model.create(newData);
+
+        return res.status(200).json(created);
 
     } catch (error) {
         console.log("error createGeneric", error);
-        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
-    }
-}
-
-
-
-
-const findIdGeneric = (Model, populateFields = []) => async (req, res) => {
-    try {
-        const { fields } = req.query;
-
-        const selectFields = fields ? fields.split(',').join(' ') : '';
-
-        let query = Model.findById(req.params.id).select(selectFields);
-
-        populateFields.forEach((field) => {
-            query = query.populate(field);
-        });
-
-        const data = await query.exec();
-
-        if (!data) {
-            return res.status(HTTP_STATUS.NOT_FOUND).json(RESPONSE_MESSAGE.NOT_FOUND);
-        }
-
-        res.status(HTTP_STATUS.OK).json({ data });
-    } catch (err) {
-        res.status(HTTP_STATUS.SERVER_ERROR).json({ message: err.message });
+        return res.status(500).json(error.message);
     }
 };
 
 
-// const createGeneric = (Model, uniField = []) => async (req, res) => {
 //     try {
 //         if (uniField.length > 0) {
 //             const filter = {};
@@ -133,7 +122,7 @@ const deletedSoftGeneric = (Model) => async (req, res) => {
         if (!data) {
             return res.status(HTTP_STATUS.NOT_FOUND).json(RESPONSE_MESSAGE.NOT_FOUND);
         }
-        data.status = false;
+        data.active = false;
         await data.save();
         return res.status(HTTP_STATUS.OK).json(RESPONSE_MESSAGE.DELETED);
     } catch (err) {
@@ -141,28 +130,27 @@ const deletedSoftGeneric = (Model) => async (req, res) => {
     }
 }
 
-const updateGeneric = (Model, modelName) => async (req, res) => {
+const updateGeneric = (Model) => async (req, res) => {
     try {
-        const updatedData = await Model.findByIdAndUpdate(req.params.id, req.body, {
-            new: true,
-            runValidators: true,
-        });
+        const { id } = req.params;
 
-        if (!updatedData) {
-            return res.status(HTTP_STATUS.NOT_FOUND).json(RESPONSE_MESSAGE.NOT_FOUND);
+        const data = await Model.findById(id);
+        if (!data) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json(RESPONSE_MESSAGE.NOT_FOUND);
         }
+        Object.assign(data, req.body);
 
-        res.status(HTTP_STATUS.UPDATED).json(RESPONSE_MESSAGE.UPDATED);
+        await data.save();
+
+        return res.status(HTTP_STATUS.UPDATED).json(RESPONSE_MESSAGE.UPDATED);
     } catch (err) {
         res.status(HTTP_STATUS.SERVER_ERROR).json({ message: err.message });
     }
 };
 
 
-
 module.exports = {
     findAllGeneric,
-    findIdGeneric,
     createGeneric,
     updateGeneric,
     deletedSoftGeneric

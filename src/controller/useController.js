@@ -1,103 +1,120 @@
 const { Model } = require("mongoose");
 const { HTTP_STATUS, RESPONSE_MESSAGE, USER_ROLES, VALIDATION_CONSTANTS } = require('../constants/useConstants');
+const { sequencePattern } = require('../helpers/useHelpers');
+const { SEQUENCE_CODE } = require('../constants/useConstants');
+
+const findAllGeneric = (Model) => async (req, res) => {
+    try {
+        let { limit, page } = req.query;
+
+        limit = parseInt(limit) || 30;
+        page = parseInt(page) || 1;
+
+        const offset = (page - 1) * limit;
+
+        const queryString = {
+            active: { $eq: true },
+        };
+
+        const totalCount = await Model.countDocuments(queryString);
+
+        const data = await Model.find(queryString)
+            .skip(offset)
+            .limit(limit);
+
+        if (!data || data.length === 0) {
+            return res
+                .status(HTTP_STATUS.BAD_REQUEST)
+                .json("Không tìm thấy dữ liệu");
+        }
+
+        return res.status(HTTP_STATUS.OK).json({
+            data,
+            page: {
+                totalCount,
+                limit,
+                page,
+            },
+        });
+    } catch (error) {
+        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+    }
+};
+
+const createGeneric = (Model) => async (req, res) => {
+    try {
+        const modelName = Model.modelName.toLowerCase();
+        const sequence = await sequencePattern(Model.modelName);
+
+        const lastRecord = await Model.find({
+            active: true,
+            [`${modelName}Code`]: { $regex: `^${sequence}` }
+        })
+            .sort({ [`${modelName}Code`]: -1 })
+            .limit(1);
+
+        let sequenceCode;
+
+        if (lastRecord.length === 0) {
+            sequenceCode = `${sequence}001`;
+        } else {
+            const lastCode = lastRecord[0][`${modelName}Code`];
+            const lastNumber = parseInt(lastCode.slice(-3));
+            const nextNumber = (lastNumber + 1).toString().padStart(3, '0');
+            sequenceCode = `${sequence}${nextNumber}`;
+        }
+
+        const newData = {
+            active: true,
+            [`${modelName}Code`]: sequenceCode,
+            ...req.body
+        };
+
+        const created = await Model.create(newData);
+
+        return res.status(200).json(created);
+
+    } catch (error) {
+        console.log("error createGeneric", error);
+        return res.status(500).json(error.message);
+    }
+};
 
 
-// const findAllGeneric = (Model, populateFields = []) => async (req, res) => {
-//     console.log("🚀 ~ findAllGeneric ~ Model:", Model)
 //     try {
-//         const { fields, ...filters } = req.query;
+//         if (uniField.length > 0) {
+//             const filter = {};
+//             for (const item of uniField) {
+//                 if (req.body[item] !== undefined) {
+//                     filter[item] = req.body[item];
+//                 }
+//             }
 
-//         const selectFields = fields ? fields.split(',').join(' ') : '';
-//         console.log("🚀 ~ findAllGeneric ~ selectFields11111111:", selectFields)
-//         if (Model.modelName !== 'WeeklyMenu') {
-//             console.log("🚀 ~ findAllGeneric ~ selectFields:", selectFields)
-//             filters.status = true;
+//             filter.status = true;
+
+//             const existing = await Model.findOne(filter);
+
+//             if (existing) {
+//                 return res.status(400).json({
+//                     message: `${RESPONSE_MESSAGE.UNIQUE_FIELDS}: ${Object.keys(filter)
+//                         .filter(key => key !== 'status')
+//                         .map(key => `${key}='${filter[key]}'`)
+//                         .join(', ')}`,
+//                 });
+//             }
 //         }
 
-//         let query = Model.find(filters).select(selectFields);
-//         console.log("🚀 ~ findAllGeneric ~ query:", query)
-//         populateFields.forEach((field) => {
-//             query = query.populate(field);
+//         const newData = new Model(req.body);
+//         const savedData = await newData.save();
+
+//         res.status(HTTP_STATUS.CREATED).json({
+//             message: RESPONSE_MESSAGE.CREATED,
+//             data: savedData,
 //         });
-
-//         const data = await query.exec();
-//         console.log("🚀 ~ findAllGeneric ~ data:", data)
-
-//         res.status(HTTP_STATUS.OK).json({ data });
 //     } catch (err) {
 //         res.status(HTTP_STATUS.SERVER_ERROR).json({ message: err.message });
 //     }
 // };
-
-const findAllGeneric = (Model) => async(req, res) =>{
-    try{
-        const {limit, offset} = req.query;
-    }catch(error){
-        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
-    }
-}
-
-
-const findIdGeneric = (Model, populateFields = []) => async (req, res) => {
-    try {
-        const { fields } = req.query;
-
-        const selectFields = fields ? fields.split(',').join(' ') : '';
-
-        let query = Model.findById(req.params.id).select(selectFields);
-
-        populateFields.forEach((field) => {
-            query = query.populate(field);
-        });
-
-        const data = await query.exec();
-
-        if (!data) {
-            return res.status(HTTP_STATUS.NOT_FOUND).json(RESPONSE_MESSAGE.NOT_FOUND);
-        }
-
-        res.status(HTTP_STATUS.OK).json({ data });
-    } catch (err) {
-        res.status(HTTP_STATUS.SERVER_ERROR).json({ message: err.message });
-    }
-};
-
-
-const createGeneric = (Model, uniField = []) => async (req, res) => {
-    try {
-        if (uniField.length > 0) {
-            const filter = {};
-            for (const item of uniField) {
-                if (req.body[item] !== undefined) {
-                    filter[item] = req.body[item];
-                }
-            }
-
-            filter.status = true;
-
-            const existing = await Model.findOne(filter);
-
-            if (existing) {
-                return res.status(400).json({
-                    message: `${RESPONSE_MESSAGE.UNIQUE_FIELDS}: ${Object.keys(filter)
-                        .filter(key => key !== 'status')
-                        .map(key => `${key}='${filter[key]}'`)
-                        .join(', ')}`,
-                });
-            }
-        }
-
-        const newData = new Model(req.body);
-        const savedData = await newData.save();
-
-        res.status(HTTP_STATUS.CREATED).json({
-            message: RESPONSE_MESSAGE.CREATED,
-            data: savedData,
-        });
-    } catch (err) {
-        res.status(HTTP_STATUS.SERVER_ERROR).json({ message: err.message });
-    }
-};
 
 const deletedSoftGeneric = (Model) => async (req, res) => {
     try {
@@ -105,7 +122,7 @@ const deletedSoftGeneric = (Model) => async (req, res) => {
         if (!data) {
             return res.status(HTTP_STATUS.NOT_FOUND).json(RESPONSE_MESSAGE.NOT_FOUND);
         }
-        data.status = false;
+        data.active = false;
         await data.save();
         return res.status(HTTP_STATUS.OK).json(RESPONSE_MESSAGE.DELETED);
     } catch (err) {
@@ -113,28 +130,27 @@ const deletedSoftGeneric = (Model) => async (req, res) => {
     }
 }
 
-const updateGeneric = (Model, modelName) => async (req, res) => {
+const updateGeneric = (Model) => async (req, res) => {
     try {
-        const updatedData = await Model.findByIdAndUpdate(req.params.id, req.body, {
-            new: true,
-            runValidators: true,
-        });
+        const { id } = req.params;
 
-        if (!updatedData) {
-            return res.status(HTTP_STATUS.NOT_FOUND).json(RESPONSE_MESSAGE.NOT_FOUND);
+        const data = await Model.findById(id);
+        if (!data) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json(RESPONSE_MESSAGE.NOT_FOUND);
         }
+        Object.assign(data, req.body);
 
-        res.status(HTTP_STATUS.UPDATED).json(RESPONSE_MESSAGE.UPDATED);
+        await data.save();
+
+        return res.status(HTTP_STATUS.UPDATED).json(RESPONSE_MESSAGE.UPDATED);
     } catch (err) {
         res.status(HTTP_STATUS.SERVER_ERROR).json({ message: err.message });
     }
 };
 
 
-
 module.exports = {
     findAllGeneric,
-    findIdGeneric,
     createGeneric,
     updateGeneric,
     deletedSoftGeneric

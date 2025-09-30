@@ -19,7 +19,6 @@ exports.loginController = async (req, res) => {
         if (!(email.includes("@"))) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Email nhập sai định dạng" });
         }
-console.log("password.length",password.length);
         if (password.length < 8) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Mật khẩu phải có ít nhất 8 ký tự" });
         }
@@ -66,7 +65,7 @@ console.log("password.length",password.length);
                 select: "functionName urlFunction"
             })
             .lean();
-
+            
         const token = jwt.sign(
             {
                 userId: user._id,
@@ -105,3 +104,4 @@ exports.getCurrentUser = async (req, res) => {
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
     }
 }
+

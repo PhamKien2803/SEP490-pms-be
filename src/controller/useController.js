@@ -47,14 +47,12 @@ const createGeneric = (Model) => async (req, res) => {
         const sequence = await sequencePattern(Model.modelName);
 
         const lastRecord = await Model.find({
-            active: true,
             [`${modelName}Code`]: { $regex: `^${sequence}` }
         })
             .sort({ [`${modelName}Code`]: -1 })
             .limit(1);
 
         let sequenceCode;
-
         if (lastRecord.length === 0) {
             sequenceCode = `${sequence}001`;
         } else {
@@ -70,51 +68,31 @@ const createGeneric = (Model) => async (req, res) => {
             ...req.body
         };
 
-        const created = await Model.create(newData);
+        const uniqueFields = Object.keys(Model.schema.paths).filter(
+            key => Model.schema.paths[key].options.unique
+        );
 
-        return res.status(200).json(created);
+        for (const field of uniqueFields) {
+            const exists = await Model.findOne({ [field]: newData[field] });
+            if (exists) {
+                return res.status(400).json({ message: `${field} đã tồn tại.` });
+            }
+        }
+
+        const created = await Model.create(newData);
+        return res.status(201).json(created);
 
     } catch (error) {
         console.log("error createGeneric", error);
-        return res.status(500).json(error.message);
+
+        if (error.name === "ValidationError") {
+            const messages = Object.values(error.errors).map(e => e.message);
+            return res.status(400).json({ message: messages.join(", ") });
+        }
+
+        return res.status(500).json({ message: error.message });
     }
 };
-
-
-//     try {
-//         if (uniField.length > 0) {
-//             const filter = {};
-//             for (const item of uniField) {
-//                 if (req.body[item] !== undefined) {
-//                     filter[item] = req.body[item];
-//                 }
-//             }
-
-//             filter.status = true;
-
-//             const existing = await Model.findOne(filter);
-
-//             if (existing) {
-//                 return res.status(400).json({
-//                     message: `${RESPONSE_MESSAGE.UNIQUE_FIELDS}: ${Object.keys(filter)
-//                         .filter(key => key !== 'status')
-//                         .map(key => `${key}='${filter[key]}'`)
-//                         .join(', ')}`,
-//                 });
-//             }
-//         }
-
-//         const newData = new Model(req.body);
-//         const savedData = await newData.save();
-
-//         res.status(HTTP_STATUS.CREATED).json({
-//             message: RESPONSE_MESSAGE.CREATED,
-//             data: savedData,
-//         });
-//     } catch (err) {
-//         res.status(HTTP_STATUS.SERVER_ERROR).json({ message: err.message });
-//     }
-// };
 
 const deletedSoftGeneric = (Model) => async (req, res) => {
     try {
@@ -140,11 +118,27 @@ const updateGeneric = (Model) => async (req, res) => {
         }
         Object.assign(data, req.body);
 
+        const uniqueFields = Object.keys(Model.schema.paths).filter(
+            key => Model.schema.paths[key].options.unique
+        );
+
+        for (const field of uniqueFields) {
+            const exists = await Model.findOne({ [field]: data[field], _id: { $ne: id } });
+            if (exists) {
+                return res.status(400).json({ message: `Trường ${field} đã tồn tại.` });
+            }
+        }
         await data.save();
 
         return res.status(HTTP_STATUS.UPDATED).json(RESPONSE_MESSAGE.UPDATED);
-    } catch (err) {
-        res.status(HTTP_STATUS.SERVER_ERROR).json({ message: err.message });
+    } catch (error) {
+        console.log("error createGeneric", error);
+
+        if (error.name === "ValidationError") {
+            const messages = Object.values(error.errors).map(e => e.message);
+            return res.status(400).json({ message: messages.join(", ") });
+        }
+        res.status(HTTP_STATUS.SERVER_ERROR).json({ message: error.message });
     }
 };
 

@@ -7,6 +7,7 @@ const connectDB = require("./configs/database");
 const cookieParser = require("cookie-parser");
 // Khai báo routes
 const student = require("./routes/studentRoute");
+const parent = require("./routes/parentRoute");
 const auth = require("./routes/authRoute");
 const functions = require("./routes/functionRoute");
 // Khai báo dotenv
@@ -25,6 +26,7 @@ connectDB();
 
 // Sử dụng đường dẫn
 app.use("/api/students", student);
+app.use("/api/pms/parents", parent);
 app.use("/api/auth", auth);
 app.use("/api/functions", functions);
 

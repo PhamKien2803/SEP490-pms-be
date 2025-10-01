@@ -6,7 +6,7 @@
     "build": "echo \"Nothing to build. Just vibes.\"",
     "test": "echo \"No tests but I’m a legend\"",
     "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "start": "nodemon src/server.js"
   },
   "author": "",
   "license": "ISC",

@@ -24,10 +24,9 @@ app.use(cookieParser());
 connectDB();
 
 // Sử dụng đường dẫn
-app.use("/api/students", student);
-app.use("/api/auth", auth);
-app.use("/api/functions", functions);
-
+app.use("/api/pms/students", student);
+app.use("/api/pms/auth", auth);
+app.use("/api/pms/functions", functions)
 // route test
 app.get("/", (req, res) => {
     res.send("👋 Welcome to the Blue Dolphin Management API");

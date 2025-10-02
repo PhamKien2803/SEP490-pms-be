@@ -15,7 +15,7 @@ dotenv.config();
 // Khai báo app
 const app = express();
 // Middleware
-app.use(cors({ origin: "http://localhost:5173" }));
+app.use(cors({ origin: "http://localhost:5173", credentials: true, }));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(morgan("dev"));
@@ -25,11 +25,10 @@ app.use(cookieParser());
 connectDB();
 
 // Sử dụng đường dẫn
-app.use("/api/students", student);
+app.use("/api/pms/students", student);
 app.use("/api/pms/parents", parent);
-app.use("/api/auth", auth);
-app.use("/api/functions", functions);
-
+app.use("/api/pms/auth", auth);
+app.use("/api/pms/functions", functions)
 // route test
 app.get("/", (req, res) => {
     res.send("👋 Welcome to the Blue Dolphin Management API");

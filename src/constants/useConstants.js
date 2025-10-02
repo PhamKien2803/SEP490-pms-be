@@ -37,6 +37,7 @@ const TOKEN = {
 const SEQUENCE_CODE = {
     FUNCTION : 'FC',
     PARENT: 'PA',
+    STUDENT: "STU"
 }
 
 

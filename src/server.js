@@ -10,6 +10,7 @@ const student = require("./routes/studentRoute");
 const parent = require("./routes/parentRoute");
 const auth = require("./routes/authRoute");
 const functions = require("./routes/functionRoute");
+const role = require("./routes/roleRoute");
 // Khai báo dotenv
 dotenv.config();
 // Khai báo app
@@ -28,7 +29,8 @@ connectDB();
 app.use("/api/pms/students", student);
 app.use("/api/pms/parents", parent);
 app.use("/api/pms/auth", auth);
-app.use("/api/pms/functions", functions)
+app.use("/api/pms/functions", functions);
+app.use("/api/pms/roles", role);
 // route test
 app.get("/", (req, res) => {
     res.send("👋 Welcome to the Blue Dolphin Management API");

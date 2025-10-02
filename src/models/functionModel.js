@@ -5,8 +5,8 @@ const FunctionSchema = new mongoose.Schema(
         functionName: { type: String, required: true },
         urlFunction: { type: String, required: true, unique: true },
         active: { type: Boolean },
-        createdBy: { type: String, required: true },
-        updatedBy: { type: String, required: true },
+        createdBy: { type: String },
+        updatedBy: { type: String },
     },
     { timestamps: true, versionKey: false },
 );

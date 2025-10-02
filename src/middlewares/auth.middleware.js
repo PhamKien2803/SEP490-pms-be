@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const _ = require("lodash")
 const UserModel = require("../models/userModel");
 const Role = require('../models/roleModel');
 const Function = require('../models/functionModel');
@@ -37,6 +38,8 @@ exports.verifyToken = async (req, res, next) => {
     const permissions = permissionListAll.flatMap(role =>
       role.permissionList.flatMap(module =>
         module.functionList.map(f => ({
+          moduleId: module.moduleId._id.toString(),
+          moduleName: module.moduleId.moduleName,
           functionId: f.functionId._id.toString(),
           urlFunction: f.functionId.urlFunction,
           functionName: f.functionId.functionName,
@@ -45,22 +48,37 @@ exports.verifyToken = async (req, res, next) => {
       )
     );
 
+
     const uniqueFunctionsMap = new Map();
 
     permissions.forEach(f => {
       if (!uniqueFunctionsMap.has(f.functionId)) {
-        uniqueFunctionsMap.set(f.functionId, f); 
+        uniqueFunctionsMap.set(f.functionId, f);
       }
     });
 
     const uniquePermission = Array.from(uniqueFunctionsMap.values());
-
-    const uniqueFunctions = Array.from(new Map(permissions.map(f => [f.functionId, f])).values());
+    const grouped = _(uniquePermission)
+      .groupBy(item => `${item.moduleId}|${item.moduleName}`)
+      .map(items => {
+        const { moduleId, moduleName } = items[0];
+        return {
+          moduleId,
+          moduleName,
+          functions: items.map(f => ({
+            functionId: f.functionId,
+            urlFunction: f.urlFunction,
+            functionName: f.functionName,
+            actions: f.actions
+          }))
+        };
+      })
+      .value();
 
     req.user = {
       userId: user._id,
-      functionList: uniqueFunctions,
-      permissionListAll: uniquePermission
+      permissionListAll: grouped,
+      functionList: uniquePermission,
     };
 
 

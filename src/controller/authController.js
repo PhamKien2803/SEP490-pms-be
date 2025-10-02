@@ -65,7 +65,7 @@ exports.loginController = async (req, res) => {
                 select: "functionName urlFunction"
             })
             .lean();
-            
+
         const token = jwt.sign(
             {
                 userId: user._id,

@@ -1,11 +1,11 @@
 {
   "name": "be_kids_system",
   "version": "1.0.0",
-  "main": "functions/*.js",
+  "main": "src/server.js",
   "scripts": {
     "build": "echo \"Nothing to build. Just vibes.\"",
     "test": "echo \"No tests but I’m a legend\"",
-    "dev": "func start",
+    "dev": "nodemon src/server.js",
     "start": "nodemon src/server.js"
   },
   "author": "",

@@ -3,11 +3,18 @@ const router = express.Router();
 const Role = require("../models/roleModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { createGeneric, deletedSoftGeneric, findAllGeneric, updateGeneric } = require("../controller/useController");
+const { getListController, getDetailController } = require("../controller/roleController");
 
 router.get("/list",
     verifyToken,
     authorizeAction("view"),
-    findAllGeneric(Role)
+    getListController
+);
+
+router.get("/getByID/:id",
+    verifyToken,
+    authorizeAction("view"),
+    getDetailController
 );
 
 router.post("/create",

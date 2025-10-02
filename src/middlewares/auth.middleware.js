@@ -45,12 +45,22 @@ exports.verifyToken = async (req, res, next) => {
       )
     );
 
+    const uniqueFunctionsMap = new Map();
+
+    permissions.forEach(f => {
+      if (!uniqueFunctionsMap.has(f.functionId)) {
+        uniqueFunctionsMap.set(f.functionId, f); 
+      }
+    });
+
+    const uniquePermission = Array.from(uniqueFunctionsMap.values());
+
     const uniqueFunctions = Array.from(new Map(permissions.map(f => [f.functionId, f])).values());
 
     req.user = {
       userId: user._id,
       functionList: uniqueFunctions,
-      permissionListAll: permissionListAll
+      permissionListAll: uniquePermission
     };
 
 
@@ -67,10 +77,10 @@ exports.verifyToken = async (req, res, next) => {
 exports.authorizeAction = (requiredAction) => {
   return (req, res, next) => {
     const { functionList } = req.user;
-    const fullPath = req.baseUrl + req.path;
+    const path = req.baseUrl
 
     const permissionUser = functionList.find(func =>
-      fullPath.startsWith("/api" + func.urlFunction)
+      path === "/api" + func.urlFunction
     );
     if (!permissionUser) {
       return res.status(HTTP_STATUS.FORBIDDEN).json({

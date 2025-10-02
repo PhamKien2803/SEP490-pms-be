@@ -20,6 +20,8 @@ const RoleSchema = new mongoose.Schema(
                 ],
             },
         ],
+        createdBy: { type: String },
+        updatedBy: { type: String },
 
         active: { type: Boolean, default: true },
     },

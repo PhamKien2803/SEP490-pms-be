@@ -4,12 +4,13 @@ const User = require("../models/userModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
 const { getListRoleController } = require("../controller/roleController");
+const { getListUser } = require("../controller/authController");
 
 router.get(
     "/list",
     verifyToken,
     authorizeAction("view"),
-    findAllGeneric(User)
+    getListUser
 );
 
 router.get(

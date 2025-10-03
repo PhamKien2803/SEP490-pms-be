@@ -105,3 +105,59 @@ exports.getCurrentUser = async (req, res) => {
     }
 }
 
+exports.getListUser = async (req, res) => {
+    try {
+        let { limit, page } = req.query;
+
+        limit = parseInt(limit) || 30;
+        page = parseInt(page) || 1;
+
+        const offset = (page - 1) * limit;
+
+        const queryString = {
+            active: { $eq: true },
+        };
+
+        const totalCount = await UserModel.countDocuments(queryString);
+
+        const data = await UserModel.find(queryString, {
+            email: 1,
+            roleList: 1,
+            isAdmin: 1,
+            staff: 1,
+            parent: 1,
+        })
+            .populate({
+                path: "roleList",
+                select: "roleCode roleName"
+            })
+            .populate({
+                path: "staff",
+                select: "staffCode fullName"
+            })
+            .populate({
+                path: "parent",
+                select: "staffCode fullName"
+            })
+            .lean();
+
+        if (!data || data.length === 0) {
+            return res
+                .status(HTTP_STATUS.BAD_REQUEST)
+                .json("Không tìm thấy dữ liệu");
+        }
+
+        return res.status(HTTP_STATUS.OK).json({
+            data,
+            page: {
+                totalCount,
+                limit,
+                page,
+            },
+        });
+    } catch (error) {
+        console.error("Error getListUser", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json({ message: "Lỗi server", error });
+    }
+};
+

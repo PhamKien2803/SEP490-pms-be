@@ -3,13 +3,19 @@ const router = express.Router();
 const Staff = require("../models/staffModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { createGeneric, deletedSoftGeneric, findAllGeneric, updateGeneric } = require("../controller/useController");
-const { createStaffController, deleteStaff } = require("../controller/staffController");
+const { createStaffController, deleteStaff, getDetailStaffController } = require("../controller/staffController");
 
 router.get("/list",
     verifyToken,
     authorizeAction("view"),
     findAllGeneric(Staff)
 );
+
+router.get("/getById/:id",
+    verifyToken,
+    authorizeAction("view"),
+    getDetailStaffController
+)
 
 router.post("/create",
     verifyToken,

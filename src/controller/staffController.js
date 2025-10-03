@@ -52,7 +52,6 @@ exports.createStaffController = async (req, res) => {
         }
 
         const staffSaved = await Staff.create([newData], { session });
-        console.log("🚀 ~ created Staff:", staffSaved[0]);
 
         const userSaved = await User.create(
             [
@@ -90,6 +89,18 @@ exports.createStaffController = async (req, res) => {
     }
 };
 
+exports.getDetailStaffController = async (req, res) => {
+    try {
+        const data = await Staff.findById(req.params.id);
+        if (!data) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Nhân viên không tồn tại" });
+        }
+        return res.status(HTTP_STATUS.OK).json(data);
+    } catch (error) {
+        console.log("Error getDetailStaffController", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+    }
+}
 
 exports.deleteStaff = async (req, res) => {
     try {

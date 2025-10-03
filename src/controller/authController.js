@@ -126,6 +126,7 @@ exports.getListUser = async (req, res) => {
             isAdmin: 1,
             staff: 1,
             parent: 1,
+            updatedBy: 1,
         })
             .populate({
                 path: "roleList",

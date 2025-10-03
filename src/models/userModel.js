@@ -4,11 +4,13 @@ const UserSchema = new mongoose.Schema(
     {
         email: { type: String, required: true },
         password: { type: String, required: true },
-        roleList: [{ type: mongoose.Types.ObjectId, ref: "Role"}],
+        roleList: [{ type: mongoose.Types.ObjectId, ref: "Role" }],
         isAdmin: { type: Boolean },
         active: { type: Boolean, default: true },
         staff: { type: mongoose.Types.ObjectId, ref: "Staff" },
         parent: { type: mongoose.Types.ObjectId, ref: "Parent" },
+        createdBy: { type: String },
+        updatedBy: { type: String },
     },
     { timestamps: true, versionKey: false },
 );

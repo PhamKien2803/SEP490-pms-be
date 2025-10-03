@@ -1,9 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const Role = require("../models/roleModel");
+const Function = require('../models/functionModel');
+const Module = require("../models/moduleModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { createGeneric, deletedSoftGeneric, findAllGeneric, updateGeneric } = require("../controller/useController");
-const { getListController, getDetailController } = require("../controller/roleController");
+const { getListController, getDetailController, getListModuleController, getListFunctionController } = require("../controller/roleController");
+
 
 router.get("/list",
     verifyToken,
@@ -34,6 +37,18 @@ router.post("/delete/:id",
     authorizeAction("delete"),
     deletedSoftGeneric(Role)
 );
+
+router.get("/listFunction",
+    verifyToken,
+    authorizeAction("view"),
+    getListFunctionController
+)
+
+router.get("/listModule",
+    verifyToken,
+    authorizeAction("view"),
+    getListModuleController
+)
 
 module.exports = router;
 

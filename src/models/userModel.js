@@ -6,7 +6,7 @@ const UserSchema = new mongoose.Schema(
         password: { type: String, required: true },
         roleList: [{ type: mongoose.Types.ObjectId, ref: "Role"}],
         isAdmin: { type: Boolean },
-        active: { type: Boolean },
+        active: { type: Boolean, default: true },
         staff: { type: mongoose.Types.ObjectId, ref: "Staff" },
         parent: { type: mongoose.Types.ObjectId, ref: "Parent" },
     },

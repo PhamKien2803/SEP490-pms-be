@@ -62,3 +62,35 @@ exports.getDetailController = async (req, res) => {
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
     }
 }
+
+exports.getListFunctionController = async (req, res) => {
+    try {
+        let queryString = {
+            active: { $eq: true },
+        }
+        const data = await Function.find(queryString, {
+            functionCode: 1,
+            functionName: 1
+        })
+        return res.status(HTTP_STATUS.OK).json(data);
+    } catch (error) {
+        console.log("Error getCurrentUser", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+    }
+}
+
+exports.getListModuleController = async(req, res) => {
+     try {
+        let queryString = {
+            active: { $eq: true },
+        }
+        const data = await Module.find(queryString, {
+            moduleCode: 1,
+            moduleName: 1
+        })
+        return res.status(HTTP_STATUS.OK).json(data);
+    } catch (error) {
+        console.log("Error getCurrentUser", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+    }
+}

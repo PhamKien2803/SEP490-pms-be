@@ -11,6 +11,7 @@ const parent = require("./routes/parentRoute");
 const auth = require("./routes/authRoute");
 const functions = require("./routes/functionRoute");
 const role = require("./routes/roleRoute");
+
 // Khai báo dotenv
 dotenv.config();
 // Khai báo app

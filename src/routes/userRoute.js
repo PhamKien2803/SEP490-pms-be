@@ -13,7 +13,7 @@ router.get(
 );
 
 router.get(
-    "/roleList",
+    "/roleNames",
     verifyToken,
     authorizeAction("view"),
     getListRoleController

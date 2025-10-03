@@ -94,3 +94,20 @@ exports.getListModuleController = async(req, res) => {
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
     }
 }
+
+exports.getListRoleController = async(req, res) => {
+     try {
+        const queryString = {
+            active: {$eq: true},
+        }
+        const data = await Role.find(queryString, {
+            roleCode: 1,
+            roleName: 1,
+        });
+
+        return res.status(HTTP_STATUS.OK).json(data);
+    } catch (error) {
+        console.log("Error getCurrentUser", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+    }
+}

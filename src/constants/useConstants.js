@@ -39,7 +39,8 @@ const SEQUENCE_CODE = {
     PARENT: 'PA',
     STUDENT: "STU",
     ROLE: "RO",
-    USER: "US"
+    USER: "US",
+    STAFF: "ST",
 }
 
 

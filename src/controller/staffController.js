@@ -1,10 +1,17 @@
 
 const { Model } = require("mongoose");
+const fs = require('fs');
+const path = require('path');
+const ejs = require('ejs');
+
 const { HTTP_STATUS, RESPONSE_MESSAGE, USER_ROLES, VALIDATION_CONSTANTS } = require('../constants/useConstants');
+const { IMAP_CONFIG, SMTP_CONFIG } = require('../constants/mailConstants');
 const Staff = require("../models/staffModel");
 const User = require("../models/userModel");
 const { sequencePattern } = require('../helpers/useHelpers');
 const { SEQUENCE_CODE } = require('../constants/useConstants');
+const SMTP = require('../helpers/stmpHelper');
+const IMAP = require('../helpers/iMapHelper');
 
 exports.createStaffController = async (req, res) => {
     const session = await Staff.startSession();
@@ -69,7 +76,30 @@ exports.createStaffController = async (req, res) => {
         await session.commitTransaction();
         session.endSession();
 
-        return res.status(HTTP_STATUS.CREATED).json(RESPONSE_MESSAGE.CREATED);
+        res.status(HTTP_STATUS.CREATED).json(RESPONSE_MESSAGE.CREATED);
+
+         setImmediate(async () => {
+            const templatePath = path.join(__dirname, '..', 'templates', 'newAccountMail.ejs');
+
+            const htmlConfirm = await ejs.renderFile(templatePath, {
+                fullName: staffSaved[0].fullName,
+                username: userSaved[0].email,
+                password: "12345678"
+            });
+
+            const mail = new SMTP(SMTP_CONFIG);
+            mail.send(
+                email,
+                '',
+                `THÔNG TIN TÀI KHOẢN SỬ DỤNG HỆ THỐNG`,
+                htmlConfirm,
+                '',
+                () => {
+                    console.log(`✅ Mail gửi thành công đến email : ${email}`);
+                }
+            );
+
+        });
     } catch (error) {
         await session.abortTransaction();
         session.endSession();

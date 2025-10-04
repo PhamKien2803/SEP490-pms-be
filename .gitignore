@@ -4,3 +4,4 @@ node_modules
 package-lock.json
 local.settings.json
 .vscode/*
+.github/

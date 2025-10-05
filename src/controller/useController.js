@@ -2,6 +2,7 @@ const { Model } = require("mongoose");
 const { HTTP_STATUS, RESPONSE_MESSAGE, USER_ROLES, VALIDATION_CONSTANTS } = require('../constants/useConstants');
 const { sequencePattern } = require('../helpers/useHelpers');
 const { SEQUENCE_CODE } = require('../constants/useConstants');
+const i18n = require("../middlewares/i18n.middelware");
 
 const findAllGeneric = (Model) => async (req, res) => {
     try {
@@ -42,57 +43,78 @@ const findAllGeneric = (Model) => async (req, res) => {
 };
 
 const createGeneric = (Model) => async (req, res) => {
-    try {
-        const modelName = Model.modelName.toLowerCase();
-        const sequence = await sequencePattern(Model.modelName);
+  try {
+    const modelName = Model.modelName.toLowerCase();
+    const sequence = await sequencePattern(Model.modelName);
 
-        const lastRecord = await Model.find({
-            [`${modelName}Code`]: { $regex: `^${sequence}` }
-        })
-            .sort({ [`${modelName}Code`]: -1 })
-            .limit(1);
+    const lastRecord = await Model.find({
+      [`${modelName}Code`]: { $regex: `^${sequence}` }
+    })
+      .sort({ [`${modelName}Code`]: -1 })
+      .limit(1);
 
-        let sequenceCode;
-        if (lastRecord.length === 0) {
-            sequenceCode = `${sequence}001`;
-        } else {
-            const lastCode = lastRecord[0][`${modelName}Code`];
-            const lastNumber = parseInt(lastCode.slice(-3));
-            const nextNumber = (lastNumber + 1).toString().padStart(3, '0');
-            sequenceCode = `${sequence}${nextNumber}`;
-        }
-
-        const newData = {
-            active: true,
-            [`${modelName}Code`]: sequenceCode,
-            ...req.body
-        };
-
-        const uniqueFields = Object.keys(Model.schema.paths).filter(
-            key => Model.schema.paths[key].options.unique
-        );
-
-        for (const field of uniqueFields) {
-            const exists = await Model.findOne({ [field]: newData[field] });
-            if (exists) {
-                return res.status(400).json({ message: `${field} đã tồn tại.` });
-            }
-        }
-
-        const created = await Model.create(newData);
-        return res.status(201).json(created);
-
-    } catch (error) {
-        console.log("error createGeneric", error);
-
-        if (error.name === "ValidationError") {
-            const messages = Object.values(error.errors).map(e => e.message);
-            return res.status(400).json({ message: messages.join(", ") });
-        }
-
-        return res.status(500).json({ message: error.message });
+    let sequenceCode;
+    if (lastRecord.length === 0) {
+      sequenceCode = `${sequence}001`;
+    } else {
+      const lastCode = lastRecord[0][`${modelName}Code`];
+      const lastNumber = parseInt(lastCode.slice(-3));
+      const nextNumber = (lastNumber + 1).toString().padStart(3, "0");
+      sequenceCode = `${sequence}${nextNumber}`;
     }
+
+    const newData = {
+      active: true,
+      [`${modelName}Code`]: sequenceCode,
+      ...req.body
+    };
+
+    const uniqueFields = Object.keys(Model.schema.paths).filter(
+      (key) => Model.schema.paths[key].options.unique
+    );
+
+    const requiredFields = Object.keys(Model.schema.paths).filter(
+      (key) => Model.schema.paths[key].options.required
+    );
+
+    const missingFields = requiredFields.filter(
+      (field) => newData[field] === undefined || newData[field] === ""
+    );
+
+    if (missingFields.length > 0) {
+      const messages = missingFields.map((field) => {
+        const fieldLabel = i18n.t(`fields.${field}`);
+        return i18n.t("messages.required", { field: fieldLabel });
+      });
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: messages.join(", ") });
+    }
+
+    for (const field of uniqueFields) {
+      if (!newData[field]) continue;
+
+      const exists = await Model.findOne({ [field]: newData[field] });
+      if (exists) {
+        const fieldLabel = i18n.t(`fields.${field}`);
+        const message = i18n.t("messages.alreadyExists", { field: fieldLabel });
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({ message });
+      }
+    }
+
+    const created = await Model.create(newData);
+    return res.status(HTTP_STATUS.CREATED).json(created);
+
+  } catch (error) {
+    console.log("error createGeneric", error);
+
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((e) => e.message);
+      return res.status(400).json({ message: messages.join(", ") });
+    }
+
+    return res.status(500).json({ message: error.message });
+  }
 };
+
 
 const deletedSoftGeneric = (Model) => async (req, res) => {
     try {

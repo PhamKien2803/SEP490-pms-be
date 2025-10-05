@@ -3,7 +3,7 @@ const { Model } = require("mongoose");
 const fs = require('fs');
 const path = require('path');
 const ejs = require('ejs');
-
+const i18n = require("../middlewares/i18n.middelware"); 
 const { HTTP_STATUS, RESPONSE_MESSAGE, USER_ROLES, VALIDATION_CONSTANTS } = require('../constants/useConstants');
 const { IMAP_CONFIG, SMTP_CONFIG } = require('../constants/mailConstants');
 const Staff = require("../models/staffModel");
@@ -50,11 +50,16 @@ exports.createStaffController = async (req, res) => {
 
         for (const field of uniqueFields) {
             if (!newData[field]) continue;
+
             const exists = await Staff.findOne({ [field]: newData[field] });
             if (exists) {
                 await session.abortTransaction();
                 session.endSession();
-                return res.status(400).json({ message: `${field} đã tồn tại.` });
+
+                const fieldLabel = i18n.t(`fields.${field}`);
+                const message = i18n.t("messages.alreadyExists", { field: fieldLabel });
+
+                return res.status(400).json({ message });
             }
         }
 
@@ -105,14 +110,6 @@ exports.createStaffController = async (req, res) => {
         session.endSession();
 
         console.error("Error createStaffController", error);
-
-        if (error.code === 11000) {
-            const field = Object.keys(error.keyValue)[0];
-            return res
-                .status(400)
-                .json({ message: `${field} đã tồn tại trong hệ thống.` });
-        }
-
         return res
             .status(HTTP_STATUS.SERVER_ERROR)
             .json({ message: "Lỗi server", error });

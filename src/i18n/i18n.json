@@ -1,0 +1,20 @@
+{
+  "fields": {
+    "staffCode": "Mã nhân viên",
+    "studentCode":"Mã học sinh",
+    "roleCode": "Mã vai trò",
+    "functionCode": "Mã chức năng",
+    "urlFunction": "Đường dẫn",
+    "email": "Email",
+    "IDCard": "CMND/CCCD",
+    "phoneNumber": "Số điện thoại",
+    "fullName": "Họ và tên",
+    "dob": "Ngày sinh",
+    "gender": "Giới tính"
+  },
+  "messages": {
+    "alreadyExists": "{{field}} đã tồn tại",
+    "notFound": "{{field}} không tồn tại",
+    "required": "{{field}} là bắt buộc"
+  }
+}

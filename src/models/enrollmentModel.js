@@ -1,29 +1,43 @@
-// const mongoose = require("mongoose");
-// const EnrollmentSchoolSchema = new mongoose.Schema(
-//   {
-//     EnrollmentCode: {type: String, required: true},
-//     studentName: { type: String, required: true },
-//     studentAge: { type: Number, required: true },
-//     studentDob: { type: Date, required: true },
-//     studentGender: { type: String, enum: ["male", "female", "other"] },
-//     parentName: { type: String, required: true },
-//     parentGender: { type: String, enum: ["male", "female", "other"] },
-//     parentDob: {type: Date, required: true},
-//     IDCard: { type: String, required: true },
-//     address: { type: String, required: true },
-//     phoneNumber: { type: String, required: true },
-//     email: { type: String, required: true },
-//     relationship: { type: String, required: true },
-//     reason: { type: String },
-//     note: { type: String }, // Note về sức khỏe
-//     state: {
-//       type: String,
-//       enum: ["Chờ xác nhận", "Chờ xử lý", "Hoàn thành", "Xử lý lỗi"],
-//       default: "Chờ xác nhận"
-//     }
+const mongoose = require("mongoose");
+const EnrollmentSchema = new mongoose.Schema(
+  {
+    //student
+    enrollmentCode: { type: String, required: true, unique: true },
+    studentName: { type: String, required: true },
+    studentDob: { type: Date, required: true },
+    studentGender: { type: String, enum: ["Nam", "Nữ", "Khác"], required: true },
+    studentIdCard: { type: String, required: true, unique: true },
+    studentNation: { type: String, required: true },
+    studentReligion: { type: String, required: true },
+    address: { type: String, required: true },
+    birthCert: { type: String },
+    heathCert: { type: String },
 
-//   },
-//   { timestamps: true, versionKey: false }
-// );
+    //dad
+    fatherName: { type: String, required: true },
+    fatherGender: { type: String, enum: ["Nam", "Nữ", "Khác"] },
+    fatherPhoneNumber: { type: String, required: true, unique: true },
+    fatherEmail: { type: String, required: true, unique: true },
+    fatherIdCard: { type: String, required: true, unique: true },
+    fatherJob: { type: String },
 
-// module.exports = mongoose.model("EnrollmentSchool", EnrollmentSchoolSchema);
+    //mom
+    motherName: { type: String, required: true },
+    motherGender: { type: String, enum: ["Nam", "Nữ", "Khác"] },
+    motherPhoneNumber: { type: String, required: true, unique: true },
+    motherEmail: { type: String, required: true, unique: true },
+    motherIdCard: { type: String, required: true, unique: true },
+    motherJob: { type: String },
+    note: { type: String },
+    state: {
+      type: String,
+      enum: ["Chờ BGH phê duyệt", "Chờ xử lý", "Hoàn thành", "Chờ bổ sung"],
+      default: "Chờ xử lý"
+    },
+    approvedBy: { type: String },
+
+  },
+  { timestamps: true, versionKey: false }
+);
+
+module.exports = mongoose.model("Enrollment", EnrollmentSchema);

@@ -35,12 +35,13 @@ const TOKEN = {
 }
 
 const SEQUENCE_CODE = {
-    FUNCTION : 'FC',
+    FUNCTION: 'FC',
     PARENT: 'PA',
     STUDENT: "STU",
     ROLE: "RO",
     USER: "US",
     STAFF: "ST",
+    ENROLLMENT: "ER",
 }
 
 

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thông báo hồ sơ</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+<div class="container py-5">
+  <div class="card shadow-lg">
+    <div class="card-header bg-primary text-white">
+      <h4 class="mb-0">📢 Thông báo Hồ sơ Tuyển Sinh</h4>
+    </div>
+    <div class="card-body">
+      <form action="/send-enrollment-notification" method="POST">
+        <div class="form-group">
+          <label for="appointmentDate">Ngày hẹn nộp giấy tờ</label>
+          <input type="date" class="form-control" id="appointmentDate" name="appointmentDate" required>
+        </div>
+        <div class="text-right">
+          <button type="submit" class="btn btn-success px-4">Gửi Thông Báo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>

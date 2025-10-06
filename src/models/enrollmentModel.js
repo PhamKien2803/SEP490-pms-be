@@ -34,6 +34,7 @@ const EnrollmentSchema = new mongoose.Schema(
       enum: ["Chờ BGH phê duyệt", "Chờ xử lý", "Hoàn thành", "Chờ bổ sung"],
       default: "Chờ xử lý"
     },
+    active: { type: String },
     approvedBy: { type: String },
 
   },

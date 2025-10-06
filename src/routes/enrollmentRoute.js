@@ -7,8 +7,8 @@ const { registerEnrollController } = require("../controller/enrollmentController
 
 
 router.get("/list",
-    // verifyToken,
-    // authorizeAction("view"),
+    verifyToken,
+    authorizeAction("view"),
     findAllGeneric(Enrollment)
 );
 

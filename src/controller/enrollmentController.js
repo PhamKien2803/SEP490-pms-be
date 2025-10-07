@@ -111,7 +111,7 @@ exports.registerEnrollController = async (req, res) => {
 
 exports.approvedEnrollController = async (req, res) => {
     try {
-        const { _id, ...updateFields } = req.body; 
+        const { _id, ...updateFields } = req.body;
 
         const enrollment = await Enrollment.findById(_id);
         if (!enrollment) {

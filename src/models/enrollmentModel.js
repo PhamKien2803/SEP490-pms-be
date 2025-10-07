@@ -31,7 +31,7 @@ const EnrollmentSchema = new mongoose.Schema(
     note: { type: String },
     state: {
       type: String,
-      enum: ["Chờ BGH phê duyệt", "Chờ xử lý", "Hoàn thành"],
+      enum: ["Chờ BGH phê duyệt", "Chờ xử lý", "Chờ bổ sung", "Hoàn thành"],
       default: "Chờ xử lý"
     },
     active: { type: String },

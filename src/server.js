@@ -5,6 +5,7 @@ const cors = require("cors");
 const morgan = require("morgan");
 const connectDB = require("./configs/database");
 const cookieParser = require("cookie-parser");
+const { connectGridFS } = require("./configs/gridfs");
 // Khai báo routes
 const student = require("./routes/studentRoute");
 const parent = require("./routes/parentRoute");
@@ -27,6 +28,7 @@ app.use(cookieParser());
 
 // Connect to MongoDB
 connectDB();
+connectGridFS();
 
 // Sử dụng đường dẫn
 app.use("/api/pms/students", student);
@@ -37,6 +39,7 @@ app.use("/api/pms/roles", role);
 app.use("/api/pms/accounts", user);
 app.use("/api/pms/staffs", staffs);
 app.use("/api/pms/enrollments", enrollments);
+
 // route test
 app.get("/", (req, res) => {
     res.send("👋 Welcome to the Blue Dolphin Management API");

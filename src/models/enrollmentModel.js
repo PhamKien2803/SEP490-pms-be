@@ -10,8 +10,8 @@ const EnrollmentSchema = new mongoose.Schema(
     studentNation: { type: String, required: true },
     studentReligion: { type: String, required: true },
     address: { type: String, required: true },
-    birthCert: { type: String },
-    heathCert: { type: String },
+    birthCertId: { type: mongoose.Schema.Types.ObjectId },
+    heathCertId: { type: mongoose.Schema.Types.ObjectId, },
 
     //dad
     fatherName: { type: String, required: true },
@@ -31,7 +31,7 @@ const EnrollmentSchema = new mongoose.Schema(
     note: { type: String },
     state: {
       type: String,
-      enum: ["Chờ BGH phê duyệt", "Chờ xử lý", "Hoàn thành", "Chờ bổ sung"],
+      enum: ["Chờ BGH phê duyệt", "Chờ xử lý", "Hoàn thành"],
       default: "Chờ xử lý"
     },
     active: { type: String },

@@ -108,3 +108,65 @@ exports.registerEnrollController = async (req, res) => {
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error)
     }
 }
+
+exports.aprrovedEnrollController = async (req, res) => {
+    try {
+        const { _id, birthCertId, heathCertId, approvedBy } = req.body;
+        const data = await Enrollment.findById(_id);
+        console.log("🚀 ~ data:", data);
+        if (!data) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Enrollment không tồn tại" });
+        }
+        data.birthCertId = birthCertId;
+        data.heathCertId = heathCertId;
+        data.approvedBy = approvedBy;
+        data.state = "Chờ BGH phê duyệt";
+
+        await data.save();
+        res.status(HTTP_STATUS.OK).json({ message: "Phê duyệt thành công" });
+
+        setImmediate(async () => {
+            // const templatePath = path.join(__dirname, '..', 'templates', 'newAccountMail.ejs');
+            // const htmlConfirm = await ejs.renderFile(templatePath);
+            const htmlContent = `
+      <h2>Thông báo Hồ sơ Tuyển Sinh</h2>
+      <p>Xin chào Quý phụ huynh của học sinh <strong>${data.studentName}</strong>,</p>
+      <p>Nhà trường đã tiếp nhận hồ sơ tuyển sinh của học sinh. Hiện trạng hồ sơ <strong>đã tiếp nhận giấy tờ</strong>.</p>
+      <br>
+      <p>Trân trọng,</p>
+      <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
+    `;
+            const mail = new SMTP(SMTP_CONFIG);
+            mail.send(
+                data.fatherEmail,
+                data.motherEmail,
+                'THÔNG BÁO TIẾP NHẬN HỒ SƠ TUYỂN SINH',
+                htmlContent,
+                '',
+                (err, info) => {
+                    if (err) {
+                        console.error("❌ Lỗi khi gửi mail:", err);
+                        return res.status(500).send("Gửi mail thất bại.");
+                    }
+                    console.log(`✅ Đã gửi mail thành công: `);
+                }
+            );
+
+        });
+    } catch (error) {
+        console.log("Error aprrovedEnrollController", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json(error)
+    }
+}
+
+exports.getByIdController = async (req, res) => {
+    try {
+        const data = await Enrollment.findById(req.params.id);
+        if (!data) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy phiếu nhập học" });
+        }
+        return res.status(HTTP_STATUS.OK).json(data);
+    } catch (error) {
+        console.log("error getByIdController", error)
+    }
+}

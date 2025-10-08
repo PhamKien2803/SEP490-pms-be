@@ -203,8 +203,13 @@ exports.getByIdController = async (req, res) => {
 
 exports.rejectEnrollController = async (req, res) => {
     try {
+        const { note } = req.body;
+        if (!note) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Lý do là bắt buộc" });
+        }
         const data = await Enrollment.findById(req.params.id);
         data.state = "Chưa đủ điều kiện nhập học";
+        data.note = note;
 
         await data.save();
         res.status(HTTP_STATUS.OK).json({ message: "Từ chối đơn nhập học thành công" });
@@ -215,6 +220,7 @@ exports.rejectEnrollController = async (req, res) => {
     <p>Xin chào Quý phụ huynh của học sinh <strong>${data.studentName}</strong>,</p>
     <p>Nhà trường trân trọng cảm ơn Quý phụ huynh đã quan tâm và gửi hồ sơ tuyển sinh cho học sinh.</p>
     <p>Sau khi xem xét hồ sơ và kết quả tuyển sinh, rất tiếc chúng tôi xin thông báo rằng hồ sơ của học sinh <strong>không đủ điều kiện nhập học</strong>.</p>
+        <p>Với lý do là <strong>${note}</strong>.</p>
     <p>Nhà trường mong Quý phụ huynh và học sinh sẽ tiếp tục cố gắng, và hy vọng sẽ có cơ hội đồng hành cùng Quý vị trong những năm học tới.</p>
     <br>
     <p>Trân trọng,</p>

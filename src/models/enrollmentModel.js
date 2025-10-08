@@ -10,8 +10,8 @@ const EnrollmentSchema = new mongoose.Schema(
     studentNation: { type: String, required: true },
     studentReligion: { type: String, required: true },
     address: { type: String, required: true },
-    birthCert: { type: String },
-    heathCert: { type: String },
+    birthCertId: { type: mongoose.Schema.Types.ObjectId },
+    healthCertId: { type: mongoose.Schema.Types.ObjectId, },
 
     //dad
     fatherName: { type: String, required: true },
@@ -28,10 +28,10 @@ const EnrollmentSchema = new mongoose.Schema(
     motherEmail: { type: String, required: true, unique: true },
     motherIdCard: { type: String, required: true, unique: true },
     motherJob: { type: String },
-    note: { type: String },
+    reason: { type: String },
     state: {
       type: String,
-      enum: ["Chờ BGH phê duyệt", "Chờ xử lý", "Hoàn thành", "Chờ bổ sung"],
+      enum: ["Chờ BGH phê duyệt", "Chờ xử lý", "Hoàn thành", "Chưa đủ điều kiện nhập học"],
       default: "Chờ xử lý"
     },
     active: { type: String },

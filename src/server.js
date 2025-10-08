@@ -5,6 +5,7 @@ const cors = require("cors");
 const morgan = require("morgan");
 const connectDB = require("./configs/database");
 const cookieParser = require("cookie-parser");
+const { connectGridFS } = require("./configs/gridfs");
 // Khai báo routes
 const student = require("./routes/studentRoute");
 const parent = require("./routes/parentRoute");
@@ -28,6 +29,7 @@ app.use(cookieParser());
 
 // Connect to MongoDB
 connectDB();
+connectGridFS();
 
 // Sử dụng đường dẫn
 app.use("/api/pms/students", student);

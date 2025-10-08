@@ -6,6 +6,7 @@ const ejs = require('ejs');
 const { HTTP_STATUS, RESPONSE_MESSAGE, USER_ROLES, VALIDATION_CONSTANTS } = require('../constants/useConstants');
 const { IMAP_CONFIG, SMTP_CONFIG } = require('../constants/mailConstants');
 const { sequencePattern } = require('../helpers/useHelpers');
+const { getGFS } = require("../configs/gridfs");
 const i18n = require("../middlewares/i18n.middelware");
 const Enrollment = require("../models/enrollmentModel");
 const SMTP = require('../helpers/stmpHelper');
@@ -106,5 +107,147 @@ exports.registerEnrollController = async (req, res) => {
     } catch (error) {
         console.log("Error registerEnrollController", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error)
+    }
+}
+
+exports.approvedEnrollController = async (req, res) => {
+    try {
+        const { _id, ...updateFields } = req.body;
+
+        const enrollment = await Enrollment.findById(_id);
+        if (!enrollment) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Enrollment không tồn tại" });
+        }
+
+        Object.keys(updateFields).forEach(key => {
+            enrollment[key] = updateFields[key];
+        });
+
+        await enrollment.save();
+        res.status(HTTP_STATUS.OK).json({ message: "Phê duyệt thành công" });
+
+        setImmediate(async () => {
+            const htmlContent = `
+                <h2>Thông báo Hồ sơ Tuyển Sinh</h2>
+                <p>Xin chào Quý phụ huynh của học sinh <strong>${enrollment.studentName}</strong>,</p>
+                <p>Nhà trường đã tiếp nhận hồ sơ tuyển sinh của học sinh. Hiện trạng hồ sơ <strong>đã tiếp nhận giấy tờ</strong>.</p>
+                <br>
+                <p>Trân trọng,</p>
+                <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
+            `;
+
+            const mail = new SMTP(SMTP_CONFIG);
+            mail.send(
+                enrollment.fatherEmail,
+                enrollment.motherEmail,
+                'THÔNG BÁO XÉT TUYỂN HỒ SƠ TUYỂN SINH',
+                htmlContent,
+                '',
+                (err, info) => {
+                    if (err) {
+                        console.error("❌ Lỗi khi gửi mail:", err);
+                        return;
+                    }
+                    console.log(`✅ Đã gửi mail thành công`);
+                }
+            );
+        });
+    } catch (error) {
+        console.log("Error approvedEnrollController", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+    }
+};
+
+exports.getByIdController = async (req, res) => {
+    try {
+        const gfs = getGFS();
+        if (!gfs) {
+            return res.status(500).json({ message: "GridFS chưa kết nối" });
+        }
+
+        const data = await Enrollment.findById(req.params.id).lean();
+        if (!data) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json({
+                message: "Không tìm thấy phiếu nhập học",
+            });
+        }
+
+        let birthCertFiles = null;
+        let healthCertFiles = null;
+
+        if (data.birthCertId) {
+            const birthFiles = await gfs.find({ _id: data.birthCertId }).toArray();
+            birthCertFiles = birthFiles.length > 0 ? birthFiles[0] : null;
+        }
+
+        if (data.healthCertId) {
+            const healthFiles = await gfs.find({ _id: data.healthCertId }).toArray();
+            healthCertFiles = healthFiles.length > 0 ? healthFiles[0] : null;
+        }
+
+        const result = {
+            ...data,
+            birthCertFiles,
+            healthCertFiles,
+        };
+
+        return res.status(HTTP_STATUS.OK).json(result);
+    } catch (error) {
+        console.error("error getByIdController:", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json({
+            message: "Lỗi máy chủ khi lấy thông tin phiếu nhập học",
+            error: error.message,
+        });
+    }
+};
+
+exports.rejectEnrollController = async (req, res) => {
+    try {
+        const { reason } = req.body;
+        if (!reason) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Lý do là bắt buộc" });
+        }
+        const data = await Enrollment.findById(req.params.id);
+        data.state = "Chưa đủ điều kiện nhập học";
+        data.reason = reason;
+
+        await data.save();
+        res.status(HTTP_STATUS.OK).json({ message: "Từ chối đơn nhập học thành công" });
+
+        setImmediate(async () => {
+            const htmlContent = `
+    <h2>Thông báo Kết Quả Tuyển Sinh</h2>
+    <p>Xin chào Quý phụ huynh của học sinh <strong>${data.studentName}</strong>,</p>
+    <p>Nhà trường trân trọng cảm ơn Quý phụ huynh đã quan tâm và gửi hồ sơ tuyển sinh cho học sinh.</p>
+    <p>Sau khi xem xét hồ sơ và kết quả tuyển sinh, rất tiếc chúng tôi xin thông báo rằng hồ sơ của học sinh <strong>không đủ điều kiện nhập học</strong>.</p>
+        <p>Với lý do là <strong>${reason}</strong>.</p>
+    <p>Nhà trường mong Quý phụ huynh và học sinh sẽ tiếp tục cố gắng, và hy vọng sẽ có cơ hội đồng hành cùng Quý vị trong những năm học tới.</p>
+    <br>
+    <p>Trân trọng,</p>
+    <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
+`;
+
+            const mail = new SMTP(SMTP_CONFIG);
+            mail.send(
+                data.fatherEmail,
+                data.motherEmail,
+                'THÔNG BÁO XÉT TUYỂN HỒ SƠ TUYỂN SINH',
+                htmlContent,
+                '',
+                (err, info) => {
+                    if (err) {
+                        console.error("❌ Lỗi khi gửi mail:", err);
+                        return;
+                    }
+                    console.log(`✅ Đã gửi mail thành công`);
+                }
+            );
+        });
+    } catch (error) {
+        console.error("error getByIdController:", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json({
+            message: "Lỗi máy chủ khi lấy thông tin phiếu nhập học",
+            error: error.message,
+        });
     }
 }

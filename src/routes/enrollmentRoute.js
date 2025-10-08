@@ -3,7 +3,7 @@ const router = express.Router();
 const Enrollment = require("../models/enrollmentModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
-const { registerEnrollController, approvedEnrollController, getByIdController } = require("../controller/enrollmentController");
+const { registerEnrollController, approvedEnrollController, getByIdController, rejectEnrollController } = require("../controller/enrollmentController");
 const { uploadFile, getFileById } = require("../controller/fileController");
 
 
@@ -17,6 +17,12 @@ router.get("/getById/:id",
     verifyToken,
     authorizeAction("view"),
     getByIdController
+)
+
+router.put("/update/:id",
+    verifyToken,
+    authorizeAction("update"),
+    updateGeneric(Enrollment)
 )
 
 router.post("/registerEnroll", registerEnrollController);
@@ -38,6 +44,12 @@ router.post("/aprrovedEnroll",
     authorizeAction("approve"),
     approvedEnrollController
 );
+
+router.post("/rejectEnroll/:id",
+    verifyToken,
+    authorizeAction("reject"),
+    rejectEnrollController
+)
 
 
 module.exports = router;

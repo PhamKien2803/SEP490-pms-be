@@ -140,7 +140,7 @@ exports.approvedEnrollController = async (req, res) => {
             mail.send(
                 enrollment.fatherEmail,
                 enrollment.motherEmail,
-                'THÔNG BÁO TIẾP NHẬN HỒ SƠ TUYỂN SINH',
+                'THÔNG BÁO XÉT TUYỂN HỒ SƠ TUYỂN SINH',
                 htmlContent,
                 '',
                 (err, info) => {
@@ -165,7 +165,7 @@ exports.getByIdController = async (req, res) => {
             return res.status(500).json({ message: "GridFS chưa kết nối" });
         }
 
-        const data = await Enrollment.findById(req.params.id).lean(); 
+        const data = await Enrollment.findById(req.params.id).lean();
         if (!data) {
             return res.status(HTTP_STATUS.NOT_FOUND).json({
                 message: "Không tìm thấy phiếu nhập học",
@@ -201,3 +201,47 @@ exports.getByIdController = async (req, res) => {
     }
 };
 
+exports.rejectEnrollController = async (req, res) => {
+    try {
+        const data = await Enrollment.findById(req.params.id);
+        data.state = "Chưa đủ điều kiện nhập học";
+
+        await data.save();
+        res.status(HTTP_STATUS.OK).json({ message: "Từ chối đơn nhập học thành công" });
+
+        setImmediate(async () => {
+            const htmlContent = `
+    <h2>Thông báo Kết Quả Tuyển Sinh</h2>
+    <p>Xin chào Quý phụ huynh của học sinh <strong>${data.studentName}</strong>,</p>
+    <p>Nhà trường trân trọng cảm ơn Quý phụ huynh đã quan tâm và gửi hồ sơ tuyển sinh cho học sinh.</p>
+    <p>Sau khi xem xét hồ sơ và kết quả tuyển sinh, rất tiếc chúng tôi xin thông báo rằng hồ sơ của học sinh <strong>không đủ điều kiện nhập học</strong>.</p>
+    <p>Nhà trường mong Quý phụ huynh và học sinh sẽ tiếp tục cố gắng, và hy vọng sẽ có cơ hội đồng hành cùng Quý vị trong những năm học tới.</p>
+    <br>
+    <p>Trân trọng,</p>
+    <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
+`;
+
+            const mail = new SMTP(SMTP_CONFIG);
+            mail.send(
+                data.fatherEmail,
+                data.motherEmail,
+                'THÔNG BÁO XÉT TUYỂN HỒ SƠ TUYỂN SINH',
+                htmlContent,
+                '',
+                (err, info) => {
+                    if (err) {
+                        console.error("❌ Lỗi khi gửi mail:", err);
+                        return;
+                    }
+                    console.log(`✅ Đã gửi mail thành công`);
+                }
+            );
+        });
+    } catch (error) {
+        console.error("error getByIdController:", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json({
+            message: "Lỗi máy chủ khi lấy thông tin phiếu nhập học",
+            error: error.message,
+        });
+    }
+}

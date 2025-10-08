@@ -31,7 +31,7 @@ const EnrollmentSchema = new mongoose.Schema(
     reason: { type: String },
     state: {
       type: String,
-      enum: ["Chờ BGH phê duyệt", "Chờ xử lý", "Hoàn thành", "Chưa đủ điều kiện nhập học"],
+      enum: ["Chờ BGH phê duyệt", "Chờ xử lý", "Hoàn thành", "Chưa đủ điều kiện nhập học", "Xử lý lỗi", "Chờ xử lý tự động"],
       default: "Chờ xử lý"
     },
     active: { type: String },

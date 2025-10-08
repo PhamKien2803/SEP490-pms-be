@@ -1,4 +1,3 @@
-
 const { Model } = require("mongoose");
 const fs = require('fs');
 const path = require('path');
@@ -9,8 +8,12 @@ const { sequencePattern } = require('../helpers/useHelpers');
 const { getGFS } = require("../configs/gridfs");
 const i18n = require("../middlewares/i18n.middelware");
 const Enrollment = require("../models/enrollmentModel");
+const Student = require("../models/studentModel");
+const Parent = require("../models/parentModel");
+const User = require("../models/userModel");
 const SMTP = require('../helpers/stmpHelper');
 const IMAP = require('../helpers/iMapHelper');
+const { emailQueue } = require('../configs/queue');
 
 exports.registerEnrollController = async (req, res) => {
     try {
@@ -82,7 +85,7 @@ exports.registerEnrollController = async (req, res) => {
       <h2>Thông báo Hồ sơ Tuyển Sinh</h2>
       <p>Xin chào Quý phụ huynh của học sinh <strong>${created.studentName}</strong>,</p>
       <p>Nhà trường đã tiếp nhận hồ sơ tuyển sinh của học sinh. Hiện trạng hồ sơ đang <strong>đang xử lý</strong>.</p>
-      <p>Quý phụ huynh vui lòng đến trường vào ngày <strong>16/10/2025</strong> để nộp giấy tờ cần thiết.</p>
+      <p>Quý phụ huynh vui lòng đến trường vào ngày <strong>16/10/2025</strong> để nộp giấy tờ cần thiết với mã đăng kí <strong>${created.enrollmentCode}</strong> .</p>
       <br>
       <p>Trân trọng,</p>
       <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
@@ -122,7 +125,7 @@ exports.approvedEnrollController = async (req, res) => {
         Object.keys(updateFields).forEach(key => {
             enrollment[key] = updateFields[key];
         });
-
+        enrollment.state = "Chờ BGH phê duyệt";
         await enrollment.save();
         res.status(HTTP_STATUS.OK).json({ message: "Phê duyệt thành công" });
 
@@ -251,3 +254,201 @@ exports.rejectEnrollController = async (req, res) => {
         });
     }
 }
+
+const processSequenceCode = async (Model) => {
+    const modelName = Model.modelName.toLowerCase();
+    const sequence = await sequencePattern(Model.modelName);
+
+    const lastRecord = await Model.find({
+        [`${modelName}Code`]: { $regex: `^${sequence}` }
+    })
+        .sort({ [`${modelName}Code`]: -1 })
+        .limit(1);
+
+    let sequenceCode;
+    if (lastRecord.length === 0) {
+        sequenceCode = `${sequence}001`;
+    } else {
+        const lastCode = lastRecord[0][`${modelName}Code`];
+        const lastNumber = parseInt(lastCode.slice(-3));
+        const nextNumber = (lastNumber + 1).toString().padStart(3, "0");
+        sequenceCode = `${sequence}${nextNumber}`;
+    }
+    return sequenceCode;
+}
+
+exports.approvedEnrollAllController = async (req, res) => {
+    try {
+        const dataProcess = await Enrollment.find({ state: "Chờ BGH phê duyệt" });
+        if (!dataProcess.length) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không có phiếu nào chờ phê duyệt" });
+        }
+
+        await Enrollment.updateMany(
+            { state: "Chờ BGH phê duyệt" },
+            { $set: { state: "Chờ xử lý tự động" } }
+        );
+        const modelStudentName = Student.modelName.toLowerCase();
+        const modelParentName = Parent.modelName.toLowerCase();
+
+        const results = [];
+
+        // Xử lý tuần tự
+        for (const data of dataProcess) {
+            try {
+                const {
+                    studentName, studentDob, studentGender, studentIdCard,
+                    studentNation, studentReligion, address, birthCertId, healthCertId,
+                    fatherName, fatherGender, fatherPhoneNumber, fatherEmail, fatherIdCard, fatherJob,
+                    motherName, motherGender, motherPhoneNumber, motherEmail, motherIdCard, motherJob
+                } = data;
+
+                // tạo học sinh
+                const sequenceCodeStudent = await processSequenceCode(Student);
+                const newStudent = await Student.create({
+                    [`${modelStudentName}Code`]: sequenceCodeStudent,
+                    fullName: studentName,
+                    dob: studentDob,
+                    gender: studentGender,
+                    idCard: studentIdCard,
+                    nation: studentNation,
+                    religion: studentReligion,
+                    active: true,
+                    address,
+                    createdBy: "Hệ thống",
+                    updatedBy: "Hệ thống",
+                    birthCertId,
+                    healthCertId
+                });
+
+                // tạo cha
+                let dad = await Parent.findOne({ active: true, IDCard: fatherIdCard });
+                if (!dad) {
+                    const sequenceCodeParentDad = await processSequenceCode(Parent);
+                    dad = await Parent.create({
+                        [`${modelParentName}Code`]: sequenceCodeParentDad,
+                        fullName: fatherName,
+                        phoneNumber: fatherPhoneNumber,
+                        email: fatherEmail,
+                        gender: fatherGender,
+                        IDCard: fatherIdCard,
+                        job: fatherJob,
+                        active: true,
+                        students: [newStudent._id]
+                    });
+                    const sequenceCodeUserDad = await processSequenceCode(User);
+                    await User.create({
+                        email: fatherEmail,
+                        password: "12345678",
+                        active: true,
+                        parent: dad._id
+                    });
+                } else {
+                    dad.students.push(newStudent._id);
+                    await dad.save();
+                }
+
+                // tạo mẹ
+                let mom = await Parent.findOne({ active: true, IDCard: motherIdCard });
+                if (!mom) {
+                    const sequenceCodeParentMom = await processSequenceCode(Parent);
+                    mom = await Parent.create({
+                        fullName: motherName,
+                        phoneNumber: motherPhoneNumber,
+                        email: motherEmail,
+                        gender: motherGender,
+                        IDCard: motherIdCard,
+                        job: motherJob,
+                        active: true,
+                        students: [newStudent._id]
+                    });
+                    const sequenceCodeUserMom = await processSequenceCode(User);
+                    await User.create({
+                        email: motherEmail,
+                        password: "12345678",
+                        active: true,
+                        parent: mom._id
+                    });
+                } else {
+                    mom.students.push(newStudent._id);
+                    await mom.save();
+                }
+
+                // update trạng thái enrollment
+                data.state = "Hoàn thành";
+                await data.save();
+
+                results.push({
+                    status: "fulfilled",
+                    enrollmentCode: data.enrollmentCode,
+                    studentId: newStudent._id,
+                    dadId: dad._id,
+                    momId: mom._id,
+                    fatherEmail: fatherEmail,
+                    motherEmail: motherEmail,
+                    studentCode: newStudent[`${modelStudentName}Code`],
+                    studentName: studentName
+                });
+
+            } catch (innerError) {
+                results.push({
+                    status: "rejected",
+                    reason: innerError
+                });
+            }
+        }
+
+        for (const r of results) {
+            console.log(`🔍 Kiểm tra học sinh: ${r.studentName}, status: ${r.status}`);
+
+            if (r.status === 'fulfilled') {
+                console.log("11111");
+                if (!emailQueue) {
+                    console.error('❌ Email Queue chưa khởi tạo');
+                    continue;
+                }
+
+                const htmlContent = `
+      <h2>Thông báo Hồ sơ Tuyển Sinh</h2>
+      <p>Xin chào Quý phụ huynh của học sinh <strong>${r.studentName}</strong>,</p>
+      <p>Học sinh <strong>${r.studentName}</strong> với mã <strong>${r.studentCode}</strong> đã <strong>trúng tuyển</strong>.</p>
+      <p>Tài khoản phụ huynh:</p>
+      <ul><li>Email: ${r.fatherEmail}</li><li>Mật khẩu: 12345678</li></ul>
+      <ul><li>Email: ${r.motherEmail}</li><li>Mật khẩu: 12345678</li></ul>
+      <p>Vui lòng đổi mật khẩu sau khi đăng nhập.</p>
+      <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
+    `;
+
+                await emailQueue.add({
+                    to: r.fatherEmail,
+                    cc: r.motherEmail,
+                    subject: 'THÔNG BÁO TRÚNG TUYỂN NHẬP HỌC',
+                    html: htmlContent
+                });
+            }
+
+
+            const successCount = results.filter(r => r.status === "fulfilled").length;
+            const failCount = results.filter(r => r.status === "rejected").length;
+
+            if (failCount > 0) {
+                console.error("Một số hồ sơ bị lỗi:", results.filter(r => r.status === "rejected").map(r => r.reason?.message));
+            }
+
+            return res.status(HTTP_STATUS.OK).json({
+                message: `Phê duyệt thành công ${successCount}/${dataProcess.length} hồ sơ.`,
+                failed: failCount
+            });
+
+        }
+    } catch (error) {
+        console.error("error approvedEnrollAllController:", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json({
+            message: "Lỗi máy chủ khi phê duyệt phiếu nhập học",
+            error: error.message,
+        });
+    }
+}
+
+
+

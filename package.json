@@ -6,7 +6,8 @@
     "build": "echo \"Nothing to build. Just vibes.\"",
     "test": "echo \"No tests but I’m a legend\"",
     "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "start": "concurrently \"npm run dev\" \"npm run start:worker\"",
+    "start:worker": "nodemon src/helpers/emailWorkQueue.js"
   },
   "author": "",
   "license": "ISC",
@@ -14,6 +15,7 @@
   "dependencies": {
     "@google/genai": "^1.8.0",
     "bcryptjs": "^3.0.2",
+    "bull": "^4.16.5",
     "cloudinary": "^2.7.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -35,10 +37,11 @@
     "node-imap": "^0.9.6",
     "nodemailer": "^7.0.6",
     "path": "^0.12.7",
-    "redis": "^5.1.0"
+    "redis": "^5.8.3"
   },
   "devDependencies": {
     "azure-functions-core-tools": "^4.0.7030",
+    "concurrently": "^9.2.1",
     "morgan": "^1.10.0",
     "nodemon": "^3.1.9"
   }

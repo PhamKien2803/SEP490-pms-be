@@ -96,13 +96,9 @@ exports.authorizeAction = (requiredAction) => {
   return (req, res, next) => {
     const { functionList } = req.user;
     const path = req.baseUrl
-    console.log("🚀 ~ path:", path)
-    console.log("🚀 ~ functionList:", functionList)
-
     const permissionUser = functionList.find(func =>
       path === "/api" + func.urlFunction
     );
-    console.log("🚀 ~ permissionUser:", permissionUser)
     if (!permissionUser) {
       return res.status(HTTP_STATUS.FORBIDDEN).json({
         message: "Bạn không có quyền truy cập endpoint này."

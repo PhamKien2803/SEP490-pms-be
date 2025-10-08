@@ -1,15 +1,18 @@
 const express = require("express");
 const router = express.Router();
-const User = require("../models/userModel");
-const Menu = require("../models/menuModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
-const { deletedSoftGeneric } = require("../controller/useController");
-const { getMenuByDateFromTo, createMenu, updateMenu, deleteMenuById } = require("../controller/menuController");
+const { getMenuByDateFromTo, createMenu, updateMenu, deleteMenuById, getMenuTotalCaloIsNo, genAICaculateMenuNutrition, getMenuById } = require("../controller/menuController");
 
 router.get("/get-by-date/",
     verifyToken,
     authorizeAction("view"),
     getMenuByDateFromTo
+);
+
+router.get("/get-by-id/:id",
+    verifyToken,
+    authorizeAction("view"),
+    getMenuById
 );
 
 router.post("/create",
@@ -30,4 +33,16 @@ router.delete("/delete/:id",
     deleteMenuById
 );
 
+router.get("/menu-no-calo",
+    verifyToken,
+    authorizeAction("view"),
+    getMenuTotalCaloIsNo
+);
+
+
+router.get("/caculate-calo",
+    verifyToken,
+    authorizeAction("view"),
+    genAICaculateMenuNutrition
+);
 module.exports = router;

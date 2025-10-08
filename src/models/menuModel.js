@@ -50,58 +50,13 @@ const MenuSchema = new mongoose.Schema(
     totalLipid: { type: Number, default: 0 },
     totalCarb: { type: Number, default: 0 },
 
+    state: { type: String, enum: ["Chờ xử lý", "Đang xử lý", "Đã xử lý"], default: "Chờ xử lý" },
+
     notes: { type: String },
     createdBy: { type: String },
     updatedBy: { type: String },
   },
   { timestamps: true }
 );
-
-// // --- Hook tính tổng dinh dưỡng tự động ---
-// MenuSchema.pre("save", function (next) {
-//   let weekCalo = 0, weekProtein = 0, weekLipid = 0, weekCarb = 0;
-
-//   this.days.forEach(day => {
-//     let dayCalo = 0, dayProtein = 0, dayLipid = 0, dayCarb = 0;
-
-//     day.meals.forEach(meal => {
-//       let mealCalo = 0, mealProtein = 0, mealLipid = 0, mealCarb = 0;
-
-//       meal.foods.forEach(food => {
-//         mealCalo += (food.calo * food.weight) / 100;
-//         mealProtein += (food.protein * food.weight) / 100;
-//         mealLipid += (food.lipid * food.weight) / 100;
-//         mealCarb += (food.carb * food.weight) / 100;
-//       });
-
-//       meal.totalCalo = mealCalo;
-//       meal.totalProtein = mealProtein;
-//       meal.totalLipid = mealLipid;
-//       meal.totalCarb = mealCarb;
-
-//       dayCalo += mealCalo;
-//       dayProtein += mealProtein;
-//       dayLipid += mealLipid;
-//       dayCarb += mealCarb;
-//     });
-
-//     day.totalCalo = dayCalo;
-//     day.totalProtein = dayProtein;
-//     day.totalLipid = dayLipid;
-//     day.totalCarb = dayCarb;
-
-//     weekCalo += dayCalo;
-//     weekProtein += dayProtein;
-//     weekLipid += dayLipid;
-//     weekCarb += dayCarb;
-//   });
-
-//   this.totalCalo = weekCalo;
-//   this.totalProtein = weekProtein;
-//   this.totalLipid = weekLipid;
-//   this.totalCarb = weekCarb;
-
-//   next();
-// });
 
 module.exports = mongoose.model("Menu", MenuSchema);

@@ -5,6 +5,7 @@ const UserModel = require('../models/userModel');
 const Role = require('../models/roleModel');
 const Function = require('../models/functionModel');
 const Menu = require('../models/menuModel');
+const { generateMenuWithGemini } = require("../AI/aiController");
 
 exports.getMenuByDateFromTo = async (req, res) => {
   try {
@@ -27,11 +28,23 @@ exports.getMenuByDateFromTo = async (req, res) => {
   }
 };
 
+exports.getMenuById= async (req, res) => {
+  try {
+    const { id } = req.params;
+    const menu = await Menu.findById(id);
+    if (!menu) {
+      return res.status(404).json({ message: "Không tìm thấy thực đơn." });
+    }
+    res.status(200).json(menu);
+  } catch (error) {
+    console.error("Error getMenuByDateFromTo:", error);
+    res.status(500).json({ message: "Lỗi server", error: error.message });
+  }
+};
+
 exports.createMenu = async (req, res) => {
   try {
     const menuData = req.body;
-    console.log("🚀 ~ menuData:", menuData)
-
     const existing = await Menu.findOne({
       weekStart: new Date(menuData.weekStart),
       ageGroup: menuData.ageGroup,
@@ -103,7 +116,7 @@ exports.updateMenu = async (req, res) => {
 
     if (updatedData.weekStart && updatedData.ageGroup) {
       const existing = await Menu.findOne({
-        _id: { $ne: id }, 
+        _id: { $ne: id },
         weekStart: new Date(updatedData.weekStart),
         ageGroup: updatedData.ageGroup,
       });
@@ -160,11 +173,92 @@ exports.updateMenu = async (req, res) => {
 
 exports.getMenuTotalCaloIsNo = async (req, res) => {
   try {
-    const menus = await Menu.find({ totalCalo: { $ne: 0 } }).sort({ weekStart: 1 });
+    const menus = await Menu.find({ totalCalo: { $eq: 0 } }).sort({ weekStart: 1 });
     res.status(200).json(menus);
   } catch (error) {
     console.error("Error getMenuTotalCaloIsNot:", error);
     res.status(500).json({ message: "Lỗi server", error: error.message });
+  }
+};
+
+exports.getMenusWithZeroTotalCalo = async () => {
+  try {
+    const menus = await Menu.find({ totalCalo: { $eq: 0 } }).sort({ weekStart: 1 });
+    return menus;
+  } catch (error) {
+    console.error("Error fetching menus with zero totalCalo:", error);
+    throw new Error("Failed to fetch menus from database.");
+  }
+};
+
+// Đảm bảo bạn đã import các hàm này ở đầu file controller của bạn
+// const { getMenusWithZeroTotalCalo } = require('./menuService'); 
+// const { generateMenuWithGemini } = require('../AI/aiController'); 
+
+exports.genAICaculateMenuNutrition = async (req, res) => {
+  try {
+    const menusToProcess = await exports.getMenusWithZeroTotalCalo();
+
+    if (!menusToProcess || menusToProcess.length === 0) {
+      return res.status(200).json({ message: "Không có menu nào cần tính calo." });
+    }
+
+    console.log(`Đang gửi ${menusToProcess.length} menu đến Gemini để tính toán...`);
+    let genAIResult = await generateMenuWithGemini(menusToProcess);
+    if (typeof genAIResult === 'string') {
+      // Thêm logic làm sạch ký tự bọc (nếu cần) và parse chuỗi thành mảng
+      let cleanText = genAIResult.trim();
+      if (cleanText.startsWith("```json")) {
+        cleanText = cleanText.substring("```json".length);
+      }
+      if (cleanText.endsWith("```")) {
+        cleanText = cleanText.substring(0, cleanText.length - "```".length);
+      }
+      cleanText = cleanText.trim();
+
+      genAIResult = JSON.parse(cleanText);
+    }
+
+    if (genAIResult && Array.isArray(genAIResult) && genAIResult.length === menusToProcess.length) {
+      for (let i = 0; i < menusToProcess.length; i++) {
+        const originalMenu = menusToProcess[i];
+        const aiMenu = genAIResult[i];
+        if (originalMenu._id.toString() == aiMenu._id) {
+          Menu.findByIdAndUpdate(originalMenu._id, {
+            days: aiMenu.days,
+            totalCalo: aiMenu.totalCalo,
+            totalProtein: aiMenu.totalProtein,
+            totalLipid: aiMenu.totalLipid,
+            totalCarb: aiMenu.totalCarb,
+            updatedBy: "system (AI)",
+            state: "Đã xử lý"
+          }, { new: true, runValidators: true })
+            .then(updated => {
+              console.log(`Cập nhật menu ${updated._id} thành công.`);
+            })
+            .catch(err => {
+              console.error(`Lỗi khi cập nhật menu ${originalMenu._id}:`, err);
+            });
+        } else {
+          console.warn(`ID menu không khớp: original ${originalMenu._id} vs AI ${aiMenu._id}`);
+        }
+      }
+    } else {
+      console.error("Kết quả từ AI không hợp lệ hoặc không khớp với số lượng menu.");
+      return res.status(500).json({ message: "Kết quả từ AI không hợp lệ." });
+    }
+    res.status(200).json({
+      message: `Đã tính calo cho ${menusToProcess.length} menu thành công.`,
+      ai_output: genAIResult
+    });
+
+  } catch (error) {
+    console.error("Lỗi khi chạy genAICaculateMenuNutrition:", error);
+    const statusCode = (error.message && error.message.includes('503')) ? 503 : 500;
+    res.status(statusCode).json({
+      message: "Lỗi xử lý tính toán dinh dưỡng.",
+      error: error.message
+    });
   }
 };
 

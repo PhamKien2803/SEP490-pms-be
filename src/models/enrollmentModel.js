@@ -28,7 +28,7 @@ const EnrollmentSchema = new mongoose.Schema(
     motherEmail: { type: String, required: true, unique: true },
     motherIdCard: { type: String, required: true, unique: true },
     motherJob: { type: String },
-    note: { type: String },
+    reason: { type: String },
     state: {
       type: String,
       enum: ["Chờ BGH phê duyệt", "Chờ xử lý", "Hoàn thành", "Chưa đủ điều kiện nhập học"],

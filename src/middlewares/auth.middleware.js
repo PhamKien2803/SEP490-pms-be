@@ -96,6 +96,7 @@ exports.authorizeAction = (requiredAction) => {
   return (req, res, next) => {
     const { functionList } = req.user;
     const path = req.baseUrl
+
     const permissionUser = functionList.find(func =>
       path === "/api" + func.urlFunction
     );

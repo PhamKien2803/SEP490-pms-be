@@ -3,7 +3,7 @@ const router = express.Router();
 const Enrollment = require("../models/enrollmentModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
-const { registerEnrollController, approvedEnrollController, getByIdController, rejectEnrollController } = require("../controller/enrollmentController");
+const { registerEnrollController, approvedEnrollController, getByIdController, rejectEnrollController, approvedEnrollAllController } = require("../controller/enrollmentController");
 const { uploadFile, getFileById } = require("../controller/fileController");
 
 
@@ -45,10 +45,14 @@ router.post("/aprrovedEnroll",
     approvedEnrollController
 );
 
-router.post("/rejectEnroll/:id", 
-     verifyToken,
+router.post("/rejectEnroll/:id",
+    verifyToken,
     authorizeAction("reject"),
-rejectEnrollController
+    rejectEnrollController
+);
+
+router.post("/approvedEnrollAll",
+    approvedEnrollAllController
 )
 
 

@@ -45,10 +45,10 @@ router.post("/aprrovedEnroll",
     approvedEnrollController
 );
 
-router.post("/rejectEnroll/:id",
-    verifyToken,
+router.post("/rejectEnroll/:id", 
+     verifyToken,
     authorizeAction("reject"),
-    rejectEnrollController
+rejectEnrollController
 )
 
 

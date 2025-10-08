@@ -14,6 +14,7 @@ const role = require("./routes/roleRoute");
 const user = require("./routes/userRoute");
 const staffs = require("./routes/staffRoute");
 const enrollments = require("./routes/enrollmentRoute");
+const menu = require("./routes/menuRoute");
 // Khai báo dotenv
 dotenv.config();
 // Khai báo app
@@ -37,6 +38,8 @@ app.use("/api/pms/roles", role);
 app.use("/api/pms/accounts", user);
 app.use("/api/pms/staffs", staffs);
 app.use("/api/pms/enrollments", enrollments);
+app.use("/api/pms/menus", menu);
+
 // route test
 app.get("/", (req, res) => {
     res.send("👋 Welcome to the Blue Dolphin Management API");

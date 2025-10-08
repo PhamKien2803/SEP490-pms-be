@@ -6,6 +6,7 @@ const ejs = require('ejs');
 const { HTTP_STATUS, RESPONSE_MESSAGE, USER_ROLES, VALIDATION_CONSTANTS } = require('../constants/useConstants');
 const { IMAP_CONFIG, SMTP_CONFIG } = require('../constants/mailConstants');
 const { sequencePattern } = require('../helpers/useHelpers');
+const { getGFS } = require("../configs/gridfs");
 const i18n = require("../middlewares/i18n.middelware");
 const Enrollment = require("../models/enrollmentModel");
 const SMTP = require('../helpers/stmpHelper');
@@ -157,16 +158,46 @@ exports.approvedEnrollController = async (req, res) => {
     }
 };
 
-
 exports.getByIdController = async (req, res) => {
     try {
-        const data = await Enrollment.findById(req.params.id);
-        if (!data) {
-            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy phiếu nhập học" });
+        const gfs = getGFS();
+        if (!gfs) {
+            return res.status(500).json({ message: "GridFS chưa kết nối" });
         }
-        return res.status(HTTP_STATUS.OK).json(data);
+
+        const data = await Enrollment.findById(req.params.id).lean(); 
+        if (!data) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json({
+                message: "Không tìm thấy phiếu nhập học",
+            });
+        }
+
+        let birthCertFiles = null;
+        let healthCertFiles = null;
+
+        if (data.birthCertId) {
+            const birthFiles = await gfs.find({ _id: data.birthCertId }).toArray();
+            birthCertFiles = birthFiles.length > 0 ? birthFiles[0] : null;
+        }
+
+        if (data.healthCertId) {
+            const healthFiles = await gfs.find({ _id: data.healthCertId }).toArray();
+            healthCertFiles = healthFiles.length > 0 ? healthFiles[0] : null;
+        }
+
+        const result = {
+            ...data,
+            birthCertFiles,
+            healthCertFiles,
+        };
+
+        return res.status(HTTP_STATUS.OK).json(result);
     } catch (error) {
-        console.log("error getByIdController", error)
+        console.error("error getByIdController:", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json({
+            message: "Lỗi máy chủ khi lấy thông tin phiếu nhập học",
+            error: error.message,
+        });
     }
-}
+};
 

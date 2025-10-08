@@ -11,23 +11,38 @@ const uploadFile = async (req, res) => {
     upload(req, res, async (err) => {
         if (err) return res.status(500).json({ error: err.message });
 
+        if (!req.file) return res.status(400).json({ error: "Không có file được tải lên" });
+        
+        if (req.file.mimetype !== "application/pdf") {
+            return res.status(400).json({ error: "Chỉ được phép tải lên file PDF" });
+        }
+
         const gfs = getGFS();
         if (!gfs) return res.status(500).json({ error: "GridFS chưa kết nối" });
 
-        const writeStream = gfs.openUploadStream(req.file.originalname);
-        writeStream.end(req.file.buffer);
-
-        writeStream.on("finish", () => {
-            res.json({
-                message: "File uploaded successfully",
-                fileId: writeStream.id,
-                fileName: req.file.originalname
+        try {
+            const writeStream = gfs.openUploadStream(req.file.originalname, {
+                contentType: req.file.mimetype,
             });
-        });
+            writeStream.end(req.file.buffer);
 
-        writeStream.on("error", (err) => res.status(500).json({ error: err.message }));
+            writeStream.on("finish", () => {
+                res.json({
+                    message: "File PDF uploaded successfully",
+                    fileId: writeStream.id,
+                    fileName: req.file.originalname,
+                });
+            });
+
+            writeStream.on("error", (err) => {
+                res.status(500).json({ error: err.message });
+            });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
     });
 };
+
 
 const getFileById = async (req, res) => {
     try {

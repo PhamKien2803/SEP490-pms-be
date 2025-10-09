@@ -25,7 +25,7 @@ ${inputJson}
 
     try {
         const response = await client.chat.completions.create({
-            model: "gpt-4o-mini", // hoặc "gpt-4o-mini" nếu bạn muốn nhanh hơn
+            model: "gpt-4o-mini",
             messages: [
                 {
                     role: "system",

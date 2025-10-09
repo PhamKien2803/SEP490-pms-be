@@ -5,10 +5,10 @@ const OpenAI = require("openai");
 
 config();
 
-const GEMINI_API_KEY_CHATGPT = process.env.GEMINI_API_KEY_CHATGPT;
+const CHATGPT_API_KEY = process.env.CHATGPT_API_KEY;
 
 const client = new OpenAI({
-    apiKey: GEMINI_API_KEY_CHATGPT,
+    apiKey: CHATGPT_API_KEY,
 });
 
 module.exports.generateMenuWithChatGPT = async (data) => {
@@ -42,7 +42,7 @@ ${inputJson}
 
         const text = response.choices?.[0]?.message?.content || "";
         try {
-             const parsed = JSON.parse(text);
+            const parsed = JSON.parse(text);
             if (Array.isArray(parsed)) return parsed;
             if (Array.isArray(parsed.result)) return parsed.result;
             if (Array.isArray(parsed.menus)) return parsed.menus;

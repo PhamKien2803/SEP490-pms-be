@@ -1,11 +1,6 @@
 
-const { Model } = require("mongoose");
-const { HTTP_STATUS, RESPONSE_MESSAGE, USER_ROLES, VALIDATION_CONSTANTS } = require('../constants/useConstants');
-const UserModel = require('../models/userModel');
-const Role = require('../models/roleModel');
-const Function = require('../models/functionModel');
 const Menu = require('../models/menuModel');
-const { generateMenuWithGemini } = require("../AI/aiController");
+const { generateMenuWithChatGPT } = require("../AI/aiController");
 
 exports.getMenuByDateFromTo = async (req, res) => {
   try {
@@ -191,10 +186,6 @@ exports.getMenusWithZeroTotalCalo = async () => {
   }
 };
 
-// Đảm bảo bạn đã import các hàm này ở đầu file controller của bạn
-// const { getMenusWithZeroTotalCalo } = require('./menuService'); 
-// const { generateMenuWithGemini } = require('../AI/aiController'); 
-
 exports.genAICaculateMenuNutrition = async (req, res) => {
   try {
     const menusToProcess = await exports.getMenusWithZeroTotalCalo();
@@ -204,9 +195,8 @@ exports.genAICaculateMenuNutrition = async (req, res) => {
     }
 
     console.log(`Đang gửi ${menusToProcess.length} menu đến Gemini để tính toán...`);
-    let genAIResult = await generateMenuWithGemini(menusToProcess);
+    let genAIResult = await generateMenuWithChatGPT(menusToProcess);
     if (typeof genAIResult === 'string') {
-      // Thêm logic làm sạch ký tự bọc (nếu cần) và parse chuỗi thành mảng
       let cleanText = genAIResult.trim();
       if (cleanText.startsWith("```json")) {
         cleanText = cleanText.substring("```json".length);
@@ -218,6 +208,10 @@ exports.genAICaculateMenuNutrition = async (req, res) => {
 
       genAIResult = JSON.parse(cleanText);
     }
+    
+    // console.log("🚀 ~ genAIResult:", genAIResult)
+    // console.log("🚀 ~ Array.isArray(genAIResult):", Array.isArray(genAIResult))
+    // console.log("🚀 ~ menusToProcess.length:", menusToProcess.length)
 
     if (genAIResult && Array.isArray(genAIResult) && genAIResult.length === menusToProcess.length) {
       for (let i = 0; i < menusToProcess.length; i++) {
@@ -231,7 +225,7 @@ exports.genAICaculateMenuNutrition = async (req, res) => {
             totalLipid: aiMenu.totalLipid,
             totalCarb: aiMenu.totalCarb,
             updatedBy: "system (AI)",
-            state: "Đã xử lý"
+            state: "Đã lấy calo",
           }, { new: true, runValidators: true })
             .then(updated => {
               console.log(`Cập nhật menu ${updated._id} thành công.`);
@@ -272,6 +266,39 @@ exports.deleteMenuById = async (req, res) => {
     res.status(200).json({ message: "Xóa thực đơn thành công.", menu: deletedMenu });
   } catch (error) {
     console.error("Error deleteMenuById:", error);
+    res.status(500).json({ message: "Lỗi server", error: error.message });
+  }
+};
+
+exports.approveMenuById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const menu = await Menu.findById(id);
+    if (!menu) {
+      return res.status(404).json({ message: "Không tìm thấy thực đơn." });
+    }
+    menu.state = "Đã duyệt";
+    await menu.save();
+    res.status(200).json({ message: "Duyệt thực đơn thành công.", menu });
+  } catch (error) {
+    console.error("Error approveMenuById:", error);
+    res.status(500).json({ message: "Lỗi server", error: error.message });
+  } 
+};
+
+exports.rejectMenuById = async (req, res) => {  
+  try {
+    const { id } = req.params;
+    const menu = await Menu.findById(id);
+    if (!menu) {
+      return res.status(404).json({ message: "Không tìm thấy thực đơn." });
+    }
+    menu.state = "Từ chối";
+    await menu.save();
+    res.status(200).json({ message: "Từ chối thực đơn thành công.", menu });
+  }
+  catch (error) {
+    console.error("Error rejectMenuById:", error);
     res.status(500).json({ message: "Lỗi server", error: error.message });
   }
 };

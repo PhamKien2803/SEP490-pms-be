@@ -42,7 +42,7 @@ ${inputJson}
 
         const text = response.choices?.[0]?.message?.content || "";
         try {
-            const parsed = JSON.parse(text);
+             const parsed = JSON.parse(text);
             if (Array.isArray(parsed)) return parsed;
             if (Array.isArray(parsed.result)) return parsed.result;
             if (Array.isArray(parsed.menus)) return parsed.menus;

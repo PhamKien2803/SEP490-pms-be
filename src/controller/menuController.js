@@ -302,3 +302,57 @@ exports.rejectMenuById = async (req, res) => {
     res.status(500).json({ message: "Lỗi server", error: error.message });
   }
 };
+
+exports.getMenuByQuery = async (req, res) => {
+  try {
+    let { ageGroup, state, weekStart, weekEnd, limit, page } = req.query;
+
+    limit = parseInt(limit) || 30;
+    page = parseInt(page) || 1;
+    const offset = (page - 1) * limit;
+
+    // Tạo điều kiện query động
+    const query = {};
+
+    if (ageGroup) query.ageGroup = ageGroup;
+    if (state) query.state = state;
+
+    // Gộp logic ngày (nếu có)
+    if (weekStart && weekEnd) {
+      query.weekStart = { $gte: new Date(weekStart) };
+      query.weekEnd = { $lte: new Date(weekEnd) };
+    } else if (weekStart) {
+      query.weekStart = { $gte: new Date(weekStart) };
+    } else if (weekEnd) {
+      query.weekEnd = { $lte: new Date(weekEnd) };
+    }
+
+    // Đếm tổng số kết quả
+    const totalCount = await Menu.countDocuments(query);
+
+    // Lấy dữ liệu có phân trang
+    const data = await Menu.find(query)
+      .sort({ weekStart: -1 })
+      .skip(offset)
+      .limit(limit);
+
+    if (!data || data.length === 0) {
+      return res.status(400).json({ message: "Không tìm thấy dữ liệu." });
+    }
+
+    return res.status(200).json({
+      data,
+      page: {
+        totalCount,
+        limit,
+        page,
+      },
+    });
+  } catch (error) {
+    console.error("Error getMenuByQuery:", error);
+    return res.status(500).json({
+      message: "Lỗi server",
+      error: error.message,
+    });
+  }
+};

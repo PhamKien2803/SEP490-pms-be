@@ -4,7 +4,9 @@ const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware
 const { getMenuByDateFromTo, createMenu, updateMenu, deleteMenuById, getMenuTotalCaloIsNo,
     genAICaculateMenuNutrition, getMenuById, 
     approveMenuById,
-    rejectMenuById} = require("../controller/menuController");
+    rejectMenuById,
+    getAllMenus,
+    getMenuByQuery} = require("../controller/menuController");
 
 router.get("/get-by-date/",
     verifyToken,
@@ -59,5 +61,12 @@ router.put("/reject-menu/:id",
     authorizeAction("update"),
     rejectMenuById
 );
+
+router.get("/list/",
+    verifyToken,
+    authorizeAction("view"),
+    getMenuByQuery
+);
+
 
 module.exports = router;

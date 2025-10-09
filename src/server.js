@@ -16,6 +16,7 @@ const user = require("./routes/userRoute");
 const staffs = require("./routes/staffRoute");
 const enrollments = require("./routes/enrollmentRoute");
 const menu = require("./routes/menuRoute");
+require("./helpers/emailWorkQueue.js");
 // Khai báo dotenv
 dotenv.config();
 // Khai báo app

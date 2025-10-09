@@ -1,27 +1,20 @@
 const fs = require("fs");
 const path = require("path");
 const { config } = require("dotenv");
-const { GoogleGenAI } = require("@google/genai");
-const { fileURLToPath } = require("url");
+const OpenAI = require("openai");
 
 config();
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_API_KEY_CHATGPT = process.env.GEMINI_API_KEY_CHATGPT;
 
-const ai = new GoogleGenAI({
-    apiKey: GEMINI_API_KEY,
+const client = new OpenAI({
+    apiKey: GEMINI_API_KEY_CHATGPT,
 });
 
-/**
- * Gửi prompt lên Gemini và lấy kết quả trả về
- * @param {Object} data - { school_classes, preschool_schedule }
- * @returns {Promise<Object>} - Kết quả trả về từ GenAI
- */
-module.exports.generateMenuWithGemini = async (data) => {
+module.exports.generateMenuWithChatGPT = async (data) => {
     const promptPath = path.join(__dirname, "menu_prompt.md");
     const promptTemplate = fs.readFileSync(promptPath, "utf8");
 
-    // Ghép kết quả vào cuối prompt
     const inputJson = JSON.stringify(data, null, 4);
     const fullPrompt = `${promptTemplate.trim()}
 
@@ -29,23 +22,36 @@ module.exports.generateMenuWithGemini = async (data) => {
 ${inputJson}
 \`\`\`
 `;
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [
-            {
-                parts: [{ text: fullPrompt }], // fullPrompt đã được rút gọn
-            },
-        ],
-        config: {
-            responseMimeType: "application/json", // Dùng JSON Mode chính thức
-        },
-    });
 
-    // Lấy phần text trả về từ Gemini
-    const text = response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
     try {
-        return JSON.parse(text);
-    } catch {
-        return text;
+        const response = await client.chat.completions.create({
+            model: "gpt-4o-mini", // hoặc "gpt-4o-mini" nếu bạn muốn nhanh hơn
+            messages: [
+                {
+                    role: "system",
+                    content:
+                        "You are an AI system that processes preschool menus to calculate and populate nutritional values based on Vietnamese food composition standards. Return only valid JSON.",
+                },
+                {
+                    role: "user",
+                    content: fullPrompt,
+                },
+            ],
+            response_format: { type: "json_object" },
+        });
+
+        const text = response.choices?.[0]?.message?.content || "";
+        try {
+             const parsed = JSON.parse(text);
+            if (Array.isArray(parsed)) return parsed;
+            if (Array.isArray(parsed.result)) return parsed.result;
+            if (Array.isArray(parsed.menus)) return parsed.menus;
+            return parsed;
+        } catch {
+            return text;
+        }
+    } catch (error) {
+        console.error("Error generating menu with ChatGPT:", error);
+        throw error;
     }
-}
+};

@@ -9,7 +9,7 @@ const FoodItemSchema = new mongoose.Schema(
     lipid: { type: Number, default: 0 },
     carb: { type: Number, default: 0 },
   },
-  { _id: false } // ⛔ Không tạo _id cho mỗi food
+  { _id: false } 
 );
 
 const MealSchema = new mongoose.Schema(
@@ -21,7 +21,7 @@ const MealSchema = new mongoose.Schema(
     totalLipid: { type: Number, default: 0 },
     totalCarb: { type: Number, default: 0 },
   },
-  { _id: false } // ⛔ Không tạo _id cho mỗi meal
+  { _id: false } 
 );
 
 const DaySchema = new mongoose.Schema(
@@ -33,7 +33,7 @@ const DaySchema = new mongoose.Schema(
     totalLipid: { type: Number, default: 0 },
     totalCarb: { type: Number, default: 0 },
   },
-  { _id: false } // ⛔ Không tạo _id cho mỗi day
+  { _id: false } 
 );
 
 const MenuSchema = new mongoose.Schema(
@@ -50,7 +50,7 @@ const MenuSchema = new mongoose.Schema(
     totalLipid: { type: Number, default: 0 },
     totalCarb: { type: Number, default: 0 },
 
-    state: { type: String, enum: ["Chờ xử lý", "Đang xử lý", "Đã xử lý"], default: "Chờ xử lý" },
+    state: { type: String, enum: ["Chờ xử lý", "Đã lấy calo", "Đã duyệt", "Từ chối"], default: "Chờ xử lý" },
 
     notes: { type: String },
     createdBy: { type: String },

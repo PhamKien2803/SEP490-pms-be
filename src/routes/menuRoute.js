@@ -1,7 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
-const { getMenuByDateFromTo, createMenu, updateMenu, deleteMenuById, getMenuTotalCaloIsNo, genAICaculateMenuNutrition, getMenuById } = require("../controller/menuController");
+const { getMenuByDateFromTo, createMenu, updateMenu, deleteMenuById, getMenuTotalCaloIsNo,
+    genAICaculateMenuNutrition, getMenuById, 
+    approveMenuById,
+    rejectMenuById} = require("../controller/menuController");
 
 router.get("/get-by-date/",
     verifyToken,
@@ -39,10 +42,22 @@ router.get("/menu-no-calo",
     getMenuTotalCaloIsNo
 );
 
-
 router.get("/caculate-calo",
     verifyToken,
     authorizeAction("view"),
     genAICaculateMenuNutrition
 );
+
+router.put("/approve-menu/:id",
+    verifyToken,
+    authorizeAction("update"),
+    approveMenuById
+);
+
+router.put("/reject-menu/:id",
+    verifyToken,
+    authorizeAction("update"),
+    rejectMenuById
+);
+
 module.exports = router;

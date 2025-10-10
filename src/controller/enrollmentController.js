@@ -17,6 +17,40 @@ const { emailQueue } = require('../configs/queue');
 
 exports.registerEnrollController = async (req, res) => {
     try {
+        const {
+            studentIdCard,
+            fatherIdCard,
+            motherIdCard,
+            fatherEmail,
+            motherEmail,
+            fatherPhoneNumber,
+            motherPhoneNumber
+        } = req.body;
+
+        const idCards = [studentIdCard, fatherIdCard, motherIdCard].filter(Boolean);
+        const hasDuplicateIdCard = new Set(idCards).size !== idCards.length;
+        if (hasDuplicateIdCard) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                message: "Số CMND/CCCD của học sinh, cha và mẹ không được trùng nhau."
+            });
+        }
+
+        const emails = [fatherEmail, motherEmail].filter(Boolean);
+        const hasDuplicateEmail = new Set(emails).size !== emails.length;
+        if (hasDuplicateEmail) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                message: "Email của cha và mẹ không được trùng nhau."
+            });
+        }
+
+        const phones = [fatherPhoneNumber, motherPhoneNumber].filter(Boolean);
+        const hasDuplicatePhone = new Set(phones).size !== phones.length;
+        if (hasDuplicatePhone) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                message: "Số điện thoại của cha và mẹ không được trùng nhau."
+            });
+        }
+
         const modelName = Enrollment.modelName.toLowerCase();
         const sequence = await sequencePattern(Enrollment.modelName);
 
@@ -288,12 +322,12 @@ exports.approvedEnrollAllController = async (req, res) => {
             { state: "Chờ BGH phê duyệt" },
             { $set: { state: "Chờ xử lý tự động" } }
         );
+
         const modelStudentName = Student.modelName.toLowerCase();
         const modelParentName = Parent.modelName.toLowerCase();
 
         const results = [];
 
-        // Xử lý tuần tự
         for (const data of dataProcess) {
             try {
                 const {
@@ -303,7 +337,8 @@ exports.approvedEnrollAllController = async (req, res) => {
                     motherName, motherGender, motherPhoneNumber, motherEmail, motherIdCard, motherJob
                 } = data;
 
-                // tạo học sinh
+                //student
+
                 const sequenceCodeStudent = await processSequenceCode(Student);
                 const newStudent = await Student.create({
                     [`${modelStudentName}Code`]: sequenceCodeStudent,
@@ -321,9 +356,12 @@ exports.approvedEnrollAllController = async (req, res) => {
                     healthCertId
                 });
 
-                // tạo cha
+                //dad
+
+                let dadCreated = false;
                 let dad = await Parent.findOne({ active: true, IDCard: fatherIdCard });
                 if (!dad) {
+                    dadCreated = true;
                     const sequenceCodeParentDad = await processSequenceCode(Parent);
                     dad = await Parent.create({
                         [`${modelParentName}Code`]: sequenceCodeParentDad,
@@ -336,7 +374,6 @@ exports.approvedEnrollAllController = async (req, res) => {
                         active: true,
                         students: [newStudent._id]
                     });
-                    const sequenceCodeUserDad = await processSequenceCode(User);
                     await User.create({
                         email: fatherEmail,
                         password: "12345678",
@@ -344,16 +381,21 @@ exports.approvedEnrollAllController = async (req, res) => {
                         parent: dad._id
                     });
                 } else {
-                    dad.students.push(newStudent._id);
-                    await dad.save();
+                    if (!dad.students.includes(newStudent._id)) {
+                        dad.students.push(newStudent._id);
+                        await dad.save();
+                    }
                 }
 
-                // tạo mẹ
+                //mom
+
+                let momCreated = false;
                 let mom = await Parent.findOne({ active: true, IDCard: motherIdCard });
                 if (!mom) {
+                    momCreated = true;
                     const sequenceCodeParentMom = await processSequenceCode(Parent);
                     mom = await Parent.create({
-                         [`${modelParentName}Code`]: sequenceCodeParentMom,
+                        [`${modelParentName}Code`]: sequenceCodeParentMom,
                         fullName: motherName,
                         phoneNumber: motherPhoneNumber,
                         email: motherEmail,
@@ -370,11 +412,12 @@ exports.approvedEnrollAllController = async (req, res) => {
                         parent: mom._id
                     });
                 } else {
-                    mom.students.push(newStudent._id);
-                    await mom.save();
+                    if (!mom.students.includes(newStudent._id)) {
+                        mom.students.push(newStudent._id);
+                        await mom.save();
+                    }
                 }
 
-                // update trạng thái enrollment
                 data.state = "Hoàn thành";
                 await data.save();
 
@@ -384,10 +427,12 @@ exports.approvedEnrollAllController = async (req, res) => {
                     studentId: newStudent._id,
                     dadId: dad._id,
                     momId: mom._id,
-                    fatherEmail: fatherEmail,
-                    motherEmail: motherEmail,
+                    fatherEmail,
+                    motherEmail,
                     studentCode: newStudent[`${modelStudentName}Code`],
-                    studentName: studentName
+                    studentName: studentName,
+                    fatherCreated: dadCreated,
+                    motherCreated: momCreated
                 });
 
             } catch (innerError) {
@@ -399,48 +444,47 @@ exports.approvedEnrollAllController = async (req, res) => {
         }
 
         for (const r of results) {
-            console.log(`🔍 Kiểm tra học sinh: ${r.studentName}, status: ${r.status}`);
-
-            if (r.status === 'fulfilled') {
-                console.log("11111");
-                if (!emailQueue) {
-                    console.error('❌ Email Queue chưa khởi tạo');
-                    continue;
-                }
-
-                const htmlContent = `
-      <h2>Thông báo Hồ sơ Tuyển Sinh</h2>
-      <p>Xin chào Quý phụ huynh của học sinh <strong>${r.studentName}</strong>,</p>
-      <p>Học sinh <strong>${r.studentName}</strong> với mã <strong>${r.studentCode}</strong> đã <strong>trúng tuyển</strong>.</p>
-      <p>Tài khoản phụ huynh:</p>
-      <ul><li>Email: ${r.fatherEmail}</li><li>Mật khẩu: 12345678</li></ul>
-      <ul><li>Email: ${r.motherEmail}</li><li>Mật khẩu: 12345678</li></ul>
-      <p>Vui lòng đổi mật khẩu sau khi đăng nhập.</p>
-      <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
-    `;
-
-                await emailQueue.add({
-                    to: r.fatherEmail,
-                    cc: r.motherEmail,
-                    subject: 'THÔNG BÁO TRÚNG TUYỂN NHẬP HỌC',
-                    html: htmlContent
-                });
+            if (r.status !== 'fulfilled') continue;
+            if (!emailQueue) {
+                console.error('❌ Email Queue chưa khởi tạo');
+                continue;
             }
 
+            const htmlContent = `
+                <h2>Thông báo Hồ sơ Tuyển Sinh</h2>
+                <p>Xin chào Quý phụ huynh của học sinh <strong>${r.studentName}</strong>,</p>
+                <p>Học sinh <strong>${r.studentName}</strong> với mã <strong>${r.studentCode}</strong> đã <strong>trúng tuyển</strong>.</p>
+                ${r.fatherCreated || r.motherCreated
+                    ? `<p>Tài khoản phụ huynh:</p>
+                       <ul>${r.fatherCreated ? `<li>Email: ${r.fatherEmail} | Mật khẩu: 12345678</li>` : `<li>Email: ${r.fatherEmail}</li>`}</ul>
+                       <ul>${r.motherCreated ? `<li>Email: ${r.motherEmail} | Mật khẩu: 12345678</li>` : `<li>Email: ${r.motherEmail}</li>`}</ul>
+                       <p>Vui lòng đổi mật khẩu sau khi đăng nhập.</p>`
+                    : `<p>Email phụ huynh:</p>
+                       <ul><li>${r.fatherEmail}</li></ul>
+                       <ul><li>${r.motherEmail}</li></ul>`}
+                <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
+            `;
 
-            const successCount = results.filter(r => r.status === "fulfilled").length;
-            const failCount = results.filter(r => r.status === "rejected").length;
-
-            if (failCount > 0) {
-                console.error("Một số hồ sơ bị lỗi:", results.filter(r => r.status === "rejected").map(r => r.reason?.message));
-            }
-
-            return res.status(HTTP_STATUS.OK).json({
-                message: `Phê duyệt thành công ${successCount}/${dataProcess.length} hồ sơ.`,
-                failed: failCount
+            await emailQueue.add({
+                to: r.fatherEmail,
+                cc: r.motherEmail,
+                subject: 'THÔNG BÁO TRÚNG TUYỂN NHẬP HỌC',
+                html: htmlContent
             });
-
         }
+
+        const successCount = results.filter(r => r.status === "fulfilled").length;
+        const failCount = results.filter(r => r.status === "rejected").length;
+
+        if (failCount > 0) {
+            console.error("Một số hồ sơ bị lỗi:", results.filter(r => r.status === "rejected").map(r => r.reason?.message));
+        }
+
+        return res.status(HTTP_STATUS.OK).json({
+            message: `Phê duyệt thành công ${successCount}/${dataProcess.length} hồ sơ.`,
+            failed: failCount
+        });
+
     } catch (error) {
         console.error("error approvedEnrollAllController:", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json({
@@ -448,7 +492,7 @@ exports.approvedEnrollAllController = async (req, res) => {
             error: error.message,
         });
     }
-}
+};
 
 
 

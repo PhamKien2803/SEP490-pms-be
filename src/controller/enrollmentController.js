@@ -353,6 +353,7 @@ exports.approvedEnrollAllController = async (req, res) => {
                 if (!mom) {
                     const sequenceCodeParentMom = await processSequenceCode(Parent);
                     mom = await Parent.create({
+                         [`${modelParentName}Code`]: sequenceCodeParentMom,
                         fullName: motherName,
                         phoneNumber: motherPhoneNumber,
                         email: motherEmail,
@@ -362,7 +363,6 @@ exports.approvedEnrollAllController = async (req, res) => {
                         active: true,
                         students: [newStudent._id]
                     });
-                    const sequenceCodeUserMom = await processSequenceCode(User);
                     await User.create({
                         email: motherEmail,
                         password: "12345678",

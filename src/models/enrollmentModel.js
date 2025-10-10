@@ -24,19 +24,16 @@ const EnrollmentSchema = new mongoose.Schema(
     fatherPhoneNumber: {
       type: String,
       required: true,
-      unique: true,
       match: [/^\d{10}$/, "Số điện thoại của cha phải gồm đúng 10 chữ số"]
     },
     fatherEmail: {
       type: String,
       required: true,
-      unique: true,
       match: [/^\S+@\S+\.\S+$/, "Email của cha không hợp lệ"]
     },
     fatherIdCard: {
       type: String,
       required: true,
-      unique: true,
       match: [/^\d{12}$/, "Số CCCD của cha phải gồm đúng 12 chữ số"]
     },
     fatherJob: { type: String },
@@ -47,19 +44,16 @@ const EnrollmentSchema = new mongoose.Schema(
     motherPhoneNumber: {
       type: String,
       required: true,
-      unique: true,
       match: [/^\d{10}$/, "Số điện thoại của mẹ phải gồm đúng 10 chữ số"]
     },
     motherEmail: {
       type: String,
       required: true,
-      unique: true,
       match: [/^\S+@\S+\.\S+$/, "Email của mẹ không hợp lệ"]
     },
     motherIdCard: {
       type: String,
       required: true,
-      unique: true,
       match: [/^\d{12}$/, "Số CCCD của mẹ phải gồm đúng 12 chữ số"]
     },
     motherJob: { type: String },

@@ -24,88 +24,121 @@ exports.registerEnrollController = async (req, res) => {
             fatherEmail,
             motherEmail,
             fatherPhoneNumber,
-            motherPhoneNumber
+            motherPhoneNumber,
+            isCheck,
         } = req.body;
 
-        const idCards = [studentIdCard, fatherIdCard, motherIdCard].filter(Boolean);
-        const hasDuplicateIdCard = new Set(idCards).size !== idCards.length;
-        if (hasDuplicateIdCard) {
-            return res.status(HTTP_STATUS.BAD_REQUEST).json({
-                message: "Số CMND/CCCD của học sinh, cha và mẹ không được trùng nhau."
-            });
-        }
+        const validateDuplicates = (values, fieldName, message) => {
+            const filtered = values.filter(Boolean);
+            if (new Set(filtered).size !== filtered.length) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json(message);
+            }
+        };
 
-        const emails = [fatherEmail, motherEmail].filter(Boolean);
-        const hasDuplicateEmail = new Set(emails).size !== emails.length;
-        if (hasDuplicateEmail) {
-            return res.status(HTTP_STATUS.BAD_REQUEST).json({
-                message: "Email của cha và mẹ không được trùng nhau."
-            });
-        }
+        validateDuplicates(
+            [studentIdCard, fatherIdCard, motherIdCard],
+            "IDCard",
+            "Số CMND/CCCD của học sinh, cha và mẹ không được trùng nhau."
+        );
 
-        const phones = [fatherPhoneNumber, motherPhoneNumber].filter(Boolean);
-        const hasDuplicatePhone = new Set(phones).size !== phones.length;
-        if (hasDuplicatePhone) {
-            return res.status(HTTP_STATUS.BAD_REQUEST).json({
-                message: "Số điện thoại của cha và mẹ không được trùng nhau."
-            });
+        if (!isCheck) {
+            validateDuplicates(
+                [fatherEmail, motherEmail],
+                "email",
+                "Email của cha và mẹ không được trùng nhau."
+            );
+            validateDuplicates(
+                [fatherPhoneNumber, motherPhoneNumber],
+                "phone",
+                "Số điện thoại của cha và mẹ không được trùng nhau."
+            );
         }
 
         const modelName = Enrollment.modelName.toLowerCase();
         const sequence = await sequencePattern(Enrollment.modelName);
-
-        const lastRecord = await Enrollment.find({
-            [`${modelName}Code`]: { $regex: `^${sequence}` }
+        const lastRecord = await Enrollment.findOne({
+            [`${modelName}Code`]: { $regex: `^${sequence}` },
         })
             .sort({ [`${modelName}Code`]: -1 })
-            .limit(1);
+            .lean();
 
-        let sequenceCode;
-        if (lastRecord.length === 0) {
-            sequenceCode = `${sequence}001`;
-        } else {
-            const lastCode = lastRecord[0][`${modelName}Code`];
-            const lastNumber = parseInt(lastCode.slice(-3));
-            const nextNumber = (lastNumber + 1).toString().padStart(3, "0");
-            sequenceCode = `${sequence}${nextNumber}`;
-        }
+        const nextNumber = lastRecord
+            ? (parseInt(lastRecord[`${modelName}Code`].slice(-3)) + 1)
+                .toString()
+                .padStart(3, "0")
+            : "001";
+        const sequenceCode = `${sequence}${nextNumber}`;
 
-        const newData = {
+        let newData = {
             active: true,
             [`${modelName}Code`]: sequenceCode,
             fatherGender: "Nam",
             motherGender: "Nữ",
-            ...req.body
+            ...req.body,
         };
 
-        const uniqueFields = Object.keys(Enrollment.schema.paths).filter(
-            (key) => Enrollment.schema.paths[key].options.unique
-        );
+        if (isCheck === true) {
+            const [dataCheckDad, dataCheckMom] = await Promise.all([
+                Parent.findOne({ active: true, IDCard: fatherIdCard }),
+                Parent.findOne({ active: true, IDCard: motherIdCard }),
+            ]);
 
-        const requiredFields = Object.keys(Enrollment.schema.paths).filter(
-            (key) => Enrollment.schema.paths[key].options.required
+            if (!dataCheckDad)
+                return res
+                    .status(HTTP_STATUS.BAD_REQUEST)
+                    .json({ message: "Không tìm thấy dữ liệu của cha" });
+            if (!dataCheckMom)
+                return res
+                    .status(HTTP_STATUS.BAD_REQUEST)
+                    .json({ message: "Không tìm thấy dữ liệu của mẹ" });
+
+            newData = {
+                ...newData,
+                fatherName: dataCheckDad.fullName,
+                fatherPhoneNumber: dataCheckDad.phoneNumber,
+                fatherEmail: dataCheckDad.email,
+                fatherJob: dataCheckDad.job,
+                motherName: dataCheckMom.fullName,
+                motherPhoneNumber: dataCheckMom.phoneNumber,
+                motherEmail: dataCheckMom.email,
+                motherJob: dataCheckMom.job,
+            };
+        }
+
+        const schemaPaths = Enrollment.schema.paths;
+        const uniqueFields = Object.keys(schemaPaths).filter(
+            (key) => schemaPaths[key].options.unique
         );
+        
+        let requiredFields;
+
+        if (isCheck) {
+            requiredFields = ["studentIdCard", "fatherIdCard", "motherIdCard"];
+        } else {
+            requiredFields = Object.keys(schemaPaths).filter(
+                (key) => schemaPaths[key].options.required
+            );
+        }
 
         const missingFields = requiredFields.filter(
-            (field) => newData[field] === undefined || newData[field] === ""
+            (field) => !newData[field]?.toString().trim()
         );
 
         if (missingFields.length > 0) {
-            const messages = missingFields.map((field) => {
-                const fieldLabel = i18n.t(`fields.${field}`);
-                return i18n.t("messages.required", { field: fieldLabel });
-            });
-            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: messages.join(", ") });
+            const messages = missingFields.map((field) =>
+                i18n.t("messages.required", { field: i18n.t(`fields.${field}`) })
+            );
+            return res.status(HTTP_STATUS.BAD_REQUEST).json(messages.join(", "));
         }
+
 
         for (const field of uniqueFields) {
             if (!newData[field]) continue;
-
-            const exists = await Enrollment.findOne({ [field]: newData[field] });
+            const exists = await Enrollment.exists({ [field]: newData[field] });
             if (exists) {
-                const fieldLabel = i18n.t(`fields.${field}`);
-                const message = i18n.t("messages.alreadyExists", { field: fieldLabel });
-                return res.status(HTTP_STATUS.BAD_REQUEST).json({ message });
+                return res.status(HTTP_STATUS.BAD_REQUEST).json(i18n.t("messages.alreadyExists", {
+                    field: i18n.t(`fields.${field}`),
+                }),);
             }
         }
 
@@ -113,39 +146,38 @@ exports.registerEnrollController = async (req, res) => {
         res.status(HTTP_STATUS.CREATED).json(created);
 
         setImmediate(async () => {
-            // const templatePath = path.join(__dirname, '..', 'templates', 'newAccountMail.ejs');
-            // const htmlConfirm = await ejs.renderFile(templatePath);
-            const htmlContent = `
-      <h2>Thông báo Hồ sơ Tuyển Sinh</h2>
-      <p>Xin chào Quý phụ huynh của học sinh <strong>${created.studentName}</strong>,</p>
-      <p>Nhà trường đã tiếp nhận hồ sơ tuyển sinh của học sinh. Hiện trạng hồ sơ đang <strong>đang xử lý</strong>.</p>
-      <p>Quý phụ huynh vui lòng đến trường vào ngày <strong>16/10/2025</strong> để nộp giấy tờ cần thiết với mã đăng kí <strong>${created.enrollmentCode}</strong> .</p>
-      <br>
-      <p>Trân trọng,</p>
-      <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
-    `;
-            const mail = new SMTP(SMTP_CONFIG);
-            mail.send(
-                created.fatherEmail,
-                created.motherEmail,
-                'THÔNG BÁO TIẾP NHẬN HỒ SƠ TUYỂN SINH',
-                htmlContent,
-                '',
-                (err, info) => {
-                    if (err) {
-                        console.error("❌ Lỗi khi gửi mail:", err);
-                        return res.status(500).send("Gửi mail thất bại.");
-                    }
-                    console.log(`✅ Đã gửi mail thành công: `);
-                }
-            );
+            try {
+                const htmlContent = `
+          <h2>Thông báo Hồ sơ Tuyển Sinh</h2>
+          <p>Xin chào Quý phụ huynh của học sinh <strong>${created.studentName}</strong>,</p>
+          <p>Nhà trường đã tiếp nhận hồ sơ tuyển sinh của học sinh. Hiện trạng hồ sơ đang <strong>đang xử lý</strong>.</p>
+          <p>Quý phụ huynh vui lòng đến trường vào ngày <strong>16/10/2025</strong> để nộp giấy tờ cần thiết với mã đăng kí <strong>${created.enrollmentCode}</strong>.</p>
+          <br>
+          <p>Trân trọng,</p>
+          <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
+        `;
 
+                const mail = new SMTP(SMTP_CONFIG);
+                await mail.send(
+                    created.fatherEmail,
+                    created.motherEmail,
+                    "THÔNG BÁO TIẾP NHẬN HỒ SƠ TUYỂN SINH",
+                    htmlContent
+                );
+
+                console.log("✅ Đã gửi mail thành công");
+            } catch (mailErr) {
+                console.error("❌ Lỗi khi gửi mail:", mailErr);
+            }
         });
     } catch (error) {
-        console.log("Error registerEnrollController", error);
-        return res.status(HTTP_STATUS.SERVER_ERROR).json(error)
+        console.error("Error registerEnrollController:", error);
+        const status = error.status || HTTP_STATUS.SERVER_ERROR;
+        const message = error.message || "Lỗi máy chủ";
+        return res.status(status).json({ message });
     }
-}
+};
+
 
 exports.approvedEnrollController = async (req, res) => {
     try {

@@ -46,7 +46,6 @@ const createGeneric = (Model) => async (req, res) => {
   try {
     const modelName = Model.modelName.toLowerCase();
     const sequence = await sequencePattern(Model.modelName);
-    console.log("🚀 ~ createGeneric ~ sequence:", sequence)
 
     const lastRecord = await Model.find({
       [`${modelName}Code`]: { $regex: `^${sequence}` }
@@ -69,7 +68,6 @@ const createGeneric = (Model) => async (req, res) => {
       [`${modelName}Code`]: sequenceCode,
       ...req.body
     };
-    console.log("🚀 ~ createGeneric ~ newData:", newData);
 
     const uniqueFields = Object.keys(Model.schema.paths).filter(
       (key) => Model.schema.paths[key].options.unique
@@ -156,7 +154,7 @@ const updateGeneric = (Model) => async (req, res) => {
 
         return res.status(HTTP_STATUS.UPDATED).json(RESPONSE_MESSAGE.UPDATED);
     } catch (error) {
-        console.log("error createGeneric", error);
+        console.log("error updateGeneric", error);
 
         if (error.name === "ValidationError") {
             const messages = Object.values(error.errors).map(e => e.message);

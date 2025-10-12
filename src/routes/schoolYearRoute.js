@@ -17,13 +17,13 @@ router.post("/create",
     createGeneric(ShoolYear)
 );
 
-router.put("/update",
+router.put("/update/:id",
     verifyToken,
     authorizeAction("update"),
     updateGeneric(ShoolYear)
 );
 
-router.post("/delete",
+router.post("/delete/:id",
     verifyToken,
     authorizeAction("delete"),
     deletedSoftGeneric(ShoolYear)

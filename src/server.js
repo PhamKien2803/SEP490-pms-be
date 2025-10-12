@@ -16,6 +16,8 @@ const user = require("./routes/userRoute");
 const staffs = require("./routes/staffRoute");
 const enrollments = require("./routes/enrollmentRoute");
 const menu = require("./routes/menuRoute");
+const schoolYear = require("./routes/schoolYearRoute.js");
+
 require("./helpers/emailWorkQueue.js");
 // Khai báo dotenv
 dotenv.config();
@@ -41,6 +43,7 @@ app.use("/api/pms/accounts", user);
 app.use("/api/pms/staffs", staffs);
 app.use("/api/pms/enrollments", enrollments);
 app.use("/api/pms/menus", menu);
+app.use("/api/pms/schoolYears", schoolYear)
 
 // route test
 app.get("/", (req, res) => {

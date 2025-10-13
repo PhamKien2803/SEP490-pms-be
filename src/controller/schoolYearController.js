@@ -187,6 +187,9 @@ exports.endSchoolYearController = async (req, res) => {
             }
         );
 
+        dataSchoolYear.state = "Hết thời hạn";
+        await dataSchoolYear.save();
+
         res.status(HTTP_STATUS.OK).json({ message: "Tất cả học sinh đã được tốt nghiệp" });
 
         setImmediate(async () => {
@@ -241,3 +244,53 @@ exports.endSchoolYearController = async (req, res) => {
     }
 }
 
+exports.getStudentGraduatedController = async (req, res) => {
+    try {
+        let { limit, page, year } = req.query;
+
+        limit = parseInt(limit) || 30;
+        page = parseInt(page) || 1;
+
+        year = parseInt(year);
+        if (!year || year < 1900 || year > 3000) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                message: "Year không hợp lệ"
+            });
+        }
+
+        const offset = (page - 1) * limit;
+
+        const startOfYear = new Date(`${year}-01-01T00:00:00.000Z`);
+        const endOfYear = new Date(`${year + 1}-01-01T00:00:00.000Z`);
+
+        const queryString = {
+            active: true,
+            graduatedAt: { $gte: startOfYear, $lt: endOfYear }
+        };
+
+
+        const totalCount = await Student.countDocuments(queryString);
+
+        const data = await Student.find(queryString)
+            .skip(offset)
+            .limit(limit);
+
+        if (!data || data.length === 0) {
+            return res
+                .status(HTTP_STATUS.NOT_FOUND)
+                .json("Không tìm thấy dữ liệu");
+        }
+
+        return res.status(HTTP_STATUS.OK).json({
+            data,
+            page: {
+                totalCount,
+                limit,
+                page,
+            },
+        });
+    } catch (error) {
+        console.log("Error getStudentGraduatedController", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+    }
+}

@@ -3,7 +3,7 @@ const router = express.Router();
 const ShoolYear = require("../models/schoolYearModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { createGeneric, deletedSoftGeneric, findAllGeneric, updateGeneric } = require("../controller/useController");
-const { getByIdController, confirmSchoolYearController, createSchoolYearController, endSchoolYearController } = require("../controller/schoolYearController");
+const { getByIdController, confirmSchoolYearController, createSchoolYearController, endSchoolYearController, getStudentGraduatedController } = require("../controller/schoolYearController");
 
 router.get("/list",
     verifyToken,
@@ -47,5 +47,10 @@ router.post("/endSchoolYear/:id",
     endSchoolYearController
 )
 
+router.get("/getStudentGraduated",
+    verifyToken,
+    authorizeAction("view"),
+    getStudentGraduatedController
+)
 
 module.exports = router;

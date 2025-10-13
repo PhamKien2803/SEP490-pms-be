@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Giấy Xác Nhận Tốt Nghiệp</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 30px;
+            line-height: 1.4;
+        }
+        .header {
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 16px;
+        }
+        .header h2 {
+            margin: 5px 0;
+            font-size: 14px;
+            font-weight: normal;
+        }
+        .title {
+            text-align: center;
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+        .title h1 {
+            font-size: 22px;
+            text-decoration: underline;
+            font-weight: bold;
+        }
+        .content {
+            margin: 0 50px;
+            font-size: 16px;
+        }
+        .content p {
+            margin: 15px 0;
+        }
+        .footer {
+            margin-top: 60px;
+            text-align: right;
+            margin-right: 50px;
+            font-size: 16px;
+        }
+        .signature {
+            margin-top: 80px;
+            text-align: right;
+            margin-right: 50px;
+            font-size: 16px;
+        }
+        .logo {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            width: 80px;
+        }
+        .frame {
+            border: 2px solid black;
+            padding: 20px;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="frame">
+        <!-- Logo trường (tùy chỉnh đường dẫn nếu có) -->
+        <img src="https://mir-s3-cdn-cf.behance.net/project_modules/disp/54886c16191201.562a6946f2ce7.jpg" alt="Logo Trường" class="logo">
+
+        <div class="header">
+            <h1>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</h1>
+            <h2>Độc lập - Tự do - Hạnh phúc</h2>
+        </div>
+
+        <div class="title">
+            <h1>GIẤY XÁC NHẬN TỐT NGHIỆP</h1>
+        </div>
+
+        <div class="content">
+            <p>Học sinh: <strong>{{studentName}}</strong></p>
+            <p>Ngày sinh: <strong>{{dob}}</strong></p>
+            <p>Đã hoàn thành chương trình giáo dục mầm non năm học <strong>{{schoolYear}}</strong>.</p>
+        </div>
+
+        <div class="footer">
+            <p>Ngày {{graduationDate}}</p>
+        </div>
+
+        <div class="signature">
+            <p>Hiệu trưởng</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -61,6 +61,7 @@
     "quantity": "Số lượng",
     "condition": "Tình trạng",
     "price": "Giá"
+    "schoolYear": "Năm học"
   },
   "messages": {
     "alreadyExists": "{{field}} đã tồn tại",

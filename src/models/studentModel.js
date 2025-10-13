@@ -21,6 +21,8 @@ const StudentSchema = new mongoose.Schema(
         religion: { type: String, required: true },
         birthCertId: { type: mongoose.Schema.Types.ObjectId },
         healthCertId: { type: mongoose.Schema.Types.ObjectId, },
+        graduated: { type: Boolean },
+        graduatedAt: { type: Date },
         active: { type: Boolean },
         createdBy: { type: String },
         updatedBy: { type: String },

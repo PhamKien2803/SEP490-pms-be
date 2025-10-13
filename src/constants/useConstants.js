@@ -45,6 +45,7 @@ const SEQUENCE_CODE = {
     SCHOOLYEAR: "SY",
     MENU: "ME",
     FOOD: "FO",
+    SCHOOLYEAR: "SY",
 }
 
 

@@ -37,7 +37,7 @@ router.put("/update/:id",
 //     deleteMenuById
 // );
 
-router.delete(
+router.post(
     "/delete/:id",
     verifyToken,
     authorizeAction("delete"),

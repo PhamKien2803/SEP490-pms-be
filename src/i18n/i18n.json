@@ -29,7 +29,8 @@
     "motherIdCard": "CMND/CCCD",
     "startDate": "Thời gian bắt đầu",
     "endDate": "Thời gian kết thúc",
-    "schoolyearCode": "Mã năm học"
+    "schoolyearCode": "Mã năm học",
+    "schoolYear": "Năm học"
   },
   "messages": {
     "alreadyExists": "{{field}} đã tồn tại",

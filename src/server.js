@@ -17,6 +17,7 @@ const staffs = require("./routes/staffRoute");
 const enrollments = require("./routes/enrollmentRoute");
 const menu = require("./routes/menuRoute");
 const food = require("./routes/foodRoute.js");
+const schoolYear = require("./routes/schoolYearRoute.js");
 
 require("./helpers/emailWorkQueue.js");
 
@@ -48,6 +49,7 @@ app.use("/api/pms/staffs", staffs);
 app.use("/api/pms/enrollments", enrollments);
 app.use("/api/pms/menus", menu);
 app.use("/api/pms/foods", food);
+app.use("/api/pms/schoolYears", schoolYear)
 
 // route test
 app.get("/", (req, res) => {

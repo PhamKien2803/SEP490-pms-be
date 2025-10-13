@@ -44,7 +44,6 @@ exports.getMenuById = async (req, res) => {
 exports.createMenu = async (req, res) => {
   try {
     const menuData = req.body;
-    console.log("📥 BODY:", JSON.stringify(menuData, null, 2));
 
     const existing = await Menu.findOne({
       weekStart: new Date(menuData.weekStart),
@@ -192,12 +191,10 @@ exports.updateMenu = async (req, res) => {
         const meals = [];
 
         for (const meal of day.meals || []) {
-          console.log("🚀 ~ meal:", meal)
           let mealTotals = { calo: 0, protein: 0, lipid: 0, carb: 0 };
           const foods = [];
 
           for (const foodItem of meal.foods || []) {
-            console.log("🚀 ~ foodItem:", foodItem)
             let foodObjectId;
             try {
               foodObjectId = new mongoose.Types.ObjectId(foodItem);
@@ -206,7 +203,6 @@ exports.updateMenu = async (req, res) => {
             }
 
             const foodObj = await Food.findById(foodObjectId).lean();
-            console.log("🚀 ~ foodObj:", foodObj)
             if (!foodObj) {
               return res.status(400).json({ message: `Food ${foodObjectId} không tồn tại` });
             }

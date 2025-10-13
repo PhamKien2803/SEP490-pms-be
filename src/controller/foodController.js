@@ -15,15 +15,12 @@ exports.getFoodsWithZeroTotalCalo = async () => {
 exports.genAICaculateFoodNutrition = async (req, res) => {
   try {
     const foodsToProcess = await exports.getFoodsWithZeroTotalCalo();
-    console.log("🚀 ~ foodsToProcess:", foodsToProcess)
 
     if (!foodsToProcess || foodsToProcess.length === 0) {
       return res.status(200).json({ message: "Không có menu nào cần tính calo." });
     }
 
-    console.log(`Đang gửi ${foodsToProcess.length} menu đến ChatGPT để tính toán...`);
     let genAIResult = await generateFoodWithChatGPT(foodsToProcess);
-    console.log("🚀 ~ genAIResult:", genAIResult)
     if (typeof genAIResult === 'string') {
       let cleanText = genAIResult.trim();
       if (cleanText.startsWith("```json")) {
@@ -37,19 +34,10 @@ exports.genAICaculateFoodNutrition = async (req, res) => {
       genAIResult = JSON.parse(cleanText);
     }
 
-    console.log("🚀 ~ genAIResult:", genAIResult)
-    console.log("🚀 ~ Array.isArray(genAIResult):", Array.isArray(genAIResult))
-    console.log("🚀 ~ foodsToProcess.length:", foodsToProcess.length)
-
     if (genAIResult && Array.isArray(genAIResult) && genAIResult.length === foodsToProcess.length) {
       for (let i = 0; i < foodsToProcess.length; i++) {
         const originalFood = foodsToProcess[i];
         const aiFood = genAIResult[i];
-        console.log("🚀 ~ originalFood.foodName:", originalFood.foodName)
-        console.log("🚀 ~ aiFood.foodName:", aiFood.foodName)
-
-        console.log("🚀 ~ originalFood.ageGroup:", originalFood.ageGroup)
-        console.log("🚀 ~ aiFood.ageGroup:", aiFood.ageGroup)
 
         if (
           originalFood.foodName.toLowerCase() === aiFood.foodName.toLowerCase() &&
@@ -62,7 +50,6 @@ exports.genAICaculateFoodNutrition = async (req, res) => {
             updatedBy: req.userId || "system"
           }, { new: true, runValidators: true })
             .then(updated => {
-              console.log(`Cập nhật food ${updated._id} thành công.`);
             })
             .catch(err => {
               console.error(`Lỗi khi cập nhật food ${originalFood._id}:`, err);
@@ -93,15 +80,12 @@ exports.genAICaculateFoodNutrition = async (req, res) => {
 exports.genAICaculateFoodNutritionById = async (req, res) => {
   try {
     const foodsToProcess = await Food.find({ _id: req.params.id });
-    console.log("🚀 ~ foodsToProcess:", foodsToProcess);
 
     if (!foodsToProcess || foodsToProcess.length === 0) {
       return res.status(200).json({ message: "Không có food nào cần tính calo." });
     }
 
-    console.log(`Đang gửi ${foodsToProcess.length} food đến ChatGPT để tính toán...`);
     let genAIResult = await generateFoodWithChatGPT(foodsToProcess);
-    console.log("🚀 ~ genAIResult (raw):", genAIResult);
 
     if (typeof genAIResult === 'string') {
       let cleanText = genAIResult.trim();
@@ -111,15 +95,9 @@ exports.genAICaculateFoodNutritionById = async (req, res) => {
       genAIResult = JSON.parse(cleanText);
     }
 
-    console.log("🚀 ~ genAIResult (parsed):", genAIResult);
-    console.log("🚀 ~ Array.isArray(genAIResult):", Array.isArray(genAIResult));
-
     if (!Array.isArray(genAIResult)) {
       genAIResult = [genAIResult];
     }
-
-    console.log("🚀 ~ foodsToProcess.length:", foodsToProcess.length);
-    console.log("🚀 ~ genAIResult.length:", genAIResult.length);
 
     if (genAIResult && genAIResult.length > 0) {
       for (const originalFood of foodsToProcess) {
@@ -141,7 +119,6 @@ exports.genAICaculateFoodNutritionById = async (req, res) => {
             },
             { new: true, runValidators: true }
           );
-          console.log(`✅ Cập nhật food ${originalFood.foodName} (${originalFood._id}) thành công.`);
         } else {
           console.warn(`⚠️ Không tìm thấy food khớp với AI cho ${originalFood.foodName}`);
         }
@@ -190,15 +167,12 @@ exports.getFoodByQuery = async (req, res) => {
     }
 
     const totalCount = await Food.countDocuments(query);
-    console.log("🚀 ~ totalCount:", totalCount)
     const totalPages = Math.ceil(totalCount / limit);
-    console.log("🚀 ~ totalPages:", totalPages)
 
     const data = await Food.find(query)
       .sort({ createdAt: -1 })
       .skip(offset)
       .limit(limit);
-    console.log("🚀 ~ data:", data)
 
     if (!data || data.length === 0) {
       return res.status(200).json({

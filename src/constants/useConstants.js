@@ -43,6 +43,9 @@ const SEQUENCE_CODE = {
     STAFF: "ST",
     ENROLLMENT: "ER",
     SCHOOLYEAR: "SY",
+    MENU: "ME",
+    FOOD: "FO",
+    SCHOOLYEAR: "SY",
 }
 
 

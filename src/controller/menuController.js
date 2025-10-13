@@ -1,6 +1,7 @@
 
 const Menu = require('../models/menuModel');
-const { generateMenuWithChatGPT } = require("../AI/aiController");
+const Food = require('../models/foodModel');
+const mongoose = require("mongoose");
 
 exports.getMenuByDateFromTo = async (req, res) => {
   try {
@@ -23,7 +24,7 @@ exports.getMenuByDateFromTo = async (req, res) => {
   }
 };
 
-exports.getMenuById= async (req, res) => {
+exports.getMenuById = async (req, res) => {
   try {
     const { id } = req.params;
     const menu = await Menu.findById(id);
@@ -37,43 +38,91 @@ exports.getMenuById= async (req, res) => {
   }
 };
 
+
+
+
 exports.createMenu = async (req, res) => {
   try {
     const menuData = req.body;
+
     const existing = await Menu.findOne({
       weekStart: new Date(menuData.weekStart),
       ageGroup: menuData.ageGroup,
-
+      active: true,
     });
 
     if (existing) {
-      return res
-        .status(400)
-        .json({ message: "Thực đơn tuần này đã tồn tại cho nhóm tuổi này." });
+      return res.status(400).json({
+        message: "Thực đơn tuần này đã tồn tại cho nhóm tuổi này.",
+      });
     }
 
-    const normalizedDays = (menuData.days || []).map((day) => ({
-      ...day,
-      totalCalo: 0,
-      totalProtein: 0,
-      totalLipid: 0,
-      totalCarb: 0,
-      meals: (day.meals || []).map((meal) => ({
-        ...meal,
-        totalCalo: 0,
-        totalProtein: 0,
-        totalLipid: 0,
-        totalCarb: 0,
-        foods: (meal.foods || []).map((food) => ({
-          name: food.name,
-          weight: food.weight,
-          calo: food.calo || 0,
-          protein: food.protein || 0,
-          lipid: food.lipid || 0,
-          carb: food.carb || 0,
-        })),
-      })),
-    }));
+    const normalizedDays = [];
+
+    for (const day of menuData.days || []) {
+      let dayTotals = { calo: 0, protein: 0, lipid: 0, carb: 0 };
+      const meals = [];
+
+      for (const meal of day.meals || []) {
+        let mealTotals = { calo: 0, protein: 0, lipid: 0, carb: 0 };
+        const foods = [];
+
+        for (const foodId of meal.foods || []) {
+          const foodObjectId = new mongoose.Types.ObjectId(foodId);
+
+          const foodObj = await Food.findById(foodObjectId).lean();
+          if (!foodObj) {
+            return res.status(400).json({ message: `Food ${foodId} không tồn tại` });
+          }
+
+          const calo = foodObj.ingredients.reduce((sum, ing) => sum + (ing.calories || 0), 0);
+          const protein = foodObj.ingredients.reduce((sum, ing) => sum + (ing.protein || 0), 0);
+          const lipid = foodObj.ingredients.reduce((sum, ing) => sum + (ing.lipid || 0), 0);
+          const carb = foodObj.ingredients.reduce((sum, ing) => sum + (ing.carb || 0), 0);
+
+          mealTotals.calo += calo;
+          mealTotals.protein += protein;
+          mealTotals.lipid += lipid;
+          mealTotals.carb += carb;
+
+          foods.push({ food: foodObjectId });
+        }
+
+        dayTotals.calo += mealTotals.calo;
+        dayTotals.protein += mealTotals.protein;
+        dayTotals.lipid += mealTotals.lipid;
+        dayTotals.carb += mealTotals.carb;
+
+        meals.push({
+          mealType: meal.mealType,
+          foods,
+          totalCalo: mealTotals.calo,
+          totalProtein: mealTotals.protein,
+          totalLipid: mealTotals.lipid,
+          totalCarb: mealTotals.carb,
+        });
+      }
+
+      normalizedDays.push({
+        date: day.date,
+        meals,
+        totalCalo: dayTotals.calo,
+        totalProtein: dayTotals.protein,
+        totalLipid: dayTotals.lipid,
+        totalCarb: dayTotals.carb,
+      });
+    }
+
+    const weekTotals = normalizedDays.reduce(
+      (acc, day) => {
+        acc.calo += day.totalCalo;
+        acc.protein += day.totalProtein;
+        acc.lipid += day.totalLipid;
+        acc.carb += day.totalCarb;
+        return acc;
+      },
+      { calo: 0, protein: 0, lipid: 0, carb: 0 }
+    );
 
     const menu = new Menu({
       weekStart: new Date(menuData.weekStart),
@@ -81,21 +130,33 @@ exports.createMenu = async (req, res) => {
       weekNumber: menuData.weekNumber,
       ageGroup: menuData.ageGroup,
       days: normalizedDays,
-      totalCalo: 0,
-      totalProtein: 0,
-      totalLipid: 0,
-      totalCarb: 0,
+      totalCalo: weekTotals.calo,
+      totalProtein: weekTotals.protein,
+      totalLipid: weekTotals.lipid,
+      totalCarb: weekTotals.carb,
       notes: menuData.notes || "",
       createdBy: menuData.createdBy || "system",
+      updatedBy: menuData.createdBy || "system",
     });
 
     await menu.save();
-    res.status(201).json(menu);
+
+    const populatedMenu = await Menu.findById(menu._id).populate({
+      path: "days.meals.foods.food",
+      select: "foodName ingredients",
+    });
+
+    res.status(201).json({
+      message: "Tạo thực đơn thành công!",
+      data: populatedMenu,
+    });
+
   } catch (error) {
-    console.error("Error createMenu:", error);
-    res
-      .status(500)
-      .json({ message: "Lỗi server", error: error.message });
+    console.error("❌ Error createMenu:", error);
+    res.status(500).json({
+      message: "Lỗi server",
+      error: error.message,
+    });
   }
 };
 
@@ -114,144 +175,115 @@ exports.updateMenu = async (req, res) => {
         _id: { $ne: id },
         weekStart: new Date(updatedData.weekStart),
         ageGroup: updatedData.ageGroup,
+        active: true,
       });
 
       if (existing) {
-        return res
-          .status(400)
-          .json({ message: "Thực đơn tuần này đã tồn tại cho nhóm tuổi này." });
+        return res.status(400).json({ message: "Thực đơn tuần này đã tồn tại cho nhóm tuổi này." });
       }
     }
 
     if (updatedData.days && Array.isArray(updatedData.days)) {
-      updatedData.days = updatedData.days.map((day) => ({
-        ...day,
-        totalCalo: 0,
-        totalProtein: 0,
-        totalLipid: 0,
-        totalCarb: 0,
-        meals: (day.meals || []).map((meal) => ({
-          ...meal,
-          totalCalo: 0,
-          totalProtein: 0,
-          totalLipid: 0,
-          totalCarb: 0,
-          foods: (meal.foods || []).map((food) => ({
-            name: food.name,
-            weight: food.weight,
-            calo: food.calo || 0,
-            protein: food.protein || 0,
-            lipid: food.lipid || 0,
-            carb: food.carb || 0,
-          })),
-        })),
-      }));
+      const normalizedDays = [];
+
+      for (const day of updatedData.days) {
+        let dayTotals = { calo: 0, protein: 0, lipid: 0, carb: 0 };
+        const meals = [];
+
+        for (const meal of day.meals || []) {
+          let mealTotals = { calo: 0, protein: 0, lipid: 0, carb: 0 };
+          const foods = [];
+
+          for (const foodItem of meal.foods || []) {
+            let foodObjectId;
+            try {
+              foodObjectId = new mongoose.Types.ObjectId(foodItem);
+            } catch (err) {
+              return res.status(400).json({ message: `Food ID không hợp lệ: ${foodItem}` });
+            }
+
+            const foodObj = await Food.findById(foodObjectId).lean();
+            if (!foodObj) {
+              return res.status(400).json({ message: `Food ${foodObjectId} không tồn tại` });
+            }
+
+            const calo = foodObj.ingredients.reduce((sum, ing) => sum + (ing.calories || 0), 0);
+            const protein = foodObj.ingredients.reduce((sum, ing) => sum + (ing.protein || 0), 0);
+            const lipid = foodObj.ingredients.reduce((sum, ing) => sum + (ing.lipid || 0), 0);
+            const carb = foodObj.ingredients.reduce((sum, ing) => sum + (ing.carb || 0), 0);
+
+            mealTotals.calo += calo;
+            mealTotals.protein += protein;
+            mealTotals.lipid += lipid;
+            mealTotals.carb += carb;
+
+            foods.push({ food: foodObjectId });
+          }
+
+          dayTotals.calo += mealTotals.calo;
+          dayTotals.protein += mealTotals.protein;
+          dayTotals.lipid += mealTotals.lipid;
+          dayTotals.carb += mealTotals.carb;
+
+          meals.push({
+            mealType: meal.mealType,
+            foods,
+            totalCalo: mealTotals.calo,
+            totalProtein: mealTotals.protein,
+            totalLipid: mealTotals.lipid,
+            totalCarb: mealTotals.carb,
+          });
+        }
+
+        normalizedDays.push({
+          date: day.date,
+          meals,
+          totalCalo: dayTotals.calo,
+          totalProtein: dayTotals.protein,
+          totalLipid: dayTotals.lipid,
+          totalCarb: dayTotals.carb,
+        });
+      }
+
+      updatedData.days = normalizedDays;
+
+      const weekTotals = normalizedDays.reduce(
+        (acc, day) => {
+          acc.calo += day.totalCalo;
+          acc.protein += day.totalProtein;
+          acc.lipid += day.totalLipid;
+          acc.carb += day.totalCarb;
+          return acc;
+        },
+        { calo: 0, protein: 0, lipid: 0, carb: 0 }
+      );
+
+      updatedData.totalCalo = weekTotals.calo;
+      updatedData.totalProtein = weekTotals.protein;
+      updatedData.totalLipid = weekTotals.lipid;
+      updatedData.totalCarb = weekTotals.carb;
     }
 
-    updatedData.totalCalo = 0;
-    updatedData.totalProtein = 0;
-    updatedData.totalLipid = 0;
-    updatedData.totalCarb = 0;
     updatedData.updatedBy = updatedData.updatedBy || "system";
 
     const updatedMenu = await Menu.findByIdAndUpdate(id, updatedData, {
       new: true,
       runValidators: true,
+    }).populate({
+      path: "days.meals.foods.food",
+      select: "foodName ingredients",
     });
 
-    res.status(200).json(updatedMenu);
-  } catch (error) {
-    console.error("Error updateMenu:", error);
-    res.status(500).json({ message: "Lỗi server", error: error.message });
-  }
-};
-
-exports.getMenuTotalCaloIsNo = async (req, res) => {
-  try {
-    const menus = await Menu.find({ totalCalo: { $eq: 0 } }).sort({ weekStart: 1 });
-    res.status(200).json(menus);
-  } catch (error) {
-    console.error("Error getMenuTotalCaloIsNot:", error);
-    res.status(500).json({ message: "Lỗi server", error: error.message });
-  }
-};
-
-exports.getMenusWithZeroTotalCalo = async () => {
-  try {
-    const menus = await Menu.find({ totalCalo: { $eq: 0 } }).sort({ weekStart: 1 });
-    return menus;
-  } catch (error) {
-    console.error("Error fetching menus with zero totalCalo:", error);
-    throw new Error("Failed to fetch menus from database.");
-  }
-};
-
-exports.genAICaculateMenuNutrition = async (req, res) => {
-  try {
-    const menusToProcess = await exports.getMenusWithZeroTotalCalo();
-
-    if (!menusToProcess || menusToProcess.length === 0) {
-      return res.status(200).json({ message: "Không có menu nào cần tính calo." });
-    }
-
-    console.log(`Đang gửi ${menusToProcess.length} menu đến Gemini để tính toán...`);
-    let genAIResult = await generateMenuWithChatGPT(menusToProcess);
-    if (typeof genAIResult === 'string') {
-      let cleanText = genAIResult.trim();
-      if (cleanText.startsWith("```json")) {
-        cleanText = cleanText.substring("```json".length);
-      }
-      if (cleanText.endsWith("```")) {
-        cleanText = cleanText.substring(0, cleanText.length - "```".length);
-      }
-      cleanText = cleanText.trim();
-
-      genAIResult = JSON.parse(cleanText);
-    }
-    
-    // console.log("🚀 ~ genAIResult:", genAIResult)
-    // console.log("🚀 ~ Array.isArray(genAIResult):", Array.isArray(genAIResult))
-    // console.log("🚀 ~ menusToProcess.length:", menusToProcess.length)
-
-    if (genAIResult && Array.isArray(genAIResult) && genAIResult.length === menusToProcess.length) {
-      for (let i = 0; i < menusToProcess.length; i++) {
-        const originalMenu = menusToProcess[i];
-        const aiMenu = genAIResult[i];
-        if (originalMenu._id.toString() == aiMenu._id) {
-          Menu.findByIdAndUpdate(originalMenu._id, {
-            days: aiMenu.days,
-            totalCalo: aiMenu.totalCalo,
-            totalProtein: aiMenu.totalProtein,
-            totalLipid: aiMenu.totalLipid,
-            totalCarb: aiMenu.totalCarb,
-            updatedBy: "system (AI)",
-            state: "Đã lấy calo",
-          }, { new: true, runValidators: true })
-            .then(updated => {
-              console.log(`Cập nhật menu ${updated._id} thành công.`);
-            })
-            .catch(err => {
-              console.error(`Lỗi khi cập nhật menu ${originalMenu._id}:`, err);
-            });
-        } else {
-          console.warn(`ID menu không khớp: original ${originalMenu._id} vs AI ${aiMenu._id}`);
-        }
-      }
-    } else {
-      console.error("Kết quả từ AI không hợp lệ hoặc không khớp với số lượng menu.");
-      return res.status(500).json({ message: "Kết quả từ AI không hợp lệ." });
-    }
     res.status(200).json({
-      message: `Đã tính calo cho ${menusToProcess.length} menu thành công.`,
-      ai_output: genAIResult
+      message: "Cập nhật thực đơn thành công!",
+      data: updatedMenu,
     });
 
   } catch (error) {
-    console.error("Lỗi khi chạy genAICaculateMenuNutrition:", error);
-    const statusCode = (error.message && error.message.includes('503')) ? 503 : 500;
-    res.status(statusCode).json({
-      message: "Lỗi xử lý tính toán dinh dưỡng.",
-      error: error.message
+    console.error("❌ Error updateMenu:", error);
+    res.status(500).json({
+      message: "Lỗi server",
+      error: error.message,
     });
   }
 };
@@ -283,10 +315,10 @@ exports.approveMenuById = async (req, res) => {
   } catch (error) {
     console.error("Error approveMenuById:", error);
     res.status(500).json({ message: "Lỗi server", error: error.message });
-  } 
+  }
 };
 
-exports.rejectMenuById = async (req, res) => {  
+exports.rejectMenuById = async (req, res) => {
   try {
     const { id } = req.params;
     const menu = await Menu.findById(id);
@@ -311,13 +343,11 @@ exports.getMenuByQuery = async (req, res) => {
     page = parseInt(page) || 1;
     const offset = (page - 1) * limit;
 
-    // Tạo điều kiện query động
     const query = {};
 
     if (ageGroup) query.ageGroup = ageGroup;
     if (state) query.state = state;
 
-    // Gộp logic ngày (nếu có)
     if (weekStart && weekEnd) {
       query.weekStart = { $gte: new Date(weekStart) };
       query.weekEnd = { $lte: new Date(weekEnd) };
@@ -327,10 +357,8 @@ exports.getMenuByQuery = async (req, res) => {
       query.weekEnd = { $lte: new Date(weekEnd) };
     }
 
-    // Đếm tổng số kết quả
     const totalCount = await Menu.countDocuments(query);
 
-    // Lấy dữ liệu có phân trang
     const data = await Menu.find(query)
       .sort({ weekStart: -1 })
       .skip(offset)

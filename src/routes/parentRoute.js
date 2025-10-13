@@ -18,7 +18,7 @@ router.post(
     createGeneric(Parent)
 );
 
-router.delete(
+router.post(
     "/delete/:id",
     verifyToken,
     authorizeAction("delete"),

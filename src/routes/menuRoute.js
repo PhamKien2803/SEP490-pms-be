@@ -1,12 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
-const { getMenuByDateFromTo, createMenu, updateMenu, deleteMenuById, getMenuTotalCaloIsNo,
-    genAICaculateMenuNutrition, getMenuById, 
-    approveMenuById,
-    rejectMenuById,
-    getAllMenus,
+const { getMenuByDateFromTo, createMenu, updateMenu, getMenuById, 
+    approveMenuById, rejectMenuById, 
     getMenuByQuery} = require("../controller/menuController");
+const Menu = require("../models/menuModel");
+const { deletedSoftGeneric } = require("../controller/useController");
 
 router.get("/get-by-date/",
     verifyToken,
@@ -32,22 +31,17 @@ router.put("/update/:id",
     updateMenu
 );
 
-router.delete("/delete/:id",
+// router.delete("/delete/:id",
+//     verifyToken,
+//     authorizeAction("delete"),
+//     deleteMenuById
+// );
+
+router.post(
+    "/delete/:id",
     verifyToken,
     authorizeAction("delete"),
-    deleteMenuById
-);
-
-router.get("/menu-no-calo",
-    verifyToken,
-    authorizeAction("view"),
-    getMenuTotalCaloIsNo
-);
-
-router.get("/caculate-calo",
-    verifyToken,
-    authorizeAction("view"),
-    genAICaculateMenuNutrition
+    deletedSoftGeneric(Menu)
 );
 
 router.put("/approve-menu/:id",

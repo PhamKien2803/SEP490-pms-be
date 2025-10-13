@@ -18,6 +18,8 @@ const enrollments = require("./routes/enrollmentRoute");
 const menu = require("./routes/menuRoute");
 const food = require("./routes/foodRoute.js");
 
+const schoolYear = require("./routes/schoolYearRoute.js");
+
 require("./helpers/emailWorkQueue.js");
 
 // Khai báo dotenv
@@ -47,6 +49,7 @@ app.use("/api/pms/accounts", user);
 app.use("/api/pms/staffs", staffs);
 app.use("/api/pms/enrollments", enrollments);
 app.use("/api/pms/menus", menu);
+app.use("/api/pms/schoolYears", schoolYear)
 app.use("/api/pms/foods", food);
 
 // route test

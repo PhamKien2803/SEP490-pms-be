@@ -26,7 +26,10 @@
     "motherName": "Tên mẹ",
     "motherPhoneNumber": "Số điện thoại",
     "motherEmail": "Email",
-    "motherIdCard": "CMND/CCCD"
+    "motherIdCard": "CMND/CCCD",
+    "startDate": "Thời gian bắt đầu",
+    "endDate": "Thời gian kết thúc",
+    "schoolyearCode": "Mã năm học"
   },
   "messages": {
     "alreadyExists": "{{field}} đã tồn tại",

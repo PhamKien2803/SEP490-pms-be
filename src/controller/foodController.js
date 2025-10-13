@@ -143,19 +143,19 @@ exports.genAICaculateFoodNutritionById = async (req, res) => {
   }
 };
 
-
 exports.getFoodByQuery = async (req, res) => {
   try {
-    let { foodName, ageGroup, totalCalories, limit, page } = req.query;
-
+    let { foodName, ageGroup, totalCalories, active, limit, page } = req.query;
+    active = true;
     limit = parseInt(limit) || 30;
     page = parseInt(page) || 1;
     const offset = (page - 1) * limit;
 
     const query = {};
+    query.active = active;
 
     if (foodName) {
-      query.foodName = { $regex: foodName, $options: "i" }; 
+      query.foodName = { $regex: foodName, $options: "i" };
     }
 
     if (ageGroup) {

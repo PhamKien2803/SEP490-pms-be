@@ -38,9 +38,6 @@ exports.getMenuById = async (req, res) => {
   }
 };
 
-
-
-
 exports.createMenu = async (req, res) => {
   try {
     const menuData = req.body;
@@ -337,16 +334,19 @@ exports.rejectMenuById = async (req, res) => {
 
 exports.getMenuByQuery = async (req, res) => {
   try {
-    let { ageGroup, state, weekStart, weekEnd, limit, page } = req.query;
+    let { ageGroup, state, weekStart, weekEnd, active, limit, page } = req.query;
+    active = true;
 
     limit = parseInt(limit) || 30;
     page = parseInt(page) || 1;
     const offset = (page - 1) * limit;
 
     const query = {};
+    query.active = active;
 
     if (ageGroup) query.ageGroup = ageGroup;
     if (state) query.state = state;
+    if (active !== undefined) query.active = active === 'true';
 
     if (weekStart && weekEnd) {
       query.weekStart = { $gte: new Date(weekStart) };
@@ -360,6 +360,10 @@ exports.getMenuByQuery = async (req, res) => {
     const totalCount = await Menu.countDocuments(query);
 
     const data = await Menu.find(query)
+      .populate({
+        path: "days.meals.foods.food",
+        select: "foodName ageGroup totalCalories calo ingredients",
+      })
       .sort({ weekStart: -1 })
       .skip(offset)
       .limit(limit);
@@ -384,3 +388,4 @@ exports.getMenuByQuery = async (req, res) => {
     });
   }
 };
+

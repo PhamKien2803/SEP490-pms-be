@@ -41,12 +41,24 @@ const DaySchema = new mongoose.Schema(
 
 const MenuSchema = new mongoose.Schema(
   {
-    weekStart: { type: Date, required: true },
-    weekEnd: { type: Date, required: true },
+    weekStart: {
+      type: Date,
+      required: [true, "Ngày bắt đầu tuần là bắt buộc"],
+    },
+    weekEnd: {
+      type: Date,
+      required: [true, "Ngày kết thúc tuần là bắt buộc"],
+      validate: {
+        validator: function (value) {
+          return this.weekStart < value;
+        },
+        message: "Ngày kết thúc tuần phải sau hoặc bằng ngày bắt đầu",
+      },
+    },
     weekNumber: { type: Number },
     ageGroup: {
       type: String,
-      required: true,
+      required: [true, "Nhóm tuổi là bắt buộc"],
       enum: ["Dưới 1 tuổi", "1-3 tuổi", "4-5 tuổi"],
     },
 
@@ -62,6 +74,7 @@ const MenuSchema = new mongoose.Schema(
       enum: ["Chờ xử lý", "Đã duyệt", "Từ chối"],
       default: "Chờ xử lý",
     },
+
     active: { type: Boolean, default: true },
     notes: { type: String },
     createdBy: { type: String },

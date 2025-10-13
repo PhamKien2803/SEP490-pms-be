@@ -6,6 +6,10 @@ const RoomSchema = new mongoose.Schema(
         minimum: { type: Number },
         maximum: { type: Number },
         active: { type: Boolean },
+        createdAt: { type: Date, default: Date.now},
+        updatedAt: { type: Date, default: Date.now},
+        createdBy: { type: String },
+        updatedBy: { type: String },
     },
     { timestamps: true, versionKey: false },
 );

@@ -16,17 +16,23 @@ const user = require("./routes/userRoute");
 const staffs = require("./routes/staffRoute");
 const enrollments = require("./routes/enrollmentRoute");
 const menu = require("./routes/menuRoute");
+const food = require("./routes/foodRoute.js");
+
 require("./helpers/emailWorkQueue.js");
+
 // Khai báo dotenv
 dotenv.config();
+
 // Khai báo app
 const app = express();
+
 // Middleware
 app.use(cors({ origin: "http://localhost:5173", credentials: true, }));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(morgan("dev"));
 app.use(cookieParser());
+
 // Connect to MongoDB
 connectDB();
 connectGridFS();
@@ -41,6 +47,7 @@ app.use("/api/pms/accounts", user);
 app.use("/api/pms/staffs", staffs);
 app.use("/api/pms/enrollments", enrollments);
 app.use("/api/pms/menus", menu);
+app.use("/api/pms/foods", food);
 
 // route test
 app.get("/", (req, res) => {

@@ -11,8 +11,8 @@ const client = new OpenAI({
     apiKey: CHATGPT_API_KEY,
 });
 
-module.exports.generateMenuWithChatGPT = async (data) => {
-    const promptPath = path.join(__dirname, "menu_prompt.md");
+module.exports.generateFoodWithChatGPT = async (data) => {
+    const promptPath = path.join(__dirname, "food_prompt.md");
     const promptTemplate = fs.readFileSync(promptPath, "utf8");
 
     const inputJson = JSON.stringify(data, null, 4);

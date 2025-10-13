@@ -18,7 +18,7 @@ router.post(
   createGeneric(Food)
 );
 
-router.delete(
+router.post(
   "/delete/:id",
   verifyToken,
   authorizeAction("delete"),

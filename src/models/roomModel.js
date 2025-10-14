@@ -1,17 +1,71 @@
 const mongoose = require("mongoose");
-const RoomSchema = new mongoose.Schema(
-    {
-        roomCode: { type: String, required: true },
-        roomName: { type: String, required: true },
-        minimum: { type: Number },
-        maximum: { type: Number },
-        active: { type: Boolean },
-        createdAt: { type: Date, default: Date.now},
-        updatedAt: { type: Date, default: Date.now},
-        createdBy: { type: String },
-        updatedBy: { type: String },
+
+const facilitySchema = new mongoose.Schema(
+  {
+    facilityName: {
+      type: String,
+      required: [true, "Tên cơ sở vật chất là bắt buộc."],
+      trim: true,
     },
-    { timestamps: true, versionKey: false },
+    facilityType: {
+      type: String,
+      trim: true,
+    },
+    quantity: {
+      type: Number,
+      default: 1,
+      min: [1, "Số lượng phải lớn hơn 0."],
+    },
+    condition: {
+      type: String,
+      enum: ["Mới", "Tốt", "Trung bình", "Hỏng", "Khác"],
+      default: "Tốt",
+    },
+    price: {
+      type: Number,
+      min: 0,
+      default: 0,
+    },
+    notes: {
+      type: String,
+      trim: true,
+    },
+  },
+  { _id: false } 
 );
 
-module.exports = mongoose.model("Room", RoomSchema);
+const roomSchema = new mongoose.Schema(
+  {
+    roomName: {
+      type: String,
+      required: [true, "Tên phòng là bắt buộc."],
+      trim: true,
+    },
+    roomType: {
+      type: String,  
+    },
+    capacity: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    facilities: [facilitySchema],
+
+    notes: {
+      type: String,
+      trim: true,
+    },
+
+    active: { type: Boolean, default: true },
+
+    createdBy: String,
+    updatedBy: String,
+  },
+  {
+    timestamps: true,
+  }
+);
+
+const Room = mongoose.model("Room", roomSchema);
+module.exports = Room;
+

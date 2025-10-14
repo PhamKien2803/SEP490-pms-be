@@ -27,7 +27,10 @@ exports.getMenuByDateFromTo = async (req, res) => {
 exports.getMenuById = async (req, res) => {
   try {
     const { id } = req.params;
-    const menu = await Menu.findById(id);
+    const menu = await Menu.findById(id).populate({
+      path: "days.meals.foods.food",
+      select: "foodName ageGroup totalCalories calo ingredients",
+    });
     if (!menu) {
       return res.status(404).json({ message: "Không tìm thấy thực đơn." });
     }
@@ -346,7 +349,7 @@ exports.getMenuByQuery = async (req, res) => {
 
     if (ageGroup) query.ageGroup = ageGroup;
     if (state) query.state = state;
-    if (active !== undefined) query.active = active === 'true';
+    // if (active !== undefined) query.active = active === 'true';
 
     if (weekStart && weekEnd) {
       query.weekStart = { $gte: new Date(weekStart) };

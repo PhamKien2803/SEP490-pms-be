@@ -50,7 +50,10 @@ const MenuSchema = new mongoose.Schema(
       required: [true, "Ngày kết thúc tuần là bắt buộc"],
       validate: {
         validator: function (value) {
-          return this.weekStart < value;
+          if (!this.weekStart || !value) return true;
+          const start = new Date(this.weekStart).getTime();
+          const end = new Date(value).getTime();
+          return end >= start;
         },
         message: "Ngày kết thúc tuần phải sau hoặc bằng ngày bắt đầu",
       },

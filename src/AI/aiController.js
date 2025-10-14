@@ -2,19 +2,26 @@ const fs = require("fs");
 const path = require("path");
 const { config } = require("dotenv");
 const OpenAI = require("openai");
+const { GoogleGenAI } = require("@google/genai");
 
 config();
 
-const CHATGPT_API_KEY = process.env.CHATGPT_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-const client = new OpenAI({
-    apiKey: CHATGPT_API_KEY,
+const ai = new GoogleGenAI({
+    apiKey: GEMINI_API_KEY,
 });
 
+/**
+ * Gửi prompt lên Gemini và lấy kết quả trả về
+ * @param {Object} data - { school_classes, preschool_schedule }
+ * @returns {Promise<Object>} - Kết quả trả về từ GenAI
+ */
 module.exports.generateFoodWithChatGPT = async (data) => {
     const promptPath = path.join(__dirname, "food_prompt.md");
     const promptTemplate = fs.readFileSync(promptPath, "utf8");
 
+    // Ghép kết quả vào cuối prompt
     const inputJson = JSON.stringify(data, null, 4);
     const fullPrompt = `${promptTemplate.trim()}
 
@@ -22,36 +29,24 @@ module.exports.generateFoodWithChatGPT = async (data) => {
 ${inputJson}
 \`\`\`
 `;
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [
+            {
+                parts: [{ text: fullPrompt }],
+            },
+        ],
+        config: {
+            responseMimeType: "application/json", 
+        },
+    });
 
+    // Lấy phần text trả về từ Gemini
+    const text = response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    console.log("🚀 ~ text:", text)
     try {
-        const response = await client.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                {
-                    role: "system",
-                    content:
-                        "You are an AI system that processes preschool menus to calculate and populate nutritional values based on Vietnamese food composition standards. Return only valid JSON.",
-                },
-                {
-                    role: "user",
-                    content: fullPrompt,
-                },
-            ],
-            response_format: { type: "json_object" },
-        });
-
-        const text = response.choices?.[0]?.message?.content || "";
-        try {
-             const parsed = JSON.parse(text);
-            if (Array.isArray(parsed)) return parsed;
-            if (Array.isArray(parsed.result)) return parsed.result;
-            if (Array.isArray(parsed.menus)) return parsed.menus;
-            return parsed;
-        } catch {
-            return text;
-        }
-    } catch (error) {
-        console.error("Error generating menu with ChatGPT:", error);
-        throw error;
+        return JSON.parse(text);
+    } catch {
+        return text;
     }
-};
+}

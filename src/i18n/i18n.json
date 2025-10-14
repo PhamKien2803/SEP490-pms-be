@@ -63,7 +63,9 @@
     "price": "Giá",
     "schoolYear": "Năm học",
     "enrollmentStartDate": "Thời gian bắt đầu tuyển sinh",
-    "enrollmentEndDate": "Thời gian kết thúc tuyển sinh"
+    "enrollmentEndDate": "Thời gian kết thúc tuyển sinh",
+    "className": "Tên lớp học",
+    "room": "Phòng học"
   },
   "messages": {
     "alreadyExists": "{{field}} đã tồn tại",

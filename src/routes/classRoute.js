@@ -3,12 +3,37 @@ const router = express.Router();
 const Class = require("../models/classModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
-const { } = require("../controller/classController");
+const { getAllClassController, getByIdClassController } = require("../controller/classController");
 
-router.get("/list/",
+router.get("/list",
     verifyToken,
     authorizeAction("view"),
-    findAllGeneric(Class)
+    getAllClassController
 );
+
+router.post("/create",
+    verifyToken,
+    authorizeAction("create"),
+    createGeneric(Class)
+);
+
+router.put("/update/:id",
+    verifyToken,
+    authorizeAction("update"),
+    updateGeneric(Class)
+);
+
+router.post("/delete/:id",
+    verifyToken,
+    authorizeAction("delete"),
+    deletedSoftGeneric(Class)
+);
+
+router.get("/getById/:id",
+    verifyToken,
+    authorizeAction("view"),
+    getByIdClassController
+)
+
 
 module.exports = router;

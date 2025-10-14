@@ -115,7 +115,6 @@ const createGeneric = (Model) => async (req, res) => {
   }
 };
 
-
 const deletedSoftGeneric = (Model) => async (req, res) => {
     try {
         const data = await Model.findById(req.params.id);

@@ -3,7 +3,7 @@ const router = express.Router();
 const Class = require("../models/classModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
-const { getAllClassController, getByIdClassController } = require("../controller/classController");
+const { getAllClassController, getByIdClassController, getAvailableStudentController, getAvailableTeacherController } = require("../controller/classController");
 
 router.get("/list",
     verifyToken,
@@ -33,7 +33,18 @@ router.get("/getById/:id",
     verifyToken,
     authorizeAction("view"),
     getByIdClassController
-)
+);
 
+router.get("/available-student",
+    verifyToken,
+    authorizeAction("view"),
+    getAvailableStudentController
+);
+
+router.get("/available-teacher",
+    verifyToken,
+    authorizeAction("view"),
+    getAvailableTeacherController
+);
 
 module.exports = router;

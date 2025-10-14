@@ -135,11 +135,9 @@ exports.confirmSchoolYearController = async (req, res) => {
 
 async function renderTemplate(data) {
     const templatePath = path.join(__dirname, '../templates/graduatedPDF.hbs');
-    console.log("🚀 ~ renderTemplate ~ templatePath:", templatePath);
     const templateSource = fs.readFileSync(templatePath, 'utf8');
     const template = handlebars.compile(templateSource);
     const html = template(data);
-    fs.writeFileSync('test.html', html); // Lưu HTML để kiểm tra
     return html;
 }
 

@@ -50,9 +50,9 @@ router.put("/approve-menu/:id",
     approveMenuById
 );
 
-router.put("/reject-menu/:id",
+router.post("/reject-menu/:id",
     verifyToken,
-    authorizeAction("update"),
+    authorizeAction("reject"),
     rejectMenuById
 );
 

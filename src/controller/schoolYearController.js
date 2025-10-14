@@ -21,7 +21,7 @@ exports.createSchoolYearController = async (req, res) => {
         const modelName = SchoolYear.modelName.toLowerCase();
         const sequence = await sequencePattern(SchoolYear.modelName);
 
-        const { startDate, endDate } = req.body;
+        const { startDate, endDate, enrollmentStartDate, enrollmentEndDate } = req.body;
         const startYearNumber = new Date(startDate).getFullYear();
         const endYearNumber = new Date(endDate).getFullYear();
         const currentYearNumber = new Date().getFullYear();
@@ -32,6 +32,12 @@ exports.createSchoolYearController = async (req, res) => {
 
         if (startYearNumber < currentYearNumber - 1) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Thời gian bắt đầu không hợp lệ" });
+        }
+
+        if (enrollmentStartDate < startDate || enrollmentEndDate > endDate) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                message: "Thời gian tuyển sinh phải nằm trong khoảng năm học",
+            });
         }
 
         const lastRecord = await SchoolYear.find({

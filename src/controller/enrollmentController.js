@@ -10,6 +10,7 @@ const i18n = require("../middlewares/i18n.middelware");
 const Enrollment = require("../models/enrollmentModel");
 const Student = require("../models/studentModel");
 const Parent = require("../models/parentModel");
+const SchoolYear = require("../models/schoolYearModel");
 const User = require("../models/userModel");
 const SMTP = require('../helpers/stmpHelper');
 const IMAP = require('../helpers/iMapHelper');
@@ -28,30 +29,38 @@ exports.registerEnrollController = async (req, res) => {
             isCheck,
         } = req.body;
 
-        const validateDuplicates = (values, fieldName, message) => {
+        const date = new Date();
+        const year = date.getFullYear();
+        const nextYear = year + 1;
+        const queryString = {
+            active: { $eq: true },
+            state: "Đang hoạt động",
+            schoolYear: `${year}-${nextYear}`
+        }
+        const dataSchoolYear = await SchoolYear.findOne(queryString);
+        if (!dataSchoolYear) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Nhà trường chưa có kế hoạch tuyển sinh" });
+        }
+        const enrollmentStartDate = new Date(dataSchoolYear.enrollmentStartDate).toLocaleDateString("vi-VN");
+        const enrollmentEndDate = new Date(dataSchoolYear.enrollmentEndDate).toLocaleDateString("vi-VN");
+
+        const validateDuplicates = (values) => {
             const filtered = values.filter(Boolean);
-            if (new Set(filtered).size !== filtered.length) {
-                return res.status(HTTP_STATUS.BAD_REQUEST).json(message);
-            }
+            return new Set(filtered).size !== filtered.length;
         };
 
-        validateDuplicates(
-            [studentIdCard, fatherIdCard, motherIdCard],
-            "IDCard",
-            "Số CMND/CCCD của học sinh, cha và mẹ không được trùng nhau."
-        );
+        if (validateDuplicates([studentIdCard, fatherIdCard, motherIdCard])) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Số CMND/CCCD của học sinh, cha và mẹ không được trùng nhau." });
+        }
 
         if (!isCheck) {
-            validateDuplicates(
-                [fatherEmail, motherEmail],
-                "email",
-                "Email của cha và mẹ không được trùng nhau."
-            );
-            validateDuplicates(
-                [fatherPhoneNumber, motherPhoneNumber],
-                "phone",
-                "Số điện thoại của cha và mẹ không được trùng nhau."
-            );
+            if (validateDuplicates([fatherEmail, motherEmail])) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Email của cha và mẹ không được trùng nhau." });
+            }
+            
+            if (validateDuplicates([fatherPhoneNumber, motherPhoneNumber])) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Số điện thoại của cha và mẹ không được trùng nhau." });
+            }
         }
 
         const modelName = Enrollment.modelName.toLowerCase();
@@ -109,7 +118,7 @@ exports.registerEnrollController = async (req, res) => {
         const uniqueFields = Object.keys(schemaPaths).filter(
             (key) => schemaPaths[key].options.unique
         );
-        
+
         let requiredFields;
 
         if (isCheck) {
@@ -151,7 +160,7 @@ exports.registerEnrollController = async (req, res) => {
           <h2>Thông báo Hồ sơ Tuyển Sinh</h2>
           <p>Xin chào Quý phụ huynh của học sinh <strong>${created.studentName}</strong>,</p>
           <p>Nhà trường đã tiếp nhận hồ sơ tuyển sinh của học sinh. Hiện trạng hồ sơ đang <strong>đang xử lý</strong>.</p>
-          <p>Quý phụ huynh vui lòng đến trường vào ngày <strong>16/10/2025</strong> để nộp giấy tờ cần thiết với mã đăng kí <strong>${created.enrollmentCode}</strong>.</p>
+          <p>Quý phụ huynh vui lòng đến trường từ ngày <strong>${enrollmentStartDate}</strong> đến ngày <strong>${enrollmentEndDate}</strong> để nộp giấy tờ cần thiết với mã đăng kí <strong>${created.enrollmentCode}</strong>.</p>
           <br>
           <p>Trân trọng,</p>
           <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
@@ -177,7 +186,6 @@ exports.registerEnrollController = async (req, res) => {
         return res.status(status).json({ message });
     }
 };
-
 
 exports.approvedEnrollController = async (req, res) => {
     try {

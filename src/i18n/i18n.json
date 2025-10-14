@@ -60,8 +60,10 @@
     "facilityType": "Loại CSVC",
     "quantity": "Số lượng",
     "condition": "Tình trạng",
-    "price": "Giá"
-    "schoolYear": "Năm học"
+    "price": "Giá",
+    "schoolYear": "Năm học",
+    "enrollmentStartDate": "Thời gian bắt đầu tuyển sinh",
+    "enrollmentEndDate": "Thời gian kết thúc tuyển sinh"
   },
   "messages": {
     "alreadyExists": "{{field}} đã tồn tại",

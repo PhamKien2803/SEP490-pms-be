@@ -2,6 +2,7 @@
 const Menu = require('../models/menuModel');
 const Food = require('../models/foodModel');
 const mongoose = require("mongoose");
+const { HTTP_STATUS } = require('../constants/useConstants');
 
 exports.getMenuByDateFromTo = async (req, res) => {
   try {
@@ -321,10 +322,17 @@ exports.approveMenuById = async (req, res) => {
 exports.rejectMenuById = async (req, res) => {
   try {
     const { id } = req.params;
+    const { reason } = req.body;
+    if (!reason) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Lý do là bắt buộc" });
+    }
     const menu = await Menu.findById(id);
+
     if (!menu) {
       return res.status(404).json({ message: "Không tìm thấy thực đơn." });
     }
+
+    menu.reason = reason;
     menu.state = "Từ chối";
     await menu.save();
     res.status(200).json({ message: "Từ chối thực đơn thành công.", menu });

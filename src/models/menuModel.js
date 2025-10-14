@@ -80,6 +80,7 @@ const MenuSchema = new mongoose.Schema(
 
     active: { type: Boolean, default: true },
     notes: { type: String },
+    reason: { type: String },
     createdBy: { type: String },
     updatedBy: { type: String },
     createdAt: { type: Date, default: Date.now },

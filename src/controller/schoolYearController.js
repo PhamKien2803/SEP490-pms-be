@@ -57,7 +57,6 @@ exports.createSchoolYearController = async (req, res) => {
         }
 
         const newData = {
-            active: true,
             schoolYear: `${startYearNumber}-${endYearNumber}`,
             [`${modelName}Code`]: sequenceCode,
             ...req.body
@@ -121,7 +120,6 @@ exports.createSchoolYearController = async (req, res) => {
                     age: item.age,
                     room: item.room,
                     schoolYear: created._id,
-                    active: true
                 };
             });
             await Class.insertMany(newObject);

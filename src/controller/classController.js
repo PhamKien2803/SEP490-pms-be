@@ -156,67 +156,94 @@ exports.getAvailableRoomController = async (req, res) => {
 
 
 const assignStudentsAndTeachersToClass = (classes, studentsByAge, teachersAvailable) => {
-    const result = [];
-    const classesByAge = _.groupBy(classes, "age");
+  const result = [];
+  const classesByAge = _.groupBy(classes, "age");
+  const assignedTeachersGlobal = new Set();
 
-    const assignedTeachersGlobal = new Set();
+  for (const [age, classGroup] of Object.entries(classesByAge)) {
+    const students = [...(studentsByAge[age] || [])];
+    if (!students.length && !teachersAvailable.length) continue;
 
-    for (const age in classesByAge) {
-        const classGroup = classesByAge[age];
-        const students = studentsByAge[age] || [];
-        if (students.length === 0 && teachersAvailable.length === 0) continue;
+    const minPerClass = MAXIMIMUM_CLASS.CLASS;
+    const maxPerClass = MAXIMIMUM_CLASS[`CLASS_${age}`] || minPerClass;
+    const maxTeacherPerClass = MAXIMIMUM_CLASS.TEACHER;
 
-        const maxPerClass = MAXIMIMUM_CLASS[`CLASS_${age}`] || MAXIMIMUM_CLASS.CLASS;
-        const maxTeacherPerClass = MAXIMIMUM_CLASS.TEACHER;
+    // Chuẩn hóa lớp
+    let classStatus = classGroup.map(cls => {
+      const studentCount = cls.students?.length || 0;
+      const teacherCount = cls.teachers?.length || 0;
+      return {
+        ...cls,
+        students: [...(cls.students || [])],
+        teachers: [...(cls.teachers || [])],
+        slotsStudentMin: Math.max(minPerClass - studentCount, 0),
+        slotsStudentMax: Math.max(maxPerClass - studentCount, 0),
+        slotsTeacherAvailable: Math.max(maxTeacherPerClass - teacherCount, 0),
+      };
+    });
 
-        let classStatus = classGroup.map(cls => ({
-            ...cls,
-            students: cls.students || [],
-            teachers: cls.teachers || [],
-            slotsStudentAvailable: Math.max(maxPerClass - (cls.students?.length || 0), 0),
-            slotsTeacherAvailable: Math.max(maxTeacherPerClass - (cls.teachers?.length || 0), 0)
-        }));
-
-        let remainingStudents = [...students];
-        let classIndex = 0;
-        while (remainingStudents.length > 0) {
-            const cls = classStatus[classIndex];
-            if (cls.slotsStudentAvailable > 0) {
-                cls.students.push(remainingStudents.shift()._id);
-                cls.slotsStudentAvailable -= 1;
-            }
-            classIndex = (classIndex + 1) % classStatus.length;
-            if (classStatus.every(c => c.slotsStudentAvailable === 0)) break;
-        }
-
-        let remainingTeachers = teachersAvailable.filter(t => !assignedTeachersGlobal.has(t._id.toString()));
-        classIndex = 0;
-        while (remainingTeachers.length > 0) {
-            const cls = classStatus[classIndex];
-
-            if (cls.slotsTeacherAvailable > 0) {
-                const teacherIndex = remainingTeachers.findIndex(t => !assignedTeachersGlobal.has(t._id.toString()));
-                if (teacherIndex !== -1) {
-                    const teacher = remainingTeachers.splice(teacherIndex, 1)[0];
-                    cls.teachers.push(teacher._id);
-                    cls.slotsTeacherAvailable -= 1;
-                    assignedTeachersGlobal.add(teacher._id.toString());
-                }
-            }
-
-            classIndex++;
-            if (classIndex >= classStatus.length) {
-                if (classStatus.every(c => c.slotsTeacherAvailable === 0) || remainingTeachers.length === 0) break;
-                classIndex = 0;
-            }
-        }
-
-        result.push(...classStatus);
+    // ---- Giai đoạn 1: Đảm bảo đủ min
+    for (const cls of classStatus) {
+      if (!students.length) break;
+      const need = Math.min(cls.slotsStudentMin, students.length);
+      cls.students.push(...students.splice(0, need).map(s => s._id));
+      cls.slotsStudentMin -= need;
+      cls.slotsStudentMax -= need;
     }
 
-    return result;
-};
+    // ---- Giai đoạn 2: Phân bổ thêm nếu dư
+    for (const cls of classStatus) {
+      if (students.length < minPerClass) break;
+      const addable = Math.min(cls.slotsStudentMax, students.length);
+      cls.students.push(...students.splice(0, addable).map(s => s._id));
+      cls.slotsStudentMax -= addable;
+    }
 
+    // ---- Giai đoạn 3: Gộp lớp nhỏ nếu được
+    classStatus = classStatus.reduce((merged, cls) => {
+      const target = merged.find(
+        c => c.age === cls.age && c.students.length + cls.students.length <= maxPerClass
+      );
+      if (target) {
+        target.students.push(...cls.students);
+      } else {
+        merged.push(cls);
+      }
+      return merged;
+    }, []);
+
+    // ---- Giai đoạn 4: Cân bằng lại nếu có lớp full
+    const hasFull = classStatus.some(cls => cls.students.length >= maxPerClass);
+    if (hasFull) {
+      const active = classStatus.filter(cls => cls.students.length > 0);
+      const allStudents = active.flatMap(c => c.students).sort(() => Math.random() - 0.5);
+
+      const avg = Math.floor(allStudents.length / active.length);
+      active.forEach(cls => (cls.students = allStudents.splice(0, avg)));
+      active.forEach((cls, i) => {
+        while (allStudents.length && cls.students.length < maxPerClass) {
+          cls.students.push(allStudents.shift());
+        }
+      });
+    }
+
+    // ---- Giai đoạn 5: Gán giáo viên
+    let remainingTeachers = teachersAvailable.filter(
+      t => !assignedTeachersGlobal.has(t._id.toString())
+    );
+
+    for (const cls of classStatus) {
+      const need = Math.min(cls.slotsTeacherAvailable, remainingTeachers.length);
+      const assigned = remainingTeachers.splice(0, need);
+      cls.teachers.push(...assigned.map(t => t._id));
+      assigned.forEach(t => assignedTeachersGlobal.add(t._id.toString()));
+    }
+
+    result.push(...classStatus);
+  }
+
+  return result;
+};
 
 
 exports.asyncClassController = async (req, res) => {
@@ -260,7 +287,7 @@ exports.asyncClassController = async (req, res) => {
         );
 
         return res.status(HTTP_STATUS.OK).json({
-            message: "Chia lớp thành công"
+            message: "Chia lớp thành công",
         });
 
     } catch (error) {

@@ -9,7 +9,7 @@ const ClassSchema = new mongoose.Schema(
         teachers: [{ type: mongoose.Schema.Types.ObjectId, ref: "Staff", unique: true }],
         room: { type: mongoose.Schema.Types.ObjectId, ref: "Room" },
         schoolYear: { type: mongoose.Schema.Types.ObjectId, ref: "SchoolYear" },
-        active: { type: Boolean },
+        active: { type: Boolean, default: true },
     },
     { timestamps: true, versionKey: false },
 );

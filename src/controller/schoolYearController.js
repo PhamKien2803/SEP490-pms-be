@@ -96,7 +96,38 @@ exports.createSchoolYearController = async (req, res) => {
         }
 
         const created = await SchoolYear.create(newData);
-        return res.status(HTTP_STATUS.CREATED).json(created);
+        const dataSchoolYear = await SchoolYear.findOne({
+            active: { $eq: true },
+            schoolYear: `${startYearNumber - 1}-${endYearNumber - 1}`
+        });
+
+        if (dataSchoolYear) {
+            const dataClass = await Class.find({
+                active: { $eq: true },
+                schoolYear: dataSchoolYear._id,
+            });
+
+            const datePart = new Date(created.startDate);
+            const yy = datePart.getFullYear().toString().slice(-2);
+            const mm = (datePart.getMonth() + 1).toString().padStart(2, '0');
+            const dd = datePart.getDate().toString().padStart(2, '0');
+            const prefix = `CL${yy}${mm}${dd}`;
+
+            const newObject = dataClass.map((item, index) => {
+                const sequence = (index + 1).toString().padStart(3, '0');
+                return {
+                    classCode: `${prefix}${sequence}`,
+                    className: item.className,
+                    age: item.age,
+                    room: item.room,
+                    schoolYear: created._id,
+                    active: true
+                };
+            });
+            await Class.insertMany(newObject);
+        }
+        
+        return res.status(HTTP_STATUS.CREATED).json({ message: "Tạo mới năm học thành công" });
     } catch (error) {
         console.log("Error createSchoolYearController", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
@@ -122,6 +153,13 @@ exports.confirmSchoolYearController = async (req, res) => {
         if (!data) {
             return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy dữ liệu năm học" });
         }
+        const dataCheck = await SchoolYear.findOne({
+            active: {$eq: true},
+            state: "Đang hoạt động"
+        })
+        if(dataCheck){
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({message: "Không thể kích hoạt lớp khi có lớp đang hoạt động"});
+        }
         data.state = "Đang hoạt động";
         data.save();
 
@@ -131,7 +169,6 @@ exports.confirmSchoolYearController = async (req, res) => {
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
     }
 }
-
 
 async function renderTemplate(data) {
     const templatePath = path.join(__dirname, '../templates/graduatedPDF.hbs');
@@ -258,20 +295,19 @@ exports.getStudentGraduatedController = async (req, res) => {
         year = parseInt(year);
         if (!year || year < 1900 || year > 3000) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({
-                message: "Year không hợp lệ"
+                message: "Năm học không hợp lệ"
             });
         }
 
         const offset = (page - 1) * limit;
 
-        const startOfYear = new Date(`${year}-01-01T00:00:00.000Z`);
-        const endOfYear = new Date(`${year + 1}-01-01T00:00:00.000Z`);
+        const startOfYear = new Date(`${year + 1}-01-01T00:00:00.000Z`);
+        const endOfYear = new Date(`${year + 2}-01-01T00:00:00.000Z`);
 
         const queryString = {
             active: true,
             graduatedAt: { $gte: startOfYear, $lt: endOfYear }
         };
-
 
         const totalCount = await Student.countDocuments(queryString);
 

@@ -2,12 +2,12 @@ const mongoose = require("mongoose");
 const SchoolYear = require('./schoolYearModel');
 const ClassSchema = new mongoose.Schema(
     {
-        classCode: { type: String, required: true, unique: true },
-        className: { type: String, required: true, unique: true },
+        classCode: { type: String, required: true },
+        className: { type: String, required: true },
         age: { type: String },
         students: [{ type: mongoose.Schema.Types.ObjectId, ref: "Student", unique: true }],
         teachers: [{ type: mongoose.Schema.Types.ObjectId, ref: "Staff", unique: true }],
-        room: { type: mongoose.Schema.Types.ObjectId, ref: "Room", unique: true },
+        room: { type: mongoose.Schema.Types.ObjectId, ref: "Room" },
         schoolYear: { type: mongoose.Schema.Types.ObjectId, ref: "SchoolYear" },
         active: { type: Boolean },
     },

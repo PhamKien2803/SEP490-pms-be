@@ -29,7 +29,6 @@ exports.getAllClassController = async (req, res) => {
         const data = await Class.find(queryString).populate("schoolYear room")
             .skip(offset)
             .limit(limit);
-        console.log("[Bthieu] ~ data:", data);
 
         const newObject = data.map(item => ({
             "_id": item._id,
@@ -223,7 +222,6 @@ const assignStudentsAndTeachersToClass = (classes, studentsByAge, teachersAvaila
 exports.asyncClassController = async (req, res) => {
     try {
         const dataSchoolYear = await SchoolYear.findOne({ active: true, state: "Đang hoạt động" });
-        console.log("[Bthieu] ~ dataSchoolYear:", dataSchoolYear);
         if (!dataSchoolYear) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Không có năm học đang hoạt động" });
         }

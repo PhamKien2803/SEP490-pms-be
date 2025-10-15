@@ -128,29 +128,29 @@ exports.getAvailableTeacherController = async (req, res) => {
     }
 }
 
-exports.getAvailableRoomController = async(req, res) => {
-    try{
+exports.getAvailableRoomController = async (req, res) => {
+    try {
         const dataSchoolYear = await SchoolYear.findOne({
-            active: {$eq: true},
+            active: { $eq: true },
             state: "Đang hoạt động"
         });
         let queryString = {
-            active: {$eq: true},
+            active: { $eq: true },
             schoolYear: dataSchoolYear._id
         }
         const dataClass = await Class.find(queryString).lean();
         const roomArr = dataClass.map(item => item.room);
         queryString = {
-            active: {$eq: true},
-            _id: {$nin: roomArr}
+            active: { $eq: true },
+            _id: { $nin: roomArr }
         }
         const roomAvailable = await Room.find(queryString).lean();
-        if(!roomAvailable){
-            return res.status(HTTP_STATUS.NOT_FOUND).json({message: "Không tìm thấy phòng học phù hợp"});
+        if (!roomAvailable) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy phòng học phù hợp" });
         }
         return res.status(HTTP_STATUS.OK).json(roomAvailable);
-    }catch(error){
-         console.log("Error getAvailableRoomController", error);
+    } catch (error) {
+        console.log("Error getAvailableRoomController", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
     }
 }
@@ -160,6 +160,8 @@ const assignStudentsAndTeachersToClass = (classes, studentsByAge, teachersAvaila
     const result = [];
     const classesByAge = _.groupBy(classes, "age");
 
+    const assignedTeachersGlobal = new Set();
+
     for (const age in classesByAge) {
         const classGroup = classesByAge[age];
         const students = studentsByAge[age] || [];
@@ -168,39 +170,44 @@ const assignStudentsAndTeachersToClass = (classes, studentsByAge, teachersAvaila
         const maxPerClass = MAXIMIMUM_CLASS[`CLASS_${age}`] || MAXIMIMUM_CLASS.CLASS;
         const maxTeacherPerClass = MAXIMIMUM_CLASS.TEACHER;
 
-        let classStatus = classGroup.map(cls => {
-            const currentStudentCount = cls.students ? cls.students.length : 0;
-            const currentTeacherCount = cls.teachers ? cls.teachers.length : 0;
-            return {
-                ...cls,
-                students: cls.students || [],
-                teachers: cls.teachers || [],
-                slotsStudentAvailable: Math.max(maxPerClass - currentStudentCount, 0),
-                slotsTeacherAvailable: Math.max(maxTeacherPerClass - currentTeacherCount, 0)
-            };
-        });
+        let classStatus = classGroup.map(cls => ({
+            ...cls,
+            students: cls.students || [],
+            teachers: cls.teachers || [],
+            slotsStudentAvailable: Math.max(maxPerClass - (cls.students?.length || 0), 0),
+            slotsTeacherAvailable: Math.max(maxTeacherPerClass - (cls.teachers?.length || 0), 0)
+        }));
 
         let remainingStudents = [...students];
         let classIndex = 0;
         while (remainingStudents.length > 0) {
-            const cls = classStatus[classIndex % classStatus.length];
+            const cls = classStatus[classIndex];
             if (cls.slotsStudentAvailable > 0) {
                 cls.students.push(remainingStudents.shift()._id);
                 cls.slotsStudentAvailable -= 1;
             }
-            classIndex++;
+            classIndex = (classIndex + 1) % classStatus.length;
+            if (classStatus.every(c => c.slotsStudentAvailable === 0)) break;
         }
 
-        let remainingTeachers = [...teachersAvailable];
+        let remainingTeachers = teachersAvailable.filter(t => !assignedTeachersGlobal.has(t._id.toString()));
         classIndex = 0;
         while (remainingTeachers.length > 0) {
-            const cls = classStatus[classIndex % classStatus.length];
+            const cls = classStatus[classIndex];
+
             if (cls.slotsTeacherAvailable > 0) {
-                cls.teachers.push(remainingTeachers.shift()._id);
-                cls.slotsTeacherAvailable -= 1;
+                const teacherIndex = remainingTeachers.findIndex(t => !assignedTeachersGlobal.has(t._id.toString()));
+                if (teacherIndex !== -1) {
+                    const teacher = remainingTeachers.splice(teacherIndex, 1)[0];
+                    cls.teachers.push(teacher._id);
+                    cls.slotsTeacherAvailable -= 1;
+                    assignedTeachersGlobal.add(teacher._id.toString());
+                }
             }
+
             classIndex++;
-            if (classIndex >= classStatus.length && remainingTeachers.length > 0) {
+            if (classIndex >= classStatus.length) {
+                if (classStatus.every(c => c.slotsTeacherAvailable === 0) || remainingTeachers.length === 0) break;
                 classIndex = 0;
             }
         }
@@ -211,9 +218,12 @@ const assignStudentsAndTeachersToClass = (classes, studentsByAge, teachersAvaila
     return result;
 };
 
+
+
 exports.asyncClassController = async (req, res) => {
     try {
         const dataSchoolYear = await SchoolYear.findOne({ active: true, state: "Đang hoạt động" });
+        console.log("[Bthieu] ~ dataSchoolYear:", dataSchoolYear);
         if (!dataSchoolYear) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Không có năm học đang hoạt động" });
         }

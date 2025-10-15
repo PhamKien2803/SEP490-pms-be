@@ -34,6 +34,16 @@ const TOKEN = {
     EX: 7 * 24 * 60 * 60
 }
 
+const MAXIMIMUM_CLASS = {
+    TEACHER: 2,
+    CLASS: 10,
+    CLASS_1: 15,
+    CLASS_2: 20,
+    CLASS_3: 25,
+    CLASS_4: 30,
+    CLASS_5: 35
+}
+
 const SEQUENCE_CODE = {
     FUNCTION: 'FC',
     PARENT: 'PA',
@@ -56,5 +66,6 @@ module.exports = {
     RESPONSE_MESSAGE,
     VALIDATION_CONSTANTS,
     TOKEN,
-    SEQUENCE_CODE
+    SEQUENCE_CODE,
+    MAXIMIMUM_CLASS
 };

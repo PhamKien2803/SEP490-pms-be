@@ -1,9 +1,11 @@
 const { Model } = require("mongoose");
-const { HTTP_STATUS, RESPONSE_MESSAGE, USER_ROLES, VALIDATION_CONSTANTS } = require('../constants/useConstants');
+const { HTTP_STATUS, RESPONSE_MESSAGE, USER_ROLES, VALIDATION_CONSTANTS, MAXIMIMUM_CLASS } = require('../constants/useConstants');
 const Class = require('../models/classModel');
 const Staff = require('../models/staffModel');
 const SchoolYear = require('../models/schoolYearModel');
 const Student = require("../models/studentModel");
+const Room = require("../models/roomModel");
+const _ = require('lodash')
 
 exports.getAllClassController = async (req, res) => {
     try {
@@ -24,9 +26,10 @@ exports.getAllClassController = async (req, res) => {
         };
         const totalCount = await Class.countDocuments(queryString);
 
-        const data = await Class.find(queryString).populate({ path: "schoolYear", select: "schoolYear" })
+        const data = await Class.find(queryString).populate("schoolYear room")
             .skip(offset)
             .limit(limit);
+        console.log("[Bthieu] ~ data:", data);
 
         const newObject = data.map(item => ({
             "_id": item._id,
@@ -35,10 +38,9 @@ exports.getAllClassController = async (req, res) => {
             "age": item.age,
             "numberStudent": item.students.length,
             "numberTeacher": item.teachers.length,
-            "room": "Chờ data",
+            "room": item.room?.roomName,
             "schoolYear": item.schoolYear.schoolYear
         }))
-
         if (!data || data.length === 0) {
             return res
                 .status(HTTP_STATUS.BAD_REQUEST)
@@ -61,7 +63,7 @@ exports.getAllClassController = async (req, res) => {
 
 exports.getByIdClassController = async (req, res) => {
     try {
-        const data = await Class.findById(req.params.id).populate("students teachers");
+        const data = await Class.findById(req.params.id).populate("students teachers room");
         if (!data) {
             return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy dữ liệu lớp học" });
         }
@@ -85,15 +87,16 @@ exports.getAvailableStudentController = async (req, res) => {
         const studentList = studentArr.flat();
         queryString = {
             active: { $eq: true },
+            graduated: { $ne: true },
             _id: { $nin: studentList }
         }
         const studentAvailable = await Student.find(queryString);
-        if(!studentAvailable){
-            return res.status(HTTP_STATUS.NOT_FOUND).json({message: "Không tìm thấy giáo viên phù hợp"});
+        if (!studentAvailable) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy giáo viên phù hợp" });
         }
         return res.status(HTTP_STATUS.OK).json(studentAvailable);
     } catch (error) {
-        console.log("Error getByIdClassController", error);
+        console.log("Error getAvailableStudentController", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
     }
 }
@@ -106,26 +109,154 @@ exports.getAvailableTeacherController = async (req, res) => {
             schoolYear: dataSchoolYear._id,
         };
         const dataClass = await Class.find(queryString).lean();
-        console.log("[Bthieu] ~ dataClass:", dataClass)
 
         const teacherArr = dataClass.map(item => item.teachers);
-        console.log("[Bthieu] ~ teacherArr:", teacherArr)
         const teacherList = teacherArr.flat();
-        console.log("[Bthieu] ~ teacherList:", teacherList)
         queryString = {
             active: { $eq: true },
             isTeacher: { $eq: true },
             _id: { $nin: teacherList }
         }
         const teacherAvailable = await Staff.find(queryString);
-        if(!teacherAvailable){
-            return res.status(HTTP_STATUS.NOT_FOUND).json({message: "Không tìm thấy giáo viên phù hợp"});
+        if (!teacherAvailable) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy giáo viên phù hợp" });
         }
         return res.status(HTTP_STATUS.OK).json(teacherAvailable);
     } catch (error) {
-        console.log("Error getByIdClassController", error);
+        console.log("Error getAvailableTeacherController", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+    }
+}
+
+exports.getAvailableRoomController = async(req, res) => {
+    try{
+        const dataSchoolYear = await SchoolYear.findOne({
+            active: {$eq: true},
+            state: "Đang hoạt động"
+        });
+        let queryString = {
+            active: {$eq: true},
+            schoolYear: dataSchoolYear._id
+        }
+        const dataClass = await Class.find(queryString).lean();
+        const roomArr = dataClass.map(item => item.room);
+        queryString = {
+            active: {$eq: true},
+            _id: {$nin: roomArr}
+        }
+        const roomAvailable = await Room.find(queryString).lean();
+        if(!roomAvailable){
+            return res.status(HTTP_STATUS.NOT_FOUND).json({message: "Không tìm thấy phòng học phù hợp"});
+        }
+        return res.status(HTTP_STATUS.OK).json(roomAvailable);
+    }catch(error){
+         console.log("Error getAvailableRoomController", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
     }
 }
 
 
+const assignStudentsAndTeachersToClass = (classes, studentsByAge, teachersAvailable) => {
+    const result = [];
+    const classesByAge = _.groupBy(classes, "age");
+
+    for (const age in classesByAge) {
+        const classGroup = classesByAge[age];
+        const students = studentsByAge[age] || [];
+        if (students.length === 0 && teachersAvailable.length === 0) continue;
+
+        const maxPerClass = MAXIMIMUM_CLASS[`CLASS_${age}`] || MAXIMIMUM_CLASS.CLASS;
+        const maxTeacherPerClass = MAXIMIMUM_CLASS.TEACHER;
+
+        let classStatus = classGroup.map(cls => {
+            const currentStudentCount = cls.students ? cls.students.length : 0;
+            const currentTeacherCount = cls.teachers ? cls.teachers.length : 0;
+            return {
+                ...cls,
+                students: cls.students || [],
+                teachers: cls.teachers || [],
+                slotsStudentAvailable: Math.max(maxPerClass - currentStudentCount, 0),
+                slotsTeacherAvailable: Math.max(maxTeacherPerClass - currentTeacherCount, 0)
+            };
+        });
+
+        let remainingStudents = [...students];
+        let classIndex = 0;
+        while (remainingStudents.length > 0) {
+            const cls = classStatus[classIndex % classStatus.length];
+            if (cls.slotsStudentAvailable > 0) {
+                cls.students.push(remainingStudents.shift()._id);
+                cls.slotsStudentAvailable -= 1;
+            }
+            classIndex++;
+        }
+
+        let remainingTeachers = [...teachersAvailable];
+        classIndex = 0;
+        while (remainingTeachers.length > 0) {
+            const cls = classStatus[classIndex % classStatus.length];
+            if (cls.slotsTeacherAvailable > 0) {
+                cls.teachers.push(remainingTeachers.shift()._id);
+                cls.slotsTeacherAvailable -= 1;
+            }
+            classIndex++;
+            if (classIndex >= classStatus.length && remainingTeachers.length > 0) {
+                classIndex = 0;
+            }
+        }
+
+        result.push(...classStatus);
+    }
+
+    return result;
+};
+
+exports.asyncClassController = async (req, res) => {
+    try {
+        const dataSchoolYear = await SchoolYear.findOne({ active: true, state: "Đang hoạt động" });
+        if (!dataSchoolYear) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Không có năm học đang hoạt động" });
+        }
+
+        const dataClass = await Class.find({ active: true, schoolYear: dataSchoolYear._id }).lean();
+
+        const studentListInClass = dataClass.map(c => c.students).flat();
+        const studentAvailable = await Student.find({
+            active: true,
+            graduated: { $ne: true },
+            _id: { $nin: studentListInClass }
+        }).lean();
+
+        const teacherArr = dataClass.map(item => item.teachers);
+        const teacherList = teacherArr.flat();
+        queryString = {
+            active: { $eq: true },
+            isTeacher: { $eq: true },
+            _id: { $nin: teacherList }
+        }
+        const teacherAvailable = await Staff.find(queryString);
+
+        const studentsWithAge = studentAvailable.map(s => {
+            const dob = new Date(s.dob);
+            const age = new Date().getFullYear() - dob.getFullYear();
+            return { ...s, age };
+        });
+        const groupedByAge = _.groupBy(studentsWithAge, "age");
+
+        const assignedClasses = assignStudentsAndTeachersToClass(dataClass, groupedByAge, teacherAvailable);
+
+        const updatedClasses = await Promise.all(
+            assignedClasses.map(cls =>
+                Class.findByIdAndUpdate(cls._id, { students: cls.students, teachers: cls.teachers }, { new: true })
+            )
+        );
+
+        return res.status(HTTP_STATUS.OK).json({
+            message: "Chia lớp thành công"
+        });
+
+    } catch (error) {
+        console.log("Error asyncClassController", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+    }
+};

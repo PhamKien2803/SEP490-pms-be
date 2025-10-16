@@ -3,8 +3,11 @@ const router = express.Router();
 const Class = require("../models/classModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
-const { getAllClassController, getByIdClassController, getAvailableStudentController, 
-    getAvailableTeacherController, getAvailableRoomController, asyncClassController } = require("../controller/classController");
+const { getAllClassController, getByIdClassController, getAvailableStudentController,
+    getAvailableTeacherController, getAvailableRoomController, asyncClassController,
+    getAvailableClassStudentController, getAvailableClassTeacherController,
+    changeClassStudentController, changeClassTeacherController
+} = require("../controller/classController");
 
 router.get("/list",
     verifyToken,
@@ -58,6 +61,30 @@ router.post("/async-class",
     // verifyToken,
     // authorizeAction("async"),
     asyncClassController
+)
+
+router.get("/available-classStudent",
+    verifyToken,
+    authorizeAction("view"),
+    getAvailableClassStudentController
+)
+
+router.get("/available-classTeacher",
+    verifyToken,
+    authorizeAction("view"),
+    getAvailableClassTeacherController
+)
+
+router.post("/studentChangeClass",
+    verifyToken,
+    authorizeAction("create"),
+    changeClassStudentController
+);
+
+router.post("/teacherChangeClass",
+    verifyToken,
+    authorizeAction("create"),
+    changeClassTeacherController
 )
 
 

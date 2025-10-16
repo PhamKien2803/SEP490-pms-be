@@ -5,7 +5,8 @@ const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
 const { getAllClassController, getByIdClassController, getAvailableStudentController,
     getAvailableTeacherController, getAvailableRoomController, asyncClassController,
-    getAvailableClassStudentController, getAvailableClassTeacherController
+    getAvailableClassStudentController, getAvailableClassTeacherController,
+    changeClassStudentController, changeClassTeacherController
 } = require("../controller/classController");
 
 router.get("/list",
@@ -72,6 +73,18 @@ router.get("/available-classTeacher",
     verifyToken,
     authorizeAction("view"),
     getAvailableClassTeacherController
+)
+
+router.post("/studentChangeClass",
+    verifyToken,
+    authorizeAction("create"),
+    changeClassStudentController
+);
+
+router.post("/teacherChangeClass",
+    verifyToken,
+    authorizeAction("create"),
+    changeClassTeacherController
 )
 
 

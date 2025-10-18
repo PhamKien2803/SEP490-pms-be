@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const Parent = require("../models/parentModel");
+const Room = require("../models/roomModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
 
@@ -8,28 +8,28 @@ router.get(
     "/list",
     verifyToken,
     authorizeAction("view"),
-    findAllGeneric(Parent)
+    findAllGeneric(Room)
 );
 
 router.post(
     "/create",
     verifyToken,
     authorizeAction("create"),
-    createGeneric(Parent)
+    createGeneric(Room)
 );
 
 router.post(
     "/delete/:id",
     verifyToken,
     authorizeAction("delete"),
-    deletedSoftGeneric(Parent)
+    deletedSoftGeneric(Room)
 );
 
 router.put(
     "/update/:id",
     verifyToken,
     authorizeAction("update"),
-    updateGeneric(Parent)
+    updateGeneric(Room)
 );
 
 module.exports = router;

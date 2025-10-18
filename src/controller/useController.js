@@ -115,7 +115,6 @@ const createGeneric = (Model) => async (req, res) => {
   }
 };
 
-
 const deletedSoftGeneric = (Model) => async (req, res) => {
     try {
         const data = await Model.findById(req.params.id);
@@ -154,7 +153,7 @@ const updateGeneric = (Model) => async (req, res) => {
 
         return res.status(HTTP_STATUS.UPDATED).json(RESPONSE_MESSAGE.UPDATED);
     } catch (error) {
-        console.log("error createGeneric", error);
+        console.log("error updateGeneric", error);
 
         if (error.name === "ValidationError") {
             const messages = Object.values(error.errors).map(e => e.message);

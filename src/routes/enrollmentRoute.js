@@ -52,6 +52,8 @@ router.post("/rejectEnroll/:id",
 );
 
 router.post("/approvedEnrollAll",
+    verifyToken,
+    authorizeAction("approve_all"),
     approvedEnrollAllController
 )
 

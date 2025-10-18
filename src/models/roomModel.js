@@ -51,8 +51,8 @@ const roomSchema = new mongoose.Schema(
 
     state: {
       type: String,
-      enum: ["Chờ giáo viên duyệt", "Chờ nhân sự xác nhận", "Hoàn thành"],
-      default: "Chờ giáo viên duyệt",
+      enum: ["Dự thảo", "Chờ giáo viên duyệt", "Chờ nhân sự xác nhận", "Hoàn thành"],
+      default: "Dự thảo",
     },
     notes: {
       type: String,

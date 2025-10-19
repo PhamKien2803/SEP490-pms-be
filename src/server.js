@@ -21,6 +21,7 @@ const schoolYear = require("./routes/schoolYearRoute.js");
 const classes = require("./routes/classRoute.js");
 const room = require("./routes/roomRoute.js");
 const activity = require("./routes/activityRoute.js");
+const event = require("./routes/eventRoute.js");
 
 require("./helpers/emailWorkQueue.js");
 
@@ -56,6 +57,7 @@ app.use("/api/pms/foods", food);
 app.use("/api/pms/classes", classes)
 app.use("/api/pms/rooms", room);
 app.use("/api/pms/curriculums", activity);
+app.use("/api/pms/events", event);
 
 
 // route test

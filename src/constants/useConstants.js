@@ -59,6 +59,7 @@ const SEQUENCE_CODE = {
     ROOM: "ROO",
     CLASS: "CL",
     ACTIVITY: "AC",
+    EVENT: "EV",
 }
 
 

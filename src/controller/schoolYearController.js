@@ -117,7 +117,6 @@ exports.createSchoolYearController = async (req, res) => {
                 return {
                     classCode: `${prefix}${sequence}`,
                     className: item.className,
-                    age: item.age,
                     room: item.room,
                     schoolYear: created._id,
                 };

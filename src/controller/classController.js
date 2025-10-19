@@ -156,95 +156,91 @@ exports.getAvailableRoomController = async (req, res) => {
 }
 
 
+  // // 4️⃣ Gộp lớp nhỏ nếu tổng sĩ số sau gộp < maxPerClass
+        // classGroup = classGroup.reduce((merged, cls) => {
+        //     const target = merged.find(c => c.students.length + cls.students.length <= maxPerClass);
+        //     if (target) target.students.push(...cls.students);
+        //     else merged.push(cls);
+        //     return merged;
+        // }, []);
+
+        // // 5️⃣ Cân bằng sĩ số các lớp
+        // const totalStudents = classGroup.flatMap(c => c.students);
+        // const avg = Math.floor(totalStudents.length / classGroup.length);
+        // classGroup.forEach(cls => (cls.students = totalStudents.splice(0, avg)));
+        // classGroup.forEach(cls => {
+        //     while (totalStudents.length && cls.students.length < maxPerClass) {
+        //         cls.students.push(totalStudents.shift());
+        //     }
+        // });
+
+        // // 6️⃣ Gán giáo viên
+        // let remainingTeachers = teachersAvailable.filter(
+        //     t => !assignedTeachersGlobal.has(t._id.toString())
+        // );
+        // for (const cls of classGroup) {
+        //     const need = Math.min(cls.slotsTeacherAvailable, remainingTeachers.length);
+        //     const assigned = remainingTeachers.splice(0, need);
+        //     cls.teachers.push(...assigned.map(t => t._id));
+        //     assigned.forEach(t => assignedTeachersGlobal.add(t._id.toString()));
+        // }
+
+        // // 7️⃣ Đảm bảo tuổi lớp = nhóm tuổi
+        // classGroup.forEach(cls => { cls.age = Number(age); });
+
 const assignStudentsAndTeachersToClass = (classes, studentsByAge, teachersAvailable) => {
     const result = [];
-    const classesByAge = _.groupBy(classes, "age");
     const assignedTeachersGlobal = new Set();
+    const defaultMaxPerClass = MAXIMIMUM_CLASS.CLASS;
+    const maxTeacherPerClass = MAXIMIMUM_CLASS.TEACHER;
 
-    for (const [age, classGroup] of Object.entries(classesByAge)) {
-        const students = [...(studentsByAge[age] || [])];
-        if (!students.length && !teachersAvailable.length) continue;
+    // Clone lớp để tránh mutate trực tiếp
+    const classList = classes.map(c => ({
+        ...c,
+        students: [...(c.students || [])],
+        teachers: [...(c.teachers || [])],
+    }));
 
-        const minPerClass = MAXIMIMUM_CLASS.CLASS;
-        const maxPerClass = MAXIMIMUM_CLASS[`CLASS_${age}`] || minPerClass;
-        const maxTeacherPerClass = MAXIMIMUM_CLASS.TEACHER;
+    // Lấy danh sách tuổi có học sinh
+    const ages = Object.keys(studentsByAge);
 
-        // Chuẩn hóa lớp
-        let classStatus = classGroup.map(cls => {
-            const studentCount = cls.students?.length || 0;
-            const teacherCount = cls.teachers?.length || 0;
-            return {
-                ...cls,
-                students: [...(cls.students || [])],
-                teachers: [...(cls.teachers || [])],
-                slotsStudentMin: Math.max(minPerClass - studentCount, 0),
-                slotsStudentMax: Math.max(maxPerClass - studentCount, 0),
-                slotsTeacherAvailable: Math.max(maxTeacherPerClass - teacherCount, 0),
-            };
-        });
+    for (const ageStr of ages) {
+        const age = Number(ageStr);
+        let studentsLeft = [...studentsByAge[age]];
 
-        // ---- Giai đoạn 1: Đảm bảo đủ min
-        for (const cls of classStatus) {
-            if (!students.length) break;
-            const need = Math.min(cls.slotsStudentMin, students.length);
-            cls.students.push(...students.splice(0, need).map(s => s._id));
-            cls.slotsStudentMin -= need;
-            cls.slotsStudentMax -= need;
-        }
+        for (const cls of classList) {
+            if (studentsLeft.length === 0) break;
 
-        // ---- Giai đoạn 2: Phân bổ thêm nếu dư
-        for (const cls of classStatus) {
-            if (students.length < minPerClass) break;
-            const addable = Math.min(cls.slotsStudentMax, students.length);
-            cls.students.push(...students.splice(0, addable).map(s => s._id));
-            cls.slotsStudentMax -= addable;
-        }
+            // Nếu lớp chưa có tuổi, gán tuổi từ học sinh đầu tiên
+            if (!cls.age) cls.age = age;
 
-        // ---- Giai đoạn 3: Gộp lớp nhỏ nếu được
-        classStatus = classStatus.reduce((merged, cls) => {
-            const target = merged.find(
-                c => c.age === cls.age && c.students.length + cls.students.length <= maxPerClass
-            );
-            if (target) {
-                target.students.push(...cls.students);
-            } else {
-                merged.push(cls);
+            // Chỉ thêm học sinh cùng tuổi với lớp
+            if (cls.age !== age) continue;
+
+            const maxPerClass = MAXIMIMUM_CLASS[`CLASS_${age}`] || defaultMaxPerClass;
+            const canAdd = Math.min(maxPerClass - cls.students.length, studentsLeft.length);
+
+            if (canAdd > 0) {
+                cls.students.push(...studentsLeft.splice(0, canAdd).map(s => s._id));
             }
-            return merged;
-        }, []);
-
-        // ---- Giai đoạn 4: Cân bằng lại nếu có lớp full
-        const hasFull = classStatus.some(cls => cls.students.length >= maxPerClass);
-        if (hasFull) {
-            const active = classStatus.filter(cls => cls.students.length > 0);
-            const allStudents = active.flatMap(c => c.students).sort(() => Math.random() - 0.5);
-
-            const avg = Math.floor(allStudents.length / active.length);
-            active.forEach(cls => (cls.students = allStudents.splice(0, avg)));
-            active.forEach((cls, i) => {
-                while (allStudents.length && cls.students.length < maxPerClass) {
-                    cls.students.push(allStudents.shift());
-                }
-            });
         }
-
-        // ---- Giai đoạn 5: Gán giáo viên
-        let remainingTeachers = teachersAvailable.filter(
-            t => !assignedTeachersGlobal.has(t._id.toString())
-        );
-
-        for (const cls of classStatus) {
-            const need = Math.min(cls.slotsTeacherAvailable, remainingTeachers.length);
-            const assigned = remainingTeachers.splice(0, need);
-            cls.teachers.push(...assigned.map(t => t._id));
-            assigned.forEach(t => assignedTeachersGlobal.add(t._id.toString()));
-        }
-
-        result.push(...classStatus);
     }
 
-    return result;
+    // Gán giáo viên
+    let remainingTeachers = teachersAvailable.filter(
+        t => !assignedTeachersGlobal.has(t._id.toString())
+    );
+
+    for (const cls of classList) {
+        const need = Math.min(maxTeacherPerClass, remainingTeachers.length);
+        const assigned = remainingTeachers.splice(0, need);
+        cls.teachers = assigned.map(t => t._id);
+        assigned.forEach(t => assignedTeachersGlobal.add(t._id.toString()));
+    }
+
+    return classList;
 };
+
 
 
 exports.asyncClassController = async (req, res) => {
@@ -283,12 +279,13 @@ exports.asyncClassController = async (req, res) => {
 
         const updatedClasses = await Promise.all(
             assignedClasses.map(cls =>
-                Class.findByIdAndUpdate(cls._id, { students: cls.students, teachers: cls.teachers }, { new: true })
+                Class.findByIdAndUpdate(cls._id, { students: cls.students, teachers: cls.teachers, age: cls.age }, { new: true })
             )
         );
 
         return res.status(HTTP_STATUS.OK).json({
             message: "Chia lớp thành công",
+            assignedClasses: assignedClasses
         });
 
     } catch (error) {

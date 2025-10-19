@@ -69,7 +69,10 @@
     "startTime": "Thời gian bắt đầu",
     "endTime": "Thời gian kết thúc",
     "age": "Tuổi",
-    "category": "Loại danh mục hoạt động"
+    "category": "Loại danh mục hoạt động",
+    "eventName": "Tên sự kiện",
+    "holidayStartDate": "Thời gian bắt đầu",
+    "holidayEndDate": "Thời gian kết thúc"
   },
   "messages": {
     "alreadyExists": "{{field}} đã tồn tại",

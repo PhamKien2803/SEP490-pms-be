@@ -58,6 +58,7 @@ const SEQUENCE_CODE = {
     SCHOOLYEAR: "SY",
     ROOM: "ROO",
     CLASS: "CL",
+    ACTIVITY: "AC",
 }
 
 

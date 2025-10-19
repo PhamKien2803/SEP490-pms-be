@@ -6,6 +6,7 @@ const SchoolYear = require('../models/schoolYearModel');
 const Student = require("../models/studentModel");
 const Room = require("../models/roomModel");
 const _ = require('lodash')
+const i18n = require("../middlewares/i18n.middelware");
 
 exports.getAllClassController = async (req, res) => {
     try {

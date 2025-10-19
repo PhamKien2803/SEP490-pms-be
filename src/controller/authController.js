@@ -6,6 +6,7 @@ const UserModel = require('../models/userModel');
 const Role = require('../models/roleModel');
 const Function = require('../models/functionModel');
 const Module = require('../models/moduleModel');
+const Staff = require('../models/staffModel');
 
 exports.loginController = async (req, res) => {
     try {
@@ -91,10 +92,17 @@ exports.getCurrentUser = async (req, res) => {
     try {
         const { permissionListAll, userId } = req.user;
         const userProfile = await UserModel.findById(userId).lean();
-
+        let staff;
+        if(userProfile.staff){
+            staff = await Staff.findById(userProfile.staff);
+        }
+        const newObject = {
+            ...userProfile,
+            isTeacher: staff?.isTeacher
+        }
         return res.status(HTTP_STATUS.OK).json({
             message: "Thông tin người dùng",
-            userProfile,
+            userProfile: newObject,
             permissionListAll,
         })
 

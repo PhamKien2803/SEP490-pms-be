@@ -12,6 +12,7 @@ const SchoolYear = require("../models/schoolYearModel");
 const Class = require("../models/classModel");
 const Student = require("../models/studentModel");
 const Parent = require("../models/parentModel");
+const Event = require("../models/eventModel");
 const { emailQueue } = require('../configs/queue');
 const SMTP = require('../helpers/stmpHelper');
 const IMAP = require('../helpers/iMapHelper');
@@ -123,7 +124,7 @@ exports.createSchoolYearController = async (req, res) => {
             });
             await Class.insertMany(newObject);
         }
-        
+
         return res.status(HTTP_STATUS.CREATED).json({ message: "Tạo mới năm học thành công" });
     } catch (error) {
         console.log("Error createSchoolYearController", error);
@@ -151,11 +152,11 @@ exports.confirmSchoolYearController = async (req, res) => {
             return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy dữ liệu năm học" });
         }
         const dataCheck = await SchoolYear.findOne({
-            active: {$eq: true},
+            active: { $eq: true },
             state: "Đang hoạt động"
         })
-        if(dataCheck){
-            return res.status(HTTP_STATUS.BAD_REQUEST).json({message: "Không thể kích hoạt lớp khi có lớp đang hoạt động"});
+        if (dataCheck) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Không thể kích hoạt lớp khi có lớp đang hoạt động" });
         }
         data.state = "Đang hoạt động";
         data.save();
@@ -328,6 +329,50 @@ exports.getStudentGraduatedController = async (req, res) => {
         });
     } catch (error) {
         console.log("Error getStudentGraduatedController", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+    }
+}
+
+exports.getListEventController = async (req, res) => {
+    try {
+        let { limit, page, schoolYear } = req.query;
+
+        limit = parseInt(limit) || 30;
+        page = parseInt(page) || 1;
+
+        const offset = (page - 1) * limit;
+
+
+        const dataSchoolYear = await SchoolYear.findOne({
+            active: { $eq: true },
+            schoolYear: schoolYear
+        })
+        const queryString = {
+            active: { $eq: true },
+            schoolYear: dataSchoolYear._id
+        };
+        const totalCount = await Event.countDocuments(queryString);
+
+        const data = await Event.find(queryString)
+            .skip(offset)
+            .limit(limit);
+
+        if (!data || data.length === 0) {
+            return res
+                .status(HTTP_STATUS.BAD_REQUEST)
+                .json("Không tìm thấy dữ liệu");
+        }
+
+        return res.status(HTTP_STATUS.OK).json({
+            data,
+            page: {
+                totalCount,
+                limit,
+                page,
+            },
+        });
+    } catch (error) {
+        console.log("Error getListEventController", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
     }
 }

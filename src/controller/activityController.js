@@ -73,3 +73,17 @@ exports.createActivityController = async (req, res) => {
     return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
   }
 };
+
+
+exports.getByIdController = async (req, res) => {
+  try {
+    const data = await Activity.findById(req.params.id);
+    if (!data) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy dữ liệu hoạt động" });
+    }
+    return res.status(HTTP_STATUS.OK).json(data);
+  } catch (error) {
+    console.log("Error getByIdController", error);
+    return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+  }
+}

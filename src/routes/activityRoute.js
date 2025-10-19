@@ -3,7 +3,7 @@ const router = express.Router();
 const Activity = require("../models/activityModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
-const { createActivityController } = require('../controller/activityController')
+const { createActivityController, getByIdController } = require('../controller/activityController')
 
 router.get(
     "/list",
@@ -31,6 +31,13 @@ router.put(
     verifyToken,
     authorizeAction("update"),
     updateGeneric(Activity)
+);
+
+router.get(
+    "/getById/:id",
+    verifyToken,
+    authorizeAction("view"),
+    getByIdController
 );
 
 module.exports = router;

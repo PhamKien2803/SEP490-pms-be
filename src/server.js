@@ -20,6 +20,7 @@ const food = require("./routes/foodRoute.js");
 const schoolYear = require("./routes/schoolYearRoute.js");
 const classes = require("./routes/classRoute.js");
 const room = require("./routes/roomRoute.js");
+const activity = require("./routes/activityRoute.js");
 
 require("./helpers/emailWorkQueue.js");
 
@@ -50,10 +51,12 @@ app.use("/api/pms/accounts", user);
 app.use("/api/pms/staffs", staffs);
 app.use("/api/pms/enrollments", enrollments);
 app.use("/api/pms/menus", menu);
-app.use("/api/pms/schoolYears", schoolYear)
+app.use("/api/pms/schoolYears", schoolYear);
 app.use("/api/pms/foods", food);
 app.use("/api/pms/classes", classes)
-app.use("/api/pms/rooms", room)
+app.use("/api/pms/rooms", room);
+app.use("/api/pms/curriculums", activity);
+
 
 // route test
 app.get("/", (req, res) => {

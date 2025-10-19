@@ -14,6 +14,21 @@ const SchoolYearSchema = new mongoose.Schema(
     },
     enrollmentStartDate: { type: Date, required: true },
     enrollmentEndDate: { type: Date, required: true },
+    dayList: [
+      {
+        title: { type: String },      
+        description: { type: String },                 
+        startDate: { type: Date },     
+        endDate: { type: Date },       
+        isHoliday: { type: Boolean, default: false },   
+        repeatAnnually: { type: Boolean, default: false }, 
+        eventType: {
+          type: String,
+          enum: ["Nghỉ lễ", "Sự kiện chủ đề", "Thiên tai"],
+        },
+      },
+    ],
+
     active: { type: Boolean, default: true },
     createdBy: { type: String },
     updatedBy: { type: String },

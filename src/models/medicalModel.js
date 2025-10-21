@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const medicalSchema = new mongoose.Schema(
   {
@@ -9,8 +9,8 @@ const medicalSchema = new mongoose.Schema(
     },
 
     physicalDevelopment: {
-      height: { type: Number, required: true },
-      weight: { type: Number, required: true },
+      height: { type: Number },
+      weight: { type: Number },
       bodyMassIndex: { type: Number },
       evaluation: { type: String },
     },
@@ -27,7 +27,6 @@ const medicalSchema = new mongoose.Schema(
     conclusion: {
       healthStatus: {
         type: String,
-        required: true,
       },
       advice: { type: String },
     },
@@ -41,4 +40,4 @@ const medicalSchema = new mongoose.Schema(
   }
 );
 
-export default mongoose.model("MedicalRecord", medicalSchema);
+module.exports = mongoose.model("Medical", medicalSchema);

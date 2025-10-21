@@ -60,6 +60,7 @@ const SEQUENCE_CODE = {
     CLASS: "CL",
     ACTIVITY: "AC",
     EVENT: "EV",
+    MEDICAL: "MED",
 }
 
 

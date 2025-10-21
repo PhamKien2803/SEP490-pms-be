@@ -3,13 +3,13 @@ const router = express.Router();
 const MedicalRecord = require("../models/medicalModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
-const { getByIdMedicalController } = require("../controller/medicalController");
+const { getByIdMedicalController, getAllMedicalController } = require("../controller/medicalController");
 
 router.get(
     "/list",
     verifyToken,
     authorizeAction("view"),
-    findAllGeneric(MedicalRecord)
+    getAllMedicalController
 );
 
 router.post(
@@ -38,5 +38,7 @@ router.get("/getById/:id",
     authorizeAction("view"),
     getByIdMedicalController
 );
+
+
 
 module.exports = router;

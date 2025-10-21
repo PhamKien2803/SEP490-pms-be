@@ -13,6 +13,7 @@ const Class = require("../models/classModel");
 const Student = require("../models/studentModel");
 const Parent = require("../models/parentModel");
 const Event = require("../models/eventModel");
+const Room = require('../models/roomModel');
 const { emailQueue } = require('../configs/queue');
 const SMTP = require('../helpers/stmpHelper');
 const IMAP = require('../helpers/iMapHelper');
@@ -160,6 +161,15 @@ exports.confirmSchoolYearController = async (req, res) => {
         }
         data.state = "Đang hoạt động";
         data.save();
+        await Room.updateMany(
+            {
+                active: true,
+                state: { $in: ["Hoàn thành", "Chờ xử lý"] }
+            },
+            {
+                $set: { state: "Dự thảo" }
+            }
+        );
 
         return res.status(HTTP_STATUS.OK).json("Đã chuyển trạng thái thành công");
     } catch (error) {

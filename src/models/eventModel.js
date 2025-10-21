@@ -8,6 +8,7 @@ const EventSchema = new mongoose.Schema(
     holidayStartDate: { type: Date, required: true },
     holidayEndDate: { type: Date, required: true },
     schoolYear: { type: mongoose.Schema.Types.ObjectId, ref: "SchoolYear" },
+    isHoliday: { type: Boolean, default: false },
     note: { type: String },
     active: { type: Boolean, default: true },
     createdBy: { type: String },

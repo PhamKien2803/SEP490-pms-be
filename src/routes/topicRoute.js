@@ -3,12 +3,12 @@ const router = express.Router();
 const Topic = require('../models/topicModel');
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { createGeneric, deletedSoftGeneric, findAllGeneric, updateGeneric, getByIdGeneric } = require("../controller/useController");
-const { getAvailableActivityController } = require('../controller/topicController')
+const { getAvailableActivityController, getListController, getByIdController } = require('../controller/topicController')
 
 router.get("/list",
     verifyToken,
     authorizeAction("view"),
-    findAllGeneric(Topic)
+    getListController
 );
 
 router.post("/create",
@@ -32,7 +32,7 @@ router.post("/delete/:id",
 router.get("/getById/:id",
     verifyToken,
     authorizeAction("view"),
-    getByIdGeneric(Topic)
+    getByIdController
 );
 
 router.get("/getAvailable",

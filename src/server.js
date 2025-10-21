@@ -22,6 +22,7 @@ const classes = require("./routes/classRoute.js");
 const room = require("./routes/roomRoute.js");
 const activity = require("./routes/activityRoute.js");
 const event = require("./routes/eventRoute.js");
+const medical = require("./routes/medicalRoute.js");
 
 require("./helpers/emailWorkQueue.js");
 
@@ -58,6 +59,7 @@ app.use("/api/pms/classes", classes)
 app.use("/api/pms/rooms", room);
 app.use("/api/pms/curriculums", activity);
 app.use("/api/pms/events", event);
+app.use("/api/pms/medicals", medical);
 
 
 // route test

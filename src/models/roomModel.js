@@ -58,7 +58,10 @@ const roomSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-
+    notesHRA: {
+      type: String,
+      trim: true,
+    },
     active: { type: Boolean, default: true },
 
     createdBy: String,

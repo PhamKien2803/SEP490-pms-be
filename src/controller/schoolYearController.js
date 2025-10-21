@@ -13,6 +13,7 @@ const Class = require("../models/classModel");
 const Student = require("../models/studentModel");
 const Parent = require("../models/parentModel");
 const Event = require("../models/eventModel");
+const Room = require('../models/roomModel');
 const { emailQueue } = require('../configs/queue');
 const SMTP = require('../helpers/stmpHelper');
 const IMAP = require('../helpers/iMapHelper');
@@ -102,27 +103,42 @@ exports.createSchoolYearController = async (req, res) => {
         });
 
         if (dataSchoolYear) {
-            const dataClass = await Class.find({
+
+            let queryString = {
                 active: { $eq: true },
                 schoolYear: dataSchoolYear._id,
-            });
+            }
+            const dataClass = await Class.find(queryString);
+
+            const dataEvent = await Event.find(queryString);
 
             const datePart = new Date(created.startDate);
             const yy = datePart.getFullYear().toString().slice(-2);
             const mm = (datePart.getMonth() + 1).toString().padStart(2, '0');
             const dd = datePart.getDate().toString().padStart(2, '0');
-            const prefix = `CL${yy}${mm}${dd}`;
+            const prefixClass = `CL${yy}${mm}${dd}`;
+            const prefixEvent = `EV${yy}${mm}${dd}`;
 
-            const newObject = dataClass.map((item, index) => {
+            const newObjectClass = dataClass.map((item, index) => {
                 const sequence = (index + 1).toString().padStart(3, '0');
                 return {
-                    classCode: `${prefix}${sequence}`,
+                    classCode: `${prefixClass}${sequence}`,
                     className: item.className,
                     room: item.room,
                     schoolYear: created._id,
                 };
             });
-            await Class.insertMany(newObject);
+            const newObjectEvent = dataEvent.map((item, index) => {
+                const sequence = (index + 1).toString().padStart(3, '0');
+                return {
+                    eventCode: `${prefixEvent}${sequence}`,
+                    eventName: item.eventName,
+                    isHoliday: item.isHoliday,
+                    schoolYear: created._id,
+                };
+            });
+            await Class.insertMany(newObjectClass);
+            await Event.insertMany(newObjectEvent);
         }
 
         return res.status(HTTP_STATUS.CREATED).json({ message: "Tạo mới năm học thành công" });
@@ -160,6 +176,15 @@ exports.confirmSchoolYearController = async (req, res) => {
         }
         data.state = "Đang hoạt động";
         data.save();
+        await Room.updateMany(
+            {
+                active: true,
+                state: { $in: ["Hoàn thành", "Chờ xử lý"] }
+            },
+            {
+                $set: { state: "Dự thảo" }
+            }
+        );
 
         return res.status(HTTP_STATUS.OK).json("Đã chuyển trạng thái thành công");
     } catch (error) {

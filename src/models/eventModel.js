@@ -1,13 +1,14 @@
 const mongoose = require("mongoose");
-const SchoolYear = require("./schoolYearModel"); 
+const SchoolYear = require("./schoolYearModel");
 
 const EventSchema = new mongoose.Schema(
   {
     eventCode: { type: String, required: true, unique: true },
     eventName: { type: String, required: true },
-    holidayStartDate: { type: Date, required: true },
-    holidayEndDate: { type: Date, required: true },
+    holidayStartDate: { type: Date },
+    holidayEndDate: { type: Date },
     schoolYear: { type: mongoose.Schema.Types.ObjectId, ref: "SchoolYear" },
+    isHoliday: { type: Boolean, default: false },
     note: { type: String },
     active: { type: Boolean, default: true },
     createdBy: { type: String },

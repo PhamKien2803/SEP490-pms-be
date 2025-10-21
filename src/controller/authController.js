@@ -39,7 +39,7 @@ exports.loginController = async (req, res) => {
             })
             .lean();
         if (!user || user.length === 0) {
-            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không có user" });
+            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Thông tin đăng nhập không tồn tại" });
         }
         const checkPassword = await bcrypt.compare(password, user.password);
         if (!checkPassword) {
@@ -93,7 +93,7 @@ exports.getCurrentUser = async (req, res) => {
         const { permissionListAll, userId } = req.user;
         const userProfile = await UserModel.findById(userId).lean();
         let staff;
-        if(userProfile.staff){
+        if (userProfile.staff) {
             staff = await Staff.findById(userProfile.staff);
         }
         const newObject = {

@@ -5,7 +5,7 @@ const ActivitySchema = new mongoose.Schema(
         activityCode: { type: String, required: true },
         activityName: { type: String, required: true },
         age: { type: Number },
-        type: { type: String, enum: ["Cố định", "Bình thường"], required: true },
+        type: { type: String, enum: ["Cố định", "Bình thường", "Sự kiện"], required: true },
         category: {
             type: String,
             enum: [
@@ -15,7 +15,6 @@ const ActivitySchema = new mongoose.Schema(
                 "Phát triển tình cảm",
                 "Phát triển thẩm mỹ",
                 "Phát triển kỹ năng xã hội",
-                "Hoạt động sự kiện"
             ],
         },
         startTime: { type: Number, min: 0, max: 1439 },

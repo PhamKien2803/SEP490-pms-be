@@ -4,7 +4,7 @@ const ActivitySchema = new mongoose.Schema(
     {
         activityCode: { type: String, required: true },
         activityName: { type: String, required: true },
-        age: { type: Number },
+        age: { type: String },
         type: { type: String, enum: ["Cố định", "Bình thường", "Sự kiện"], required: true },
         category: {
             type: String,

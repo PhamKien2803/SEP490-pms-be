@@ -62,7 +62,7 @@ const MenuSchema = new mongoose.Schema(
     ageGroup: {
       type: String,
       required: [true, "Nhóm tuổi là bắt buộc"],
-      enum: ["Dưới 1 tuổi", "1-3 tuổi", "4-5 tuổi"],
+      enum: ["1-3 tuổi", "4-5 tuổi"],
     },
 
     days: [DaySchema],

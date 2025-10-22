@@ -17,11 +17,11 @@ router.get("/getById/:id",
     getDetailStaffController
 )
 
-router.get("/getClassByTeacher/:id",
-    verifyToken,
-    authorizeAction("view"),
-    getClassAndStudentByTeacherController
-)
+// router.get("/getClassByTeacher/:id",
+//     verifyToken,
+//     authorizeAction("view"),
+//     getClassAndStudentByTeacherController
+// )
 
 router.post("/create",
     verifyToken,

@@ -24,6 +24,7 @@ const activity = require("./routes/activityRoute.js");
 const event = require("./routes/eventRoute.js");
 const medical = require("./routes/medicalRoute.js");
 const topic = require("./routes/topicRoute.js");
+const teacher = require("./routes/teacherRoute.js");
 
 require("./helpers/emailWorkQueue.js");
 
@@ -52,6 +53,7 @@ app.use("/api/pms/functions", functions);
 app.use("/api/pms/roles", role);
 app.use("/api/pms/accounts", user);
 app.use("/api/pms/staffs", staffs);
+app.use("/api/pms/teachers", teacher);
 app.use("/api/pms/enrollments", enrollments);
 app.use("/api/pms/menus", menu);
 app.use("/api/pms/schoolYears", schoolYear);

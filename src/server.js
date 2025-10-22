@@ -24,6 +24,7 @@ const activity = require("./routes/activityRoute.js");
 const event = require("./routes/eventRoute.js");
 const medical = require("./routes/medicalRoute.js");
 const topic = require("./routes/topicRoute.js");
+const schedule = require("./routes/scheduleRoute.js");
 
 require("./helpers/emailWorkQueue.js");
 
@@ -62,6 +63,7 @@ app.use("/api/pms/curriculums", activity);
 app.use("/api/pms/events", event);
 app.use("/api/pms/medicals", medical);
 app.use("/api/pms/topics", topic);
+app.use("/api/pms/schedules", schedule);
 
 
 // route test

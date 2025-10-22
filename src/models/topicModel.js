@@ -10,7 +10,6 @@ const TopicSchema = new mongoose.Schema(
         activitiFix: [
             {
                 activity: { type: mongoose.Schema.Types.ObjectId, ref: "Activity" },
-                sessionsPerWeek: { type: Number, default: 1 },
             }
         ],
         activitiCore: [
@@ -32,7 +31,6 @@ const TopicSchema = new mongoose.Schema(
     },
     { timestamps: true, versionKey: false }
 );
-
 
 TopicSchema.pre("save", async function (next) {
     if (!this.schoolYear) {

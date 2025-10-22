@@ -7,6 +7,7 @@ const ScheduleSchema = new mongoose.Schema({
     scheduleDays: [
         {
             date: { type: Date, required: true },
+            dayName: { type: String },
             activities: [
                 {
                     activity: { type: mongoose.Schema.Types.ObjectId, ref: "Activity", required: true },
@@ -14,7 +15,7 @@ const ScheduleSchema = new mongoose.Schema({
                     endTime: { type: Number },
                 }
             ],
-            isHoliday: {type: Boolean, default: false},
+            isHoliday: { type: Boolean, default: false },
             notes: { type: String }
         }
     ],

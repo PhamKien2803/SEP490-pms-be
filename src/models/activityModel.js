@@ -20,7 +20,7 @@ const ActivitySchema = new mongoose.Schema(
         startTime: { type: Number, min: 0, max: 1439 },
         endTime: {
             type: Number,
-            min: 420,
+            min: 435,
             max: 1050,
             validate: {
                 validator: function (value) {

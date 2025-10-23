@@ -5,6 +5,7 @@ const Topic = require("../models/topicModel");
 const Event = require("../models/eventModel");
 const Schedule = require("../models/scheduleModel");
 const ClassModel = require("../models/classModel");
+const { default: mongoose } = require('mongoose');
 
 const getDaysInMonth = (year, month) => {
   const numDays = new Date(year, month, 0).getDate();
@@ -265,5 +266,75 @@ exports.getByIdController = async (req, res) => {
   } catch (error) {
     console.log("Error getByIdController", error);
     return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+  }
+};
+
+exports.getByParamsController = async (req, res) => {
+  try {
+    const { schoolYear, class: classId, month } = req.query;
+
+    if (!schoolYear || !classId || !month) {
+      return res.status(400).json({
+        message: "Thiếu tham số schoolYear, class hoặc month",
+      });
+    }
+
+    const targetMonth = parseInt(month);
+    if (isNaN(targetMonth) || targetMonth < 1 || targetMonth > 12) {
+      return res.status(400).json({ message: "Giá trị tháng không hợp lệ" });
+    }
+
+    const schedule = await Schedule.findOne({
+      schoolYear: new mongoose.Types.ObjectId(schoolYear),
+      class: new mongoose.Types.ObjectId(classId),
+      month: targetMonth,
+    })
+      .populate({ path: "schoolYear", select: "schoolYear schoolYearCode" })
+      .populate({ path: "class", select: "classCode className" })
+      .populate("scheduleDays.activities.activity");
+
+    if (!schedule) {
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy lịch học phù hợp" });
+    }
+
+    const formattedSchedule = (schedule.scheduleDays || []).map((day) => ({
+      date: day.date,
+      dayName: day.dayName,
+      schoolYear: schedule.schoolYear
+        ? {
+          _id: schedule.schoolYear._id,
+          schoolYear: schedule.schoolYear.schoolYear,
+        }
+        : null,
+      class: schedule.class
+        ? {
+          _id: schedule.class._id,
+          className: schedule.class.className,
+        }
+        : null,
+      isHoliday: day.isHoliday,
+      notes: day.notes,
+      activities: (day.activities || [])
+        .filter((a) => a.activity)
+        .map((a) => ({
+          activityCode: a.activity.activityCode,
+          activityName: a.activity.activityName,
+          type: a.activity.type,
+          startTime: a.startTime,
+          endTime: a.endTime,
+          _id: a._id,
+        }))
+        .sort((x, y) => x.startTime - y.startTime),
+    }));
+
+    return res.status(200).json(formattedSchedule);
+  } catch (error) {
+    console.error("Error getByParamsController:", error);
+    return res.status(500).json({
+      message: "Lỗi máy chủ",
+      error: error.message || error,
+    });
   }
 };

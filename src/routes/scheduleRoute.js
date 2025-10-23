@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
-const { createScheduleController, getByIdController } = require("../controller/scheduleController")
+const { createScheduleController, getByIdController, getByParamsController } = require("../controller/scheduleController")
 const { createGeneric, deletedSoftGeneric, findAllGeneric, updateGeneric, getByIdGeneric } = require("../controller/useController");
 
 router.post("/create",
@@ -15,5 +15,11 @@ router.get("/getById/:id",
     authorizeAction("view"),
     getByIdController
 )
+
+router.get("/getByParams",
+    verifyToken,
+    authorizeAction("view"),
+    getByParamsController
+);
 
 module.exports = router;

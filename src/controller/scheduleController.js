@@ -271,9 +271,9 @@ exports.getByIdController = async (req, res) => {
 
 exports.getByParamsController = async (req, res) => {
   try {
-    const { schoolYear, class: classId, month } = req.query;
+    const { schoolYear, class: classId, month, status } = req.query;
 
-    if (!schoolYear || !classId || !month) {
+    if (!schoolYear || !classId || !month || !status) {
       return res.status(400).json({
         message: "Thiếu tham số schoolYear, class hoặc month",
       });
@@ -288,6 +288,7 @@ exports.getByParamsController = async (req, res) => {
       schoolYear: new mongoose.Types.ObjectId(schoolYear),
       class: new mongoose.Types.ObjectId(classId),
       month: targetMonth,
+      status: status,
     })
       .populate({ path: "schoolYear", select: "schoolYear schoolYearCode" })
       .populate({ path: "class", select: "classCode className" })
@@ -327,6 +328,7 @@ exports.getByParamsController = async (req, res) => {
           _id: a._id,
         }))
         .sort((x, y) => x.startTime - y.startTime),
+      status: schedule.status,
     }));
 
     return res.status(200).json(formattedSchedule);

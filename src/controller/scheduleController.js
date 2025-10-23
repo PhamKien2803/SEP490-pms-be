@@ -340,3 +340,181 @@ exports.getByParamsController = async (req, res) => {
     });
   }
 };
+
+exports.previewScheduleController = async (req, res) => {
+  try {
+    const { year, month, classId } = req.query;
+    if (!year || !month || !classId)
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Yêu cầu nhập năm, tháng, classId" });
+
+    const cls = await ClassModel.findById(classId);
+    if (!cls) return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy lớp học" });
+
+    const dataSchoolYear = await SchoolYear.findOne({ active: true, state: "Đang hoạt động" });
+    if (!dataSchoolYear) return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy năm học đang hoạt động" });
+
+    const dataTopic = await Topic.findOne({ active: true, schoolYear: dataSchoolYear._id, age: cls.age, month })
+      .populate("activitiFix.activity")
+      .populate("activitiCore.activity")
+      .populate("activitiEvent.activity");
+
+    if (!dataTopic) return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy chủ đề tháng" });
+
+    const { activitiFix: activityFix, activitiCore: activityCore, activitiEvent } = dataTopic;
+
+    const allDays = getDaysInMonth(year, month);
+    const weeks = splitWeeks(allDays);
+
+    const eventList = await Event.find({ active: true, schoolYear: dataSchoolYear._id });
+    const holidayDates = [];
+    eventList.filter(e => e.isHoliday).forEach(ev => {
+      if (ev.holidayStartDate && ev.holidayEndDate) {
+        let d = new Date(ev.holidayStartDate);
+        const end = new Date(ev.holidayEndDate);
+        while (d <= end) {
+          const dateStr = d.toISOString().split("T")[0];
+          if (!holidayDates.includes(dateStr)) holidayDates.push(dateStr);
+          d.setDate(d.getDate() + 1);
+        }
+      }
+    });
+
+    const categoriesMorning = ["Phát triển nhận thức"];
+    const categoriesAfternoon = ["Phát triển thể chất"];
+    const categoriesOther = ["Phát triển ngôn ngữ", "Phát triển tình cảm", "Phát triển thẩm mỹ", "Phát triển kỹ năng xã hội"];
+
+    const scheduleDays = allDays.map(date => {
+      const dateStr = date.toISOString().split("T")[0];
+      const isOfficialHoliday = holidayDates.includes(dateStr);
+      const isSunday = date.getDay() === 0;
+
+      let activities = [];
+      if (!isOfficialHoliday && !isSunday && Array.isArray(activityFix)) {
+        activityFix.forEach(item => {
+          if (item.activity && item.activity._id) {
+            activities.push({
+              activity: item.activity._id,
+              activityName: item.activity.activityName,
+              type: "Cố định",
+              startTime: item.activity.startTime,
+              endTime: item.activity.endTime
+            });
+          }
+        });
+      }
+
+      return {
+        date,
+        dayName: getDayName(date),
+        activities,
+        isHoliday: isOfficialHoliday,
+        notes: ""
+      };
+    });
+
+    if (activitiEvent.length > 0) {
+      const mappedEvents = activitiEvent.map(evAct => {
+        const matchEvent = eventList.find(e => e.eventName === evAct.activity.eventName);
+        if (matchEvent) {
+          return {
+            activity: evAct.activity,
+            sessionsPerWeek: evAct.sessionsPerWeek || 1,
+            holidayStartDate: matchEvent.holidayStartDate,
+            holidayEndDate: matchEvent.holidayEndDate
+          };
+        }
+        return null;
+      }).filter(Boolean);
+
+      mappedEvents.forEach(ev => {
+        if (!ev.holidayStartDate || !ev.holidayEndDate) return;
+        let currentDate = new Date(ev.holidayStartDate);
+        const endDate = new Date(ev.holidayEndDate);
+
+        while (currentDate <= endDate) {
+          const dateStr = currentDate.toISOString().split("T")[0];
+          const target = scheduleDays.find(d => d.date.toISOString().split("T")[0] === dateStr && !d.isHoliday && d.dayName !== "Chủ nhật");
+          if (!target) { currentDate.setDate(currentDate.getDate() + 1); continue; }
+
+          const occupied = target.activities.map(a => ({ start: a.startTime, end: a.endTime }));
+          for (let i = 0; i < ev.sessionsPerWeek; i++) {
+            const slot = findAvailableSlot(occupied, 30, 435, 1050);
+            if (!slot) break;
+            target.activities.push({
+              activity: ev.activity._id,
+              activityName: ev.activity.activityName,
+              startTime: slot.start,
+              endTime: slot.end,
+              type: "Sự kiện"
+            });
+            occupied.push(slot);
+          }
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+      });
+    }
+
+    weeks.forEach(weekDays => {
+      const normalDays = weekDays
+        .map(d => scheduleDays.find(s => s.date.toISOString().split("T")[0] === d.toISOString().split("T")[0]))
+        .filter(d => !d.isHoliday && d.dayName !== "Chủ nhật");
+
+      const fillActivities = (categories) => {
+        categories.forEach(cat => {
+          const acts = activityCore.filter(a => a.activity && a.activity._id && a.activity.category === cat);
+          if (acts.length === 0) return;
+
+          acts.forEach(act => {
+            const id = act.activity._id.toString();
+            const maxSessions = act.sessionsPerWeek || 1;
+
+            const availableDays = normalDays.filter(d =>
+              !d.activities.some(a => a.activityName === act.activity.activityName)
+            );
+
+            const sessionsToAdd = Math.min(maxSessions, availableDays.length);
+
+            const step = Math.floor(availableDays.length / sessionsToAdd) || 1;
+
+            for (let i = 0; i < sessionsToAdd; i++) {
+              const day = availableDays[i * step];
+              const occupied = day.activities.map(a => ({ start: a.startTime, end: a.endTime }));
+              const slot = findAvailableSlot(occupied, 30, 435, 1050);
+              if (!slot) continue;
+
+              day.activities.push({
+                activity: act.activity._id,
+                activityName: act.activity.activityName,
+                startTime: slot.start,
+                endTime: slot.end,
+                type: "Bình thường",
+                category: cat
+              });
+            }
+          });
+        });
+      };
+
+      fillActivities(categoriesMorning);
+      fillActivities(categoriesAfternoon);
+      fillActivities(categoriesOther);
+    });
+
+    scheduleDays.forEach(day => day.activities.sort((a, b) => (a.startTime || 0) - (b.startTime || 0)));
+
+    return res.status(HTTP_STATUS.OK).json({
+      message: "Xem trước lịch thành công",
+      schedule: {
+        schoolYear: dataSchoolYear._id,
+        class: cls._id,
+        month,
+        scheduleDays
+      }
+    });
+
+  } catch (error) {
+    console.error("Error previewScheduleController", error);
+    return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+  }
+};
+

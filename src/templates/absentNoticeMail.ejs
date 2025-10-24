@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Quicksand', sans-serif;
+      background-color: #f4f7f9;
+      color: #333;
+    }
+
+    .email-container {
+      max-width: 600px;
+      margin: 20px auto;
+      background-color: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+      overflow: hidden;
+      border-top: 6px solid #e6687a;
+    }
+
+    .header {
+      padding: 30px 40px;
+      text-align: center;
+      background: linear-gradient(135deg, #fbeaec, #fff);
+    }
+
+    .header .logo {
+      font-size: 38px;
+      color: #e6687a;
+      margin-bottom: 10px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-weight: 700;
+      font-size: 22px;
+      color: #e6687a;
+    }
+
+    .sub-info {
+      margin-top: 8px;
+      font-size: 15px;
+      color: #555;
+    }
+
+    .content {
+      padding: 0 40px 30px;
+    }
+
+    p {
+      font-size: 16px;
+      line-height: 1.7;
+      margin: 18px 0;
+      color: #555;
+    }
+
+    .info-box {
+      background-color: #fff3f4;
+      border-left: 4px solid #e6687a;
+      padding: 20px;
+      margin: 25px 0;
+      border-radius: 8px;
+    }
+
+    .info-box p {
+      margin: 8px 0;
+      font-size: 16px;
+      color: #8a1c1c;
+    }
+
+    .student-name {
+      font-weight: 700;
+      color: #e6687a;
+    }
+
+    .cta-button-container {
+      text-align: center;
+      margin: 40px 0;
+    }
+
+    .btn {
+      display: inline-block;
+      background: linear-gradient(45deg, #46a2da, #3982b8);
+      color: #ffffff;
+      text-decoration: none;
+      padding: 18px 45px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      border-radius: 50px;
+      transition: all 0.3s ease;
+      border: none;
+      box-shadow: 0 6px 20px rgba(70, 162, 218, 0.4);
+    }
+
+    .btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px rgba(57, 130, 184, 0.5);
+    }
+
+    .footer {
+      font-size: 13px;
+      color: #888;
+      text-align: center;
+      margin-top: 30px;
+      padding: 20px 40px;
+      border-top: 1px solid #e9ecef;
+      background-color: #f8f9fa;
+    }
+
+    .footer a {
+      color: #46a2da;
+      text-decoration: none;
+    }
+
+    strong {
+      color: #3982b8;
+    }
+
+    @media (max-width: 600px) {
+      .email-container {
+        margin: 0;
+        border-radius: 0;
+      }
+
+      .header,
+      .content {
+        padding: 25px 20px;
+      }
+
+      .btn {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 18px 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <div class="logo">📩</div>
+      <h1>Thông báo học sinh vắng mặt</h1>
+      <div class="sub-info">
+        <strong><%= studentName %></strong> - Lớp <strong><%= className %></strong><br />
+        Ngày gửi: <%= new Date().toLocaleDateString('vi-VN') %>
+      </div>
+    </div>
+
+    <div class="content">
+      <p>Kính gửi Quý Phụ huynh <strong><%= parentName %></strong>,</p>
+
+      <div class="info-box">
+        <p>Học sinh <span class="student-name"><%= studentName %></span> thuộc lớp <strong><%= className %></strong> đã <strong>vắng mặt</strong> vào ngày <strong><%= absentDate %></strong>.</p>
+
+        <% if (reason) { %>
+          <p><strong>Lý do:</strong> <%= reason %></p>
+        <% } %>
+
+        <p>Giáo viên chủ nhiệm: <strong><%= teacherName %></strong></p>
+        <p>Quý phụ huynh vui lòng xác nhận lại thông tin và liên hệ giáo viên nếu cần thiết để được hỗ trợ thêm.</p>
+      </div>
+
+      <div class="cta-button-container">
+        <a class="btn" href="<%= portalLink %>">Xem chi tiết tại cổng thông tin ➔</a>
+      </div>
+
+      <p style="font-size: 14px; color: #666; text-align: center;">
+        Xin cảm ơn Quý Phụ huynh đã phối hợp cùng Nhà trường trong việc theo dõi tình hình học tập của các bé 💖
+      </p>
+    </div>
+
+    <div class="footer">
+      © 2025 Trường Mầm Non Sakura<br />
+      Email: <a href="mailto:kidmanagesystem.2025@gmail.com">kidmanagesystem.2025@gmail.com</a><br />
+      Hotline: 0913-339-709
+    </div>
+  </div>
+</body>
+</html>

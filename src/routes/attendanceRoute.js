@@ -3,7 +3,7 @@ const router = express.Router();
 const Attendance = require("../models/attendanceModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
-const { getByIdController, getAttendanceByClassAndDate, getAttendanceByClassAndSchoolYear, getAttendanceByStudentAndSchoolYear, getAllAttendance } = require("../controller/attendanceController");
+const { getByIdController, getAttendanceByClassAndDate, getAttendanceByClassAndSchoolYear, getAttendanceByStudentAndSchoolYear, getAllAttendance, updateAttendanceController } = require("../controller/attendanceController");
 
 router.get("/list",
   verifyToken,
@@ -20,7 +20,7 @@ router.post("/create",
 router.put("/update/:id",
   verifyToken,
   authorizeAction("update"),
-  updateGeneric(Attendance)
+  updateAttendanceController
 );
 
 router.post("/delete/:id",

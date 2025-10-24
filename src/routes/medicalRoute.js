@@ -3,13 +3,20 @@ const router = express.Router();
 const MedicalRecord = require("../models/medicalModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
-const { getByIdMedicalController, getAllMedicalController } = require("../controller/medicalController");
+const { getByIdMedicalController, getAllMedicalController, getAllMedicalByFilter } = require("../controller/medicalController");
 
 router.get(
     "/list",
     verifyToken,
     authorizeAction("view"),
     getAllMedicalController
+);
+
+router.get(
+    "/listByFilter",
+    verifyToken,
+    authorizeAction("view"),
+    getAllMedicalByFilter
 );
 
 router.post(

@@ -8,6 +8,18 @@ const medicalSchema = new mongoose.Schema(
       required: true,
     },
 
+    schoolYear: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SchoolYear",
+      required: true,
+    },
+
+    class: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Class",
+      required: true,
+    },
+
     physicalDevelopment: {
       height: { type: Number },
       weight: { type: Number },

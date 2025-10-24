@@ -10,7 +10,7 @@ const ScheduleSchema = new mongoose.Schema({
             dayName: { type: String },
             activities: [
                 {
-                    activity: { type: mongoose.Schema.Types.ObjectId, ref: "Activity", required: true },
+                    activity: { type: mongoose.Schema.Types.ObjectId, ref: "Activity" },
                     startTime: { type: Number },
                     endTime: { type: Number },
                     isFix: { type: Boolean }

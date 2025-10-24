@@ -530,11 +530,16 @@ exports.getListActivityFixController = async (req, res) => {
     const dataSchoolYear = await SchoolYear.findOne({ active: true, state: "Đang hoạt động" });
     if (!dataSchoolYear) return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy năm học đang hoạt động" });
 
-    const dataTopic = await Topic.findOne({ active: true, schoolYear: dataSchoolYear._id, age: cls.age, month })
-      .populate("activitiFix.activity")
+    const dataTopic = await Topic.findOne({
+      active: true,
+      schoolYear: dataSchoolYear._id,
+      age: cls.age,
+      month
+    }).populate("activitiFix.activity");
 
     if (!dataTopic) return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy chủ đề tháng" });
-    const { activitiFix: activityFix } = dataTopic;
+
+    const activityFix = dataTopic.activitiFix || [];
 
     const eventList = await Event.find({ active: true, schoolYear: dataSchoolYear._id });
     const allDays = getDaysInMonth(year, month);
@@ -552,6 +557,29 @@ exports.getListActivityFixController = async (req, res) => {
       }
     });
 
+    const getFreeSlots = (activities, minTime = 435, maxTime = 1050, duration = 30) => {
+      const occupied = activities
+        .filter(a => a.startTime && a.endTime)
+        .map(a => ({ start: a.startTime, end: a.endTime }));
+
+      const freeSlots = [];
+      let slot = findAvailableSlot(occupied, duration, minTime, maxTime);
+      while (slot) {
+        freeSlots.push({ startTime: slot.start, endTime: slot.end });
+        occupied.push(slot); 
+        slot = findAvailableSlot(occupied, duration, minTime, maxTime);
+      }
+      return freeSlots;
+    };
+
+    const mergeActivitiesAndFreeSlots = (activities, freeSlots) => {
+      const freeActivities = freeSlots.map(slot => ({
+        startTime: slot.startTime,
+        endTime: slot.endTime
+      }));
+      return [...activities, ...freeActivities].sort((a, b) => a.startTime - b.startTime);
+    };
+
     const scheduleDays = allDays.map(date => {
       const dateStr = date.toISOString().split("T")[0];
       const isOfficialHoliday = holidayDates.includes(dateStr);
@@ -559,23 +587,24 @@ exports.getListActivityFixController = async (req, res) => {
 
       let activities = [];
       if (!isOfficialHoliday && !isSunday && Array.isArray(activityFix)) {
-        activityFix.forEach(item => {
-          if (item.activity && item.activity._id) {
-            activities.push({
-              activity: item.activity._id,
-              activityName: item.activity.activityName,
-              type: "Cố định",
-              startTime: item.activity.startTime,
-              endTime: item.activity.endTime
-            });
-          }
-        });
+        activities = activityFix
+          .filter(item => item.activity && item.activity._id)
+          .map(item => ({
+            activity: item.activity._id,
+            activityName: item.activity.activityName,
+            type: "Cố định",
+            startTime: item.activity.startTime,
+            endTime: item.activity.endTime
+          }));
       }
+      const freeSlots = getFreeSlots(activities);
+
+      const mergedActivities = mergeActivitiesAndFreeSlots(activities, freeSlots);
 
       return {
         date,
         dayName: getDayName(date),
-        activities,
+        activities: mergedActivities,
         isHoliday: isOfficialHoliday,
         notes: ""
       };
@@ -583,10 +612,15 @@ exports.getListActivityFixController = async (req, res) => {
 
     return res.status(HTTP_STATUS.OK).json(scheduleDays);
   } catch (error) {
-    console.log("error getListActivityFixController", error);
-    return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+    console.error("error getListActivityFixController", error);
+    return res.status(HTTP_STATUS.SERVER_ERROR).json({
+      message: "Lỗi máy chủ",
+      error: error.message
+    });
   }
 };
+
+
 
 exports.createScheduleController = async (req, res) => {
   try {

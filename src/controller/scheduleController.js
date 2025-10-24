@@ -270,9 +270,9 @@ exports.getByIdController = async (req, res) => {
 
 exports.getByParamsController = async (req, res) => {
   try {
-    const { schoolYear, class: classId, month, status } = req.query;
+    const { schoolYear, class: classId, month } = req.query;
 
-    if (!schoolYear || !classId || !month || !status) {
+    if (!schoolYear || !classId || !month) {
       return res.status(400).json({
         message: "Thiếu tham số schoolYear, class hoặc month",
       });
@@ -287,7 +287,6 @@ exports.getByParamsController = async (req, res) => {
       schoolYear: new mongoose.Types.ObjectId(schoolYear),
       class: new mongoose.Types.ObjectId(classId),
       month: targetMonth,
-      status: status,
     })
       .populate({ path: "schoolYear", select: "schoolYear schoolYearCode" })
       .populate({ path: "class", select: "classCode className" })
@@ -566,7 +565,7 @@ exports.getListActivityFixController = async (req, res) => {
       let slot = findAvailableSlot(occupied, duration, minTime, maxTime);
       while (slot) {
         freeSlots.push({ startTime: slot.start, endTime: slot.end });
-        occupied.push(slot); 
+        occupied.push(slot);
         slot = findAvailableSlot(occupied, duration, minTime, maxTime);
       }
       return freeSlots;
@@ -597,7 +596,7 @@ exports.getListActivityFixController = async (req, res) => {
             endTime: item.activity.endTime
           }));
       }
-      const freeSlots = getFreeSlots(activities);
+      const freeSlots = (!isSunday && !isOfficialHoliday) ? getFreeSlots(activities) : [];
 
       const mergedActivities = mergeActivitiesAndFreeSlots(activities, freeSlots);
 

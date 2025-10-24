@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const Schedule = require('../models/scheduleModel');
-const { createScheduleController, getByIdController, getByParamsController,
+const { createScheduleController, getByIdController, getByParamsController, getClassBySchoolYearController,
     previewScheduleController, getListActivityFixController, getListAvailableController, confirmScheduleController } = require("../controller/scheduleController")
 const { createGeneric, deletedSoftGeneric, findAllGeneric, updateGeneric, getByIdGeneric } = require("../controller/useController");
 
@@ -42,6 +42,12 @@ router.get("/getListAvailable",
     getListAvailableController
 );
 
+router.get("/getClassBySchoolYear",
+    verifyToken,
+    authorizeAction("view"),
+    getClassBySchoolYearController
+);
+
 router.post("/createSchedule",
     verifyToken,
     authorizeAction("create"),
@@ -59,5 +65,7 @@ router.put("/confirm/:id",
     authorizeAction("update"),
     confirmScheduleController
 )
+
+
 
 module.exports = router;

@@ -732,3 +732,25 @@ exports.confirmScheduleController = async (req, res) => {
     return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
   }
 }
+
+
+exports.getClassBySchoolYearController = async (req, res) => {
+  try {
+    const dataSchoolYear = await SchoolYear.findOne({
+      active: { $eq: true },
+      state: "Đang hoạt động"
+    });
+    const dataClass = await ClassModel.find({
+      schoolYear: dataSchoolYear._id,
+      active: { $eq: true }
+    }, {
+      classCode: 1,
+      className: 1
+    }).lean();
+
+    return res.status(HTTP_STATUS.OK).json(dataClass);
+  } catch (error) {
+    console.log("error getClassBySchoolYear", error);
+    return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+  }
+}

@@ -8,6 +8,7 @@ const { IMAP_CONFIG, SMTP_CONFIG } = require('../constants/mailConstants');
 const Staff = require("../models/staffModel");
 const User = require("../models/userModel");
 const Class = require("../models/classModel");
+const Student = require("../models/studentModel");
 const SchoolYear = require("../models/schoolYearModel");
 const { sequencePattern } = require('../helpers/useHelpers');
 const { SEQUENCE_CODE } = require('../constants/useConstants');
@@ -157,7 +158,7 @@ exports.deleteStaff = async (req, res) => {
 exports.getClassAndStudentByTeacherController = async (req, res) => {
     try {
         const teacherId = req.params.id;
-
+        const schoolYearId = req.query.schoolYearId;
         // 1️⃣ Tìm giáo viên
         const teacher = await Staff.findById(teacherId);
         if (!teacher) {
@@ -174,9 +175,9 @@ exports.getClassAndStudentByTeacherController = async (req, res) => {
 
         // 2️⃣ Tìm năm học hiện tại
         const activeSchoolYear = await SchoolYear.findOne({
-            state: "Đang hoạt động",
+            _id: schoolYearId,
             active: true,
-        });
+        })
 
         if (!activeSchoolYear) {
             return res
@@ -259,6 +260,52 @@ exports.getClassAndStudentByTeacherController = async (req, res) => {
         console.error("❌ Error getClassAndStudentByTeacherController:", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json({
             message: "Lỗi khi lấy danh sách lớp và học sinh.",
+            error: error.message,
+        });
+    }
+};
+
+exports.getByIdStudentController = async (req, res) => {
+    try {
+        const studentId = req.params.id;
+
+        // Tìm lớp học có học sinh với studentId
+        const student = await Student.findById(studentId);
+        if (!student) {
+            return res
+                .status(HTTP_STATUS.NOT_FOUND)
+                .json({ message: "Học sinh không tồn tại." });
+        }
+        const gfs = getGFS();
+        if (!gfs) {
+            return res
+                .status(HTTP_STATUS.SERVER_ERROR)
+                .json({ message: "GridFS chưa kết nối." });
+        }
+        let healthCertFile = null;
+        let birthCertFile = null;
+        if (student.healthCertId) {
+            const files = await gfs
+                .find({ _id: student.healthCertId })
+                .toArray();
+            healthCertFile = files.length > 0 ? files[0] : null;
+        }
+        if (student.birthCertId) {
+            const files = await gfs
+                .find({ _id: student.birthCertId })
+                .toArray();
+            birthCertFile = files.length > 0 ? files[0] : null;
+        }
+
+        const studentData = student.toObject();
+        studentData.healthCertFile = healthCertFile;
+        studentData.birthCertFile = birthCertFile;
+
+        return res.status(HTTP_STATUS.OK).json(studentData);
+    } catch (error) {
+        console.error("❌ Error getByIdStudent:", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json({
+            message: "Lỗi khi lấy thông tin học sinh.",
             error: error.message,
         });
     }

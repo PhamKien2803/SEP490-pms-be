@@ -43,6 +43,72 @@ exports.getByIdMedicalController = async (req, res) => {
   }
 };
 
+exports.getAllMedicalByFilter = async (req, res) => {
+  try {
+    const { schoolYearId, classId } = req.query;
+    const gfs = getGFS();
+    if (!gfs) {
+      return res.status(500).json({ message: "GridFS chưa kết nối" });
+    }
+
+    let { limit, page } = req.query;
+    limit = parseInt(limit) || 30;
+    page = parseInt(page) || 1;
+    const offset = (page - 1) * limit;
+
+    const queryString = {
+      active: true,
+      schoolYear: schoolYearId,
+      class: classId
+    };
+
+    const totalCount = await MedicalRecord.countDocuments(queryString);
+
+    const records = await MedicalRecord.find(queryString)
+      .populate({
+        path: "student",
+        select: "studentCode fullName dob gender address healthCertId",
+      })
+      .sort({ createdAt: -1 })
+      .skip(offset)
+      .limit(limit)
+      .lean();
+
+    if (!records || records.length === 0) {
+      return res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json("Không tìm thấy dữ liệu");
+    }
+
+    for (const record of records) {
+      if (record.student?.healthCertId) {
+        try {
+          const files = await gfs
+            .find({ _id: new mongoose.Types.ObjectId(record.student.healthCertId) })
+            .toArray();
+          record.healthCertFiles = files.length > 0 ? files[0] : null;
+        } catch (err) {
+          record.healthCertFiles = null;
+        }
+      } else {
+        record.healthCertFiles = null;
+      }
+    }
+
+    return res.status(HTTP_STATUS.OK).json({
+      data: records,
+      page: {
+        totalCount,
+        limit,
+        page,
+      },
+    });
+  } catch (error) {
+    console.error("error getAllMedicalController:", error);
+    return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+  }
+};
+
 exports.getAllMedicalController = async (req, res) => {
   try {
     const gfs = getGFS();

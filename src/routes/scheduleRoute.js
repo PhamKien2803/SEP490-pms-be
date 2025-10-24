@@ -48,13 +48,13 @@ router.post("/createSchedule",
     createScheduleController
 );
 
-router.put("/updateSchedule",
+router.put("/updateSchedule/:id",
     verifyToken,
     authorizeAction("update"),
     updateGeneric(Schedule)
 );
 
-router.put("/confirm",
+router.put("/confirm/:id",
     verifyToken,
     authorizeAction("update"),
     confirmScheduleController

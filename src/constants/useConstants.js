@@ -61,6 +61,7 @@ const SEQUENCE_CODE = {
     ACTIVITY: "AC",
     EVENT: "EV",
     MEDICAL: "MED",
+    ATTENDANCE: "ATT",
     TOPIC: "TP"
 }
 

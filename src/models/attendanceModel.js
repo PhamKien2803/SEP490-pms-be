@@ -1,5 +1,25 @@
 const mongoose = require("mongoose");
 
+const studentAttendanceSchema = new mongoose.Schema(
+  {
+    student: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Student",
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["Có mặt", "Vắng mặt có phép", "Đi muộn", "Vắng mặt không phép"],
+      default: "Có mặt",
+    },
+    note: {
+      type: String,
+      trim: true,
+    },
+  },
+  { _id: false }
+);
+
 const attendanceSchema = new mongoose.Schema(
   {
     class: {
@@ -19,24 +39,7 @@ const attendanceSchema = new mongoose.Schema(
       required: [true, "Ngày điểm danh là bắt buộc."],
     },
 
-    students: [
-      {
-        student: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Student",
-          required: true,
-        },
-        status: {
-          type: String,
-          enum: ["present", "absent", "late", "excused"],
-          default: "present",
-        },
-        note: {
-          type: String,
-          trim: true,
-        },
-      },
-    ],
+    students: [studentAttendanceSchema], // dùng schema con đã định nghĩa ở trên
 
     takenBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -66,3 +69,4 @@ const attendanceSchema = new mongoose.Schema(
 attendanceSchema.index({ class: 1, date: 1 }, { unique: true });
 
 module.exports = mongoose.model("Attendance", attendanceSchema);
+

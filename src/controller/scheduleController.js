@@ -49,193 +49,192 @@ const splitWeeks = (days) => {
   return weeks;
 };
 
-exports.createScheduleController = async (req, res) => {
-  try {
-    const { year, month, age } = req.body;
-    if (!year || !month || !age)
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Yêu cầu nhập năm, tháng, tuổi" });
+// exports.createScheduleController = async (req, res) => {
+//   try {
+//     const { year, month, age } = req.body;
+//     if (!year || !month || !age)
+//       return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Yêu cầu nhập năm, tháng, tuổi" });
 
-    const dataSchoolYear = await SchoolYear.findOne({ active: true, state: "Đang hoạt động" });
-    if (!dataSchoolYear)
-      return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy năm học đang hoạt động" });
+//     const dataSchoolYear = await SchoolYear.findOne({ active: true, state: "Đang hoạt động" });
+//     if (!dataSchoolYear)
+//       return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy năm học đang hoạt động" });
 
-    const dataTopic = await Topic.findOne({ active: true, schoolYear: dataSchoolYear._id, age, month })
-      .populate("activitiFix.activity")
-      .populate("activitiCore.activity")
-      .populate("activitiEvent.activity");
+//     const dataTopic = await Topic.findOne({ active: true, schoolYear: dataSchoolYear._id, age, month })
+//       .populate("activitiFix.activity")
+//       .populate("activitiCore.activity")
+//       .populate("activitiEvent.activity");
 
-    if (!dataTopic)
-      return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy chủ đề tháng" });
+//     if (!dataTopic)
+//       return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy chủ đề tháng" });
 
-    const activityFix = dataTopic.activitiFix;
-    const activitiEvent = dataTopic.activitiEvent;
-    const activityCore = dataTopic.activitiCore;
+//     const activityFix = dataTopic.activitiFix;
+//     const activitiEvent = dataTopic.activitiEvent;
+//     const activityCore = dataTopic.activitiCore;
 
-    const classes = await ClassModel.find({ age, active: true, schoolYear: dataSchoolYear._id });
-    const allDays = getDaysInMonth(year, month);
-    const weeks = splitWeeks(allDays);
+//     const classes = await ClassModel.find({ age, active: true, schoolYear: dataSchoolYear._id });
+//     const allDays = getDaysInMonth(year, month);
+//     const weeks = splitWeeks(allDays);
 
-    const eventList = await Event.find({ active: true, schoolYear: dataSchoolYear._id });
-    const holidayDates = [];
-    eventList.filter(e => e.isHoliday).forEach(ev => {
-      if (ev.holidayStartDate && ev.holidayEndDate) {
-        let d = new Date(ev.holidayStartDate);
-        const end = new Date(ev.holidayEndDate);
-        while (d <= end) {
-          holidayDates.push(d.toISOString().split("T")[0]);
-          d.setDate(d.getDate() + 1);
-        }
-      }
-    });
+//     const eventList = await Event.find({ active: true, schoolYear: dataSchoolYear._id });
+//     const holidayDates = [];
+//     eventList.filter(e => e.isHoliday).forEach(ev => {
+//       if (ev.holidayStartDate && ev.holidayEndDate) {
+//         let d = new Date(ev.holidayStartDate);
+//         const end = new Date(ev.holidayEndDate);
+//         while (d <= end) {
+//           holidayDates.push(d.toISOString().split("T")[0]);
+//           d.setDate(d.getDate() + 1);
+//         }
+//       }
+//     });
 
-    const categoriesMorning = ["Phát triển nhận thức"];
-    const categoriesAfternoon = ["Phát triển thể chất"];
-    const categoriesOther = ["Phát triển ngôn ngữ", "Phát triển tình cảm", "Phát triển thẩm mỹ", "Phát triển kỹ năng xã hội"];
+//     const categoriesMorning = ["Phát triển nhận thức"];
+//     const categoriesAfternoon = ["Phát triển thể chất"];
+//     const categoriesOther = ["Phát triển ngôn ngữ", "Phát triển tình cảm", "Phát triển thẩm mỹ", "Phát triển kỹ năng xã hội"];
 
-    const schedulesToInsert = [];
+//     const schedulesToInsert = [];
 
-    for (const cls of classes) {
-      const scheduleDays = allDays.map(date => {
-        const isHoliday = holidayDates.includes(date.toISOString().split("T")[0]) || date.getDay() === 0;
-        return {
-          date,
-          dayName: getDayName(date),
-          activities: isHoliday ? [] : activityFix.map(item => ({
-            activity: item.activity._id,
-            activityName: item.activity.activityName,
-            type: "Cố định",
-            startTime: item.activity.startTime,
-            endTime: item.activity.endTime,
-          })),
-          isHoliday,
-          notes: ""
-        };
-      });
+//     for (const cls of classes) {
+//       const scheduleDays = allDays.map(date => {
+//         const isHoliday = holidayDates.includes(date.toISOString().split("T")[0]) || date.getDay() === 0;
+//         return {
+//           date,
+//           dayName: getDayName(date),
+//           activities: isHoliday ? [] : activityFix.map(item => ({
+//             activity: item.activity._id,
+//             activityName: item.activity.activityName,
+//             type: "Cố định",
+//             startTime: item.activity.startTime,
+//             endTime: item.activity.endTime,
+//           })),
+//           isHoliday,
+//           notes: ""
+//         };
+//       });
 
-      // Thêm sự kiện
-      const mappedEvents = activitiEvent.map(evAct => {
-        const matchEvent = eventList.find(e => e.eventName === evAct.activity.eventName);
-        if (matchEvent) {
-          return {
-            activity: evAct.activity,
-            sessionsPerWeek: evAct.sessionsPerWeek || 1,
-            holidayStartDate: matchEvent.holidayStartDate,
-            holidayEndDate: matchEvent.holidayEndDate
-          };
-        }
-        return null;
-      }).filter(Boolean);
+//       // Thêm sự kiện
+//       const mappedEvents = activitiEvent.map(evAct => {
+//         const matchEvent = eventList.find(e => e.eventName === evAct.activity.eventName);
+//         if (matchEvent) {
+//           return {
+//             activity: evAct.activity,
+//             sessionsPerWeek: evAct.sessionsPerWeek || 1,
+//             holidayStartDate: matchEvent.holidayStartDate,
+//             holidayEndDate: matchEvent.holidayEndDate
+//           };
+//         }
+//         return null;
+//       }).filter(Boolean);
 
-      mappedEvents.forEach(ev => {
-        if (!ev.holidayStartDate || !ev.holidayEndDate) return;
+//       mappedEvents.forEach(ev => {
+//         if (!ev.holidayStartDate || !ev.holidayEndDate) return;
 
-        let currentDate = new Date(ev.holidayStartDate);
-        const endDate = new Date(ev.holidayEndDate);
+//         let currentDate = new Date(ev.holidayStartDate);
+//         const endDate = new Date(ev.holidayEndDate);
 
-        while (currentDate <= endDate) {
-          const dateStr = currentDate.toISOString().split("T")[0];
-          let target = scheduleDays.find(sch => sch.date.toISOString().split("T")[0] === dateStr && !sch.isHoliday);
+//         while (currentDate <= endDate) {
+//           const dateStr = currentDate.toISOString().split("T")[0];
+//           let target = scheduleDays.find(sch => sch.date.toISOString().split("T")[0] === dateStr && !sch.isHoliday);
 
-          if (!target) {
-            // lùi ngày
-            let prevDate = new Date(currentDate);
-            do {
-              prevDate.setDate(prevDate.getDate() - 1);
-              const prevStr = prevDate.toISOString().split("T")[0];
-              target = scheduleDays.find(sch => sch.date.toISOString().split("T")[0] === prevStr && !sch.isHoliday);
-            } while (!target && prevDate >= scheduleDays[0].date);
-            if (!target) { currentDate.setDate(currentDate.getDate() + 1); continue; }
-          }
+//           if (!target) {
+//             // lùi ngày
+//             let prevDate = new Date(currentDate);
+//             do {
+//               prevDate.setDate(prevDate.getDate() - 1);
+//               const prevStr = prevDate.toISOString().split("T")[0];
+//               target = scheduleDays.find(sch => sch.date.toISOString().split("T")[0] === prevStr && !sch.isHoliday);
+//             } while (!target && prevDate >= scheduleDays[0].date);
+//             if (!target) { currentDate.setDate(currentDate.getDate() + 1); continue; }
+//           }
 
-          const occupied = target.activities
-            .filter(a => a.startTime && a.endTime)
-            .map(a => ({ start: a.startTime, end: a.endTime }));
+//           const occupied = target.activities
+//             .filter(a => a.startTime && a.endTime)
+//             .map(a => ({ start: a.startTime, end: a.endTime }));
 
-          for (let i = 0; i < ev.sessionsPerWeek; i++) {
-            const slot = findAvailableSlot(occupied, 30, 435, 1050);
-            if (!slot) break;
-            target.activities.push({
-              activity: ev.activity._id,
-              activityName: ev.activity.activityName,
-              startTime: slot.start,
-              endTime: slot.end,
-              type: "Sự kiện"
-            });
-            occupied.push(slot);
-          }
-          currentDate.setDate(currentDate.getDate() + 1);
-        }
-      });
+//           for (let i = 0; i < ev.sessionsPerWeek; i++) {
+//             const slot = findAvailableSlot(occupied, 30, 435, 1050);
+//             if (!slot) break;
+//             target.activities.push({
+//               activity: ev.activity._id,
+//               activityName: ev.activity.activityName,
+//               startTime: slot.start,
+//               endTime: slot.end,
+//               type: "Sự kiện"
+//             });
+//             occupied.push(slot);
+//           }
+//           currentDate.setDate(currentDate.getDate() + 1);
+//         }
+//       });
 
-      // Chia lịch theo tuần
-      weeks.forEach(weekDays => {
-        // Shuffle ngày trong tuần để tạo lịch khác nhau
-        const shuffledWeek = shuffleArray(weekDays.map(d => scheduleDays.find(s => s.date.toISOString() === d.toISOString())));
+//       // Chia lịch theo tuần
+//       weeks.forEach(weekDays => {
+//         // Shuffle ngày trong tuần để tạo lịch khác nhau
+//         const shuffledWeek = shuffleArray(weekDays.map(d => scheduleDays.find(s => s.date.toISOString() === d.toISOString())));
 
-        const fillActivities = (categories) => {
-          categories.forEach(cat => {
-            const acts = shuffleArray(activityCore.filter(a => a.activity.category === cat));
-            acts.forEach(act => {
-              let count = act.sessionsPerWeek || 1;
-              let i = 0;
-              while (count > 0 && i < shuffledWeek.length) {
-                const day = shuffledWeek[i];
-                if (day.isHoliday) { i++; continue; }
-                const occupied = day.activities
-                  .filter(a => a.startTime && a.endTime)
-                  .map(a => ({ start: a.startTime, end: a.endTime }));
-                let minTime, maxTime;
-                if (categoriesMorning.includes(cat)) { minTime = 435; maxTime = 690; }
-                else if (categoriesAfternoon.includes(cat)) { minTime = 810; maxTime = 1050; }
-                else { minTime = 435; maxTime = 1050; }
+//         const fillActivities = (categories) => {
+//           categories.forEach(cat => {
+//             const acts = shuffleArray(activityCore.filter(a => a.activity.category === cat));
+//             acts.forEach(act => {
+//               let count = act.sessionsPerWeek || 1;
+//               let i = 0;
+//               while (count > 0 && i < shuffledWeek.length) {
+//                 const day = shuffledWeek[i];
+//                 if (day.isHoliday) { i++; continue; }
+//                 const occupied = day.activities
+//                   .filter(a => a.startTime && a.endTime)
+//                   .map(a => ({ start: a.startTime, end: a.endTime }));
+//                 let minTime, maxTime;
+//                 if (categoriesMorning.includes(cat)) { minTime = 435; maxTime = 690; }
+//                 else if (categoriesAfternoon.includes(cat)) { minTime = 810; maxTime = 1050; }
+//                 else { minTime = 435; maxTime = 1050; }
 
-                const slot = findAvailableSlot(occupied, 30, minTime, maxTime);
-                if (slot) {
-                  day.activities.push({
-                    activity: act.activity._id,
-                    activityName: act.activity.activityName,
-                    startTime: slot.start,
-                    endTime: slot.end,
-                    type: "Bình thường",
-                    category: cat
-                  });
-                  count--;
-                }
-                i++;
-              }
-            });
-          });
-        };
+//                 const slot = findAvailableSlot(occupied, 30, minTime, maxTime);
+//                 if (slot) {
+//                   day.activities.push({
+//                     activity: act.activity._id,
+//                     activityName: act.activity.activityName,
+//                     startTime: slot.start,
+//                     endTime: slot.end,
+//                     type: "Bình thường",
+//                     category: cat
+//                   });
+//                   count--;
+//                 }
+//                 i++;
+//               }
+//             });
+//           });
+//         };
 
-        fillActivities(categoriesMorning);
-        fillActivities(categoriesAfternoon);
-        fillActivities(categoriesOther);
-      });
+//         fillActivities(categoriesMorning);
+//         fillActivities(categoriesAfternoon);
+//         fillActivities(categoriesOther);
+//       });
 
-      scheduleDays.forEach(day => day.activities.sort((a, b) => (a.startTime || 0) - (b.startTime || 0)));
+//       scheduleDays.forEach(day => day.activities.sort((a, b) => (a.startTime || 0) - (b.startTime || 0)));
 
-      schedulesToInsert.push({
-        schoolYear: dataSchoolYear._id,
-        class: cls._id,
-        month,
-        scheduleDays,
-        status: "Dự thảo"
-      });
-    }
+//       schedulesToInsert.push({
+//         schoolYear: dataSchoolYear._id,
+//         class: cls._id,
+//         month,
+//         scheduleDays,
+//         status: "Dự thảo"
+//       });
+//     }
 
 
-    await Schedule.insertMany(schedulesToInsert);
+//     await Schedule.insertMany(schedulesToInsert);
 
-    return res.status(HTTP_STATUS.OK).json({
-      message: "Lịch đã được tạo thành công",
-      schedules: schedulesToInsert
-    });
-  } catch (error) {
-    console.error("Error createScheduleController", error);
-    return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
-  }
-};
-
+//     return res.status(HTTP_STATUS.OK).json({
+//       message: "Lịch đã được tạo thành công",
+//       schedules: schedulesToInsert
+//     });
+//   } catch (error) {
+//     console.error("Error createScheduleController", error);
+//     return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+//   }
+// };
 
 exports.getByIdController = async (req, res) => {
   try {
@@ -345,7 +344,7 @@ exports.previewScheduleController = async (req, res) => {
   try {
     const { year, month, classId } = req.query;
     if (!year || !month || !classId)
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Yêu cầu nhập năm, tháng, classId" });
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Yêu cầu nhập năm, tháng, lớp học" });
 
     const cls = await ClassModel.findById(classId);
     if (!cls) return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy lớp học" });
@@ -518,3 +517,218 @@ exports.previewScheduleController = async (req, res) => {
   }
 };
 
+
+exports.getListActivityFixController = async (req, res) => {
+  try {
+    const { year, month, classId } = req.query;
+    if (!year || !month || !classId)
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Yêu cầu nhập năm, tháng, lớp học" });
+
+    const cls = await ClassModel.findById(classId);
+    if (!cls) return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy lớp học" });
+
+    const dataSchoolYear = await SchoolYear.findOne({ active: true, state: "Đang hoạt động" });
+    if (!dataSchoolYear) return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy năm học đang hoạt động" });
+
+    const dataTopic = await Topic.findOne({ active: true, schoolYear: dataSchoolYear._id, age: cls.age, month })
+      .populate("activitiFix.activity")
+
+    if (!dataTopic) return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy chủ đề tháng" });
+    const { activitiFix: activityFix } = dataTopic;
+
+    const eventList = await Event.find({ active: true, schoolYear: dataSchoolYear._id });
+    const allDays = getDaysInMonth(year, month);
+
+    const holidayDates = [];
+    eventList.filter(e => e.isHoliday).forEach(ev => {
+      if (ev.holidayStartDate && ev.holidayEndDate) {
+        let d = new Date(ev.holidayStartDate);
+        const end = new Date(ev.holidayEndDate);
+        while (d <= end) {
+          const dateStr = d.toISOString().split("T")[0];
+          if (!holidayDates.includes(dateStr)) holidayDates.push(dateStr);
+          d.setDate(d.getDate() + 1);
+        }
+      }
+    });
+
+    const scheduleDays = allDays.map(date => {
+      const dateStr = date.toISOString().split("T")[0];
+      const isOfficialHoliday = holidayDates.includes(dateStr);
+      const isSunday = date.getDay() === 0;
+
+      let activities = [];
+      if (!isOfficialHoliday && !isSunday && Array.isArray(activityFix)) {
+        activityFix.forEach(item => {
+          if (item.activity && item.activity._id) {
+            activities.push({
+              activity: item.activity._id,
+              activityName: item.activity.activityName,
+              type: "Cố định",
+              startTime: item.activity.startTime,
+              endTime: item.activity.endTime
+            });
+          }
+        });
+      }
+
+      return {
+        date,
+        dayName: getDayName(date),
+        activities,
+        isHoliday: isOfficialHoliday,
+        notes: ""
+      };
+    });
+
+    return res.status(HTTP_STATUS.OK).json(scheduleDays);
+  } catch (error) {
+    console.log("error getListActivityFixController", error);
+    return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+  }
+};
+
+exports.createScheduleController = async (req, res) => {
+  try {
+    const { class: classId, month, scheduleDays } = req.body;
+    if (!classId) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Vui lòng chọn lớp học" });
+    }
+    if (!month) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Vui lòng chọn tháng học" });
+    }
+
+    if (!scheduleDays || scheduleDays.length === 0) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Vui lòng nhập đủ lịch học" });
+    }
+
+    const checkSchoolYear = await SchoolYear.findOne({
+      active: { $eq: true },
+      state: "Đang hoạt động"
+    });
+
+    const checkSchedule = await Schedule.findOne({
+      month: month,
+      class: classId,
+      schoolYear: checkSchoolYear._id
+    });
+
+    if (checkSchedule) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Lịch học tháng này đã được tạo" });
+    }
+
+    const newObject = await new Schedule({
+      schoolYear: checkSchoolYear._id,
+      class: classId,
+      month: month,
+      scheduleDays,
+      status: "Dự thảo"
+    });
+
+    await newObject.save();
+
+    return res.status(HTTP_STATUS.OK).json({ message: "Thêm mới thành công lịch học" });
+  } catch (error) {
+    console.log("error getListActivityFixController", error);
+    return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+  }
+};
+
+exports.getListAvailableController = async (req, res) => {
+  try {
+    const { class: classId, month } = req.query;
+
+    if (!classId) {
+      return res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json({ message: "Vui lòng chọn lớp học" });
+    }
+
+    if (!month) {
+      return res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json({ message: "Vui lòng chọn tháng học" });
+    }
+
+    const dataSchoolYear = await SchoolYear.findOne({
+      active: true,
+      state: "Đang hoạt động"
+    }).lean();
+
+    if (!dataSchoolYear) {
+      return res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json({ message: "Không tìm thấy năm học đang hoạt động" });
+    }
+
+    const dataClass = await ClassModel.findById(classId).lean();
+
+    if (!dataClass) {
+      return res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json({ message: "Không tìm thấy lớp học" });
+    }
+
+    const topic = await Topic.findOne(
+      {
+        schoolYear: dataSchoolYear._id,
+        month,
+        age: dataClass.age
+      },
+      {
+        activitiCore: 1,
+        activitiEvent: 1
+      }
+    )
+      .populate("activitiCore.activity", "activityCode activityName type category")
+      .populate("activitiEvent.activity", "activityCode activityName type eventName")
+      .lean();
+
+    if (!topic) {
+      return res.status(HTTP_STATUS.OK).json([]);
+    }
+
+    const coreActivities =
+      topic.activitiCore?.map((item) => ({
+        _id: item.activity?._id,
+        activityCode: item.activity?.activityCode,
+        activityName: item.activity?.activityName,
+        type: item.activity?.type,
+        category: item.activity?.category || null,
+        eventName: null
+      })) || [];
+
+    const eventActivities =
+      topic.activitiEvent?.map((item) => ({
+        _id: item.activity?._id,
+        activityCode: item.activity?.activityCode,
+        activityName: item.activity?.activityName,
+        type: item.activity?.type,
+        category: null,
+        eventName: item.activity?.eventName || null
+      })) || [];
+
+    const allActivities = [...coreActivities, ...eventActivities];
+
+    return res.status(HTTP_STATUS.OK).json(allActivities);
+  } catch (error) {
+    console.log("error getListAvailableController", error);
+    return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+  }
+};
+
+
+exports.confirmScheduleController = async (req, res) => {
+  try {
+    const data = await Schedule.findById(req.params.id);
+    if (!data) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy dữ liệu lịch học" });
+    }
+    data.status = "Xác nhận";
+    data.save();
+    return res.status(HTTP_STATUS.OK).json(data);
+  } catch (error) {
+    console.log("error getListAvailableController", error);
+    return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+  }
+}

@@ -319,28 +319,36 @@ exports.getByParamsController = async (req, res) => {
       return res.status(404).json({ message: "Không tìm thấy lịch học phù hợp" });
     }
 
-    const getFreeSlots = (activities, minTime = 435, maxTime = 1050) => {
+    const getFreeSlots = (activities, slotMinutes = 30, minTime = 435, maxTime = 1050) => {
       const freeSlots = [];
-      const sorted = [...activities].filter(a => a.startTime && a.endTime)
+      const sorted = [...activities]
+        .filter(a => a.startTime && a.endTime)
         .sort((a, b) => a.startTime - b.startTime);
+
       let prevEnd = minTime;
 
       for (const act of sorted) {
         if (act.startTime > prevEnd) {
-          freeSlots.push({ startTime: prevEnd, endTime: act.startTime });
+          let start = prevEnd;
+          while (start + slotMinutes <= act.startTime) {
+            freeSlots.push({ startTime: start, endTime: start + slotMinutes });
+            start += slotMinutes;
+          }
         }
         prevEnd = Math.max(prevEnd, act.endTime);
       }
 
-      if (prevEnd < maxTime) {
-        freeSlots.push({ startTime: prevEnd, endTime: maxTime });
+      let start = prevEnd;
+      while (start + slotMinutes <= maxTime) {
+        freeSlots.push({ startTime: start, endTime: start + slotMinutes });
+        start += slotMinutes;
       }
 
       return freeSlots;
     };
 
-    const mergeActivitiesAndFreeSlots = (activities) => {
-      const freeSlots = getFreeSlots(activities);
+    const mergeActivitiesAndFreeSlots = activities => {
+      const freeSlots = getFreeSlots(activities, 30);
       const freeActivities = freeSlots.map(slot => ({
         startTime: slot.startTime,
         endTime: slot.endTime,
@@ -386,6 +394,7 @@ exports.getByParamsController = async (req, res) => {
     return res.status(500).json({ message: "Lỗi máy chủ", error: error.message || error });
   }
 };
+
 
 
 exports.previewScheduleController = async (req, res) => {
@@ -549,21 +558,36 @@ exports.previewScheduleController = async (req, res) => {
 
     scheduleDays.forEach(day => day.activities.sort((a, b) => (a.startTime || 0) - (b.startTime || 0)));
 
-
-    const getFreeSlots = (activities, minTime = 435, maxTime = 1050) => {
+    const getFreeSlots = (activities, slotMinutes = 30, minTime = 435, maxTime = 1050) => {
       const freeSlots = [];
-      const sorted = [...activities].filter(a => a.startTime && a.endTime).sort((a, b) => a.startTime - b.startTime);
+      const sorted = [...activities]
+        .filter(a => a.startTime && a.endTime)
+        .sort((a, b) => a.startTime - b.startTime);
+
       let prevEnd = minTime;
+
       for (const act of sorted) {
-        if (act.startTime > prevEnd) freeSlots.push({ startTime: prevEnd, endTime: act.startTime });
+        if (act.startTime > prevEnd) {
+          let start = prevEnd;
+          while (start + slotMinutes <= act.startTime) {
+            freeSlots.push({ startTime: start, endTime: start + slotMinutes });
+            start += slotMinutes;
+          }
+        }
         prevEnd = Math.max(prevEnd, act.endTime);
       }
-      if (prevEnd < maxTime) freeSlots.push({ startTime: prevEnd, endTime: maxTime });
+
+      let start = prevEnd;
+      while (start + slotMinutes <= maxTime) {
+        freeSlots.push({ startTime: start, endTime: start + slotMinutes });
+        start += slotMinutes;
+      }
+
       return freeSlots;
     };
 
     const mergeActivitiesAndFreeSlots = activities => {
-      const freeSlots = getFreeSlots(activities);
+      const freeSlots = getFreeSlots(activities, 30);
       const freeActivities = freeSlots.map(slot => ({
         startTime: slot.startTime,
         endTime: slot.endTime,

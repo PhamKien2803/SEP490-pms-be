@@ -290,9 +290,7 @@ exports.getByParamsController = async (req, res) => {
     const { schoolYear: schoolYearString, class: classId, month } = req.query;
 
     if (!schoolYearString || !classId || !month) {
-      return res.status(400).json({
-        message: "Thiếu tham số schoolYear, class hoặc month",
-      });
+      return res.status(400).json({ message: "Thiếu tham số schoolYear, class hoặc month" });
     }
 
     const targetMonth = parseInt(month);
@@ -305,10 +303,9 @@ exports.getByParamsController = async (req, res) => {
     });
 
     if (!schoolYearDoc) {
-      return res
-        .status(404)
-        .json({ message: `Không tìm thấy năm học nào bắt đầu bằng ${schoolYearString}` });
+      return res.status(404).json({ message: `Không tìm thấy năm học nào bắt đầu bằng ${schoolYearString}` });
     }
+
     const schedule = await Schedule.findOne({
       schoolYear: schoolYearDoc._id,
       class: new mongoose.Types.ObjectId(classId),
@@ -319,81 +316,77 @@ exports.getByParamsController = async (req, res) => {
       .populate("scheduleDays.activities.activity");
 
     if (!schedule) {
-      return res
-        .status(404)
-        .json({ message: "Không tìm thấy lịch học phù hợp" });
+      return res.status(404).json({ message: "Không tìm thấy lịch học phù hợp" });
     }
 
-    // const formattedSchedule = (schedule.scheduleDays || []).map((day) => ({
-    //   date: day.date,
-    //   dayName: day.dayName,
-    //   schoolYear: schedule.schoolYear
-    //     ? {
-    //       _id: schedule.schoolYear._id,
-    //       schoolYear: schedule.schoolYear.schoolYear,
-    //     }
-    //     : null,
-    //   class: schedule.class
-    //     ? {
-    //       _id: schedule.class._id,
-    //       className: schedule.class.className,
-    //     }
-    //     : null,
-    //   isHoliday: day.isHoliday,
-    //   notes: day.notes,
-    //   activities: (day.activities || [])
-    //     .filter((a) => a.activity)
-    //     .map((a) => ({
-    //       activityCode: a.activity.activityCode,
-    //       activityName: a.activity.activityName,
-    //       type: a.activity.type,
-    //       startTime: a.startTime,
-    //       endTime: a.endTime,
-    //       _id: a._id,
-    //     }))
-    //     .sort((x, y) => x.startTime - y.startTime),
-    //   status: schedule.status,
-    // }));
+    const getFreeSlots = (activities, minTime = 435, maxTime = 1050) => {
+      const freeSlots = [];
+      const sorted = [...activities].filter(a => a.startTime && a.endTime)
+        .sort((a, b) => a.startTime - b.startTime);
+      let prevEnd = minTime;
 
-    const formattedSchedule = schedule.scheduleDays.map(day => ({
-      date: day.date,
-      dayName: day.dayName,
-      isHoliday: day.isHoliday,
-      notes: day.notes,
-      activities: (day.activities || [])
-        .map(a => {
-          const act = a.activity || {};
-          return {
-            activityCode: act.activityCode,
-            activityName: act.activityName,
-            type: act.type,
-            startTime: a.startTime || null,
-            endTime: a.endTime || null,
-            activity: a.activity || null
-          };
-        })
-        .sort((x, y) => {
-          if (!x.startTime || !y.startTime) return 0;
-          return x.startTime - y.startTime;
-        })
-    }));
+      for (const act of sorted) {
+        if (act.startTime > prevEnd) {
+          freeSlots.push({ startTime: prevEnd, endTime: act.startTime });
+        }
+        prevEnd = Math.max(prevEnd, act.endTime);
+      }
 
-    const newObject = {
+      if (prevEnd < maxTime) {
+        freeSlots.push({ startTime: prevEnd, endTime: maxTime });
+      }
+
+      return freeSlots;
+    };
+
+    const mergeActivitiesAndFreeSlots = (activities) => {
+      const freeSlots = getFreeSlots(activities);
+      const freeActivities = freeSlots.map(slot => ({
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+      }));
+      return [...activities, ...freeActivities].sort((a, b) => a.startTime - b.startTime);
+    };
+
+    const formattedSchedule = schedule.scheduleDays.map(day => {
+      const activities = (day.activities || [])
+        .filter(a => a.activity)
+        .map(a => ({
+          _id: a._id,
+          activityCode: a.activity.activityCode || null,
+          activityName: a.activity.activityName || null,
+          type: a.activity.type || null,
+          startTime: a.startTime || null,
+          endTime: a.endTime || null,
+        }));
+
+      const mergedActivities = (!day.isHoliday && day.dayName !== "Chủ nhật")
+        ? mergeActivitiesAndFreeSlots(activities)
+        : activities;
+
+      return {
+        date: day.date,
+        dayName: day.dayName,
+        isHoliday: day.isHoliday,
+        notes: day.notes,
+        activities: mergedActivities
+      };
+    });
+
+    return res.status(200).json({
       _id: schedule._id,
       schoolYear: schedule.schoolYear.schoolYear,
       className: schedule.class.className,
       status: schedule.status,
-      scheduleDays: formattedSchedule,
-    }
-    return res.status(200).json(newObject);
+      scheduleDays: formattedSchedule
+    });
+
   } catch (error) {
     console.error("Error getByParamsController:", error);
-    return res.status(500).json({
-      message: "Lỗi máy chủ",
-      error: error.message || error,
-    });
+    return res.status(500).json({ message: "Lỗi máy chủ", error: error.message || error });
   }
 };
+
 
 exports.previewScheduleController = async (req, res) => {
   try {
@@ -555,6 +548,34 @@ exports.previewScheduleController = async (req, res) => {
     });
 
     scheduleDays.forEach(day => day.activities.sort((a, b) => (a.startTime || 0) - (b.startTime || 0)));
+
+
+    const getFreeSlots = (activities, minTime = 435, maxTime = 1050) => {
+      const freeSlots = [];
+      const sorted = [...activities].filter(a => a.startTime && a.endTime).sort((a, b) => a.startTime - b.startTime);
+      let prevEnd = minTime;
+      for (const act of sorted) {
+        if (act.startTime > prevEnd) freeSlots.push({ startTime: prevEnd, endTime: act.startTime });
+        prevEnd = Math.max(prevEnd, act.endTime);
+      }
+      if (prevEnd < maxTime) freeSlots.push({ startTime: prevEnd, endTime: maxTime });
+      return freeSlots;
+    };
+
+    const mergeActivitiesAndFreeSlots = activities => {
+      const freeSlots = getFreeSlots(activities);
+      const freeActivities = freeSlots.map(slot => ({
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+      }));
+      return [...activities, ...freeActivities].sort((a, b) => a.startTime - b.startTime);
+    };
+
+    scheduleDays.forEach(day => {
+      if (!day.isHoliday && day.dayName !== "Chủ nhật") {
+        day.activities = mergeActivitiesAndFreeSlots(day.activities);
+      }
+    });
 
     return res.status(HTTP_STATUS.OK).json({
       message: "Xem trước lịch thành công",

@@ -355,7 +355,14 @@ exports.getByParamsController = async (req, res) => {
       status: schedule.status,
     }));
 
-    return res.status(200).json(formattedSchedule);
+ const newObject = {
+      _id: schedule._id,
+      schoolYear: schedule.schoolYear.schoolYear,
+      className: schedule.class.className,
+      status: schedule.status,
+      scheduleDays: formattedSchedule,
+    }
+    return res.status(200).json(newObject);
   } catch (error) {
     console.error("Error getByParamsController:", error);
     return res.status(500).json({
@@ -810,6 +817,40 @@ exports.getClassBySchoolYearController = async (req, res) => {
     return res.status(HTTP_STATUS.OK).json(dataClass);
   } catch (error) {
     console.log("error getClassBySchoolYear", error);
+    return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+  }
+}
+
+exports.updateScheduleController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const data = await Schedule.findById(id);
+    if (!data) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json(RESPONSE_MESSAGE.NOT_FOUND);
+    }
+    Object.assign(data, req.body);
+
+    const uniqueFields = Object.keys(Schedule.schema.paths).filter(
+      key => Schedule.schema.paths[key].options.unique
+    );
+
+    for (const field of uniqueFields) {
+      const exists = await Schedule.findOne({ [field]: data[field], _id: { $ne: id } });
+      if (exists) {
+        return res.status(400).json({ message: `Trường ${field} đã tồn tại.` });
+      }
+    }
+    const schoolYearData = await SchoolYear.findOne({
+      active: {$eq: true},
+      state: "Đang hoạt động"
+    })
+    data.schoolYear = schoolYearData._id;
+    await data.save();
+
+    return res.status(HTTP_STATUS.UPDATED).json(RESPONSE_MESSAGE.UPDATED);
+  } catch (error) {
+    console.log("error updateScheduleController", error);
     return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
   }
 }

@@ -1,4 +1,4 @@
-const { HTTP_STATUS } = require('../constants/useConstants');
+const { HTTP_STATUS, RESPONSE_MESSAGE } = require('../constants/useConstants');
 const Activity = require("../models/activityModel");
 const SchoolYear = require("../models/schoolYearModel");
 const Topic = require("../models/topicModel");
@@ -324,35 +324,58 @@ exports.getByParamsController = async (req, res) => {
         .json({ message: "Không tìm thấy lịch học phù hợp" });
     }
 
-    const formattedSchedule = (schedule.scheduleDays || []).map((day) => ({
+    // const formattedSchedule = (schedule.scheduleDays || []).map((day) => ({
+    //   date: day.date,
+    //   dayName: day.dayName,
+    //   schoolYear: schedule.schoolYear
+    //     ? {
+    //       _id: schedule.schoolYear._id,
+    //       schoolYear: schedule.schoolYear.schoolYear,
+    //     }
+    //     : null,
+    //   class: schedule.class
+    //     ? {
+    //       _id: schedule.class._id,
+    //       className: schedule.class.className,
+    //     }
+    //     : null,
+    //   isHoliday: day.isHoliday,
+    //   notes: day.notes,
+    //   activities: (day.activities || [])
+    //     .filter((a) => a.activity)
+    //     .map((a) => ({
+    //       activityCode: a.activity.activityCode,
+    //       activityName: a.activity.activityName,
+    //       type: a.activity.type,
+    //       startTime: a.startTime,
+    //       endTime: a.endTime,
+    //       _id: a._id,
+    //     }))
+    //     .sort((x, y) => x.startTime - y.startTime),
+    //   status: schedule.status,
+    // }));
+
+    const formattedSchedule = schedule.scheduleDays.map(day => ({
       date: day.date,
       dayName: day.dayName,
-      schoolYear: schedule.schoolYear
-        ? {
-          _id: schedule.schoolYear._id,
-          schoolYear: schedule.schoolYear.schoolYear,
-        }
-        : null,
-      class: schedule.class
-        ? {
-          _id: schedule.class._id,
-          className: schedule.class.className,
-        }
-        : null,
       isHoliday: day.isHoliday,
       notes: day.notes,
       activities: (day.activities || [])
-        .filter((a) => a.activity)
-        .map((a) => ({
-          activityCode: a.activity.activityCode,
-          activityName: a.activity.activityName,
-          type: a.activity.type,
-          startTime: a.startTime,
-          endTime: a.endTime,
-          _id: a._id,
-        }))
-        .sort((x, y) => x.startTime - y.startTime),
-      status: schedule.status,
+        .map(a => {
+          const act = a.activity || {};
+          return {
+            activityCode: act.activityCode,
+            activityName: act.activityName,
+            type: act.type,
+            startTime: a.startTime || null,
+            endTime: a.endTime || null,
+            activity: a.activity || null
+          };
+        })
+        .sort((x, y) => {
+          if (!x.startTime || !y.startTime) return 0;
+          return x.startTime - y.startTime;
+        })
     }));
 
     const newObject = {

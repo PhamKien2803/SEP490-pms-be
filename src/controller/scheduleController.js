@@ -270,6 +270,7 @@ exports.getByIdController = async (req, res) => {
     }));
 
     const newObject = {
+      _id: schedule._id,
       schoolYear: schedule.schoolYear.schoolYear,
       className: schedule.class.className,
       status: schedule.status,

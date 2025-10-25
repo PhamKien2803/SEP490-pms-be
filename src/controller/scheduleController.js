@@ -253,7 +253,7 @@ exports.getByIdController = async (req, res) => {
       notes: day.notes,
       activities: (day.activities || [])
         .map(a => {
-          const act = a.activity || {}; 
+          const act = a.activity || {};
           return {
             activityCode: act.activityCode,
             activityName: act.activityName,
@@ -353,8 +353,14 @@ exports.getByParamsController = async (req, res) => {
         .sort((x, y) => x.startTime - y.startTime),
       status: schedule.status,
     }));
-
-    return res.status(200).json(formattedSchedule);
+    const newObject = {
+      _id: schedule._id,
+      schoolYear: schedule.schoolYear.schoolYear,
+      className: schedule.class.className,
+      status: schedule.status,
+      scheduleDays: formattedSchedule,
+    }
+    return res.status(200).json(newObject);
   } catch (error) {
     console.error("Error getByParamsController:", error);
     return res.status(500).json({

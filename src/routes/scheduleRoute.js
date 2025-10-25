@@ -2,8 +2,8 @@ const express = require("express");
 const router = express.Router();
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const Schedule = require('../models/scheduleModel');
-const { createScheduleController, getByIdController, getByParamsController, getClassBySchoolYearController,
-    previewScheduleController, getListActivityFixController, getListAvailableController, confirmScheduleController } = require("../controller/scheduleController")
+const { createScheduleController, getByIdController, getByParamsController, getClassBySchoolYearController, updateScheduleController,
+    previewScheduleController, getListActivityFixController, getListAvailableController, confirmScheduleController, } = require("../controller/scheduleController")
 const { createGeneric, deletedSoftGeneric, findAllGeneric, updateGeneric, getByIdGeneric } = require("../controller/useController");
 
 // router.post("/create",
@@ -57,7 +57,7 @@ router.post("/createSchedule",
 router.put("/updateSchedule/:id",
     verifyToken,
     authorizeAction("update"),
-    updateGeneric(Schedule)
+    updateScheduleController
 );
 
 router.put("/confirm/:id",

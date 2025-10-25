@@ -270,9 +270,9 @@ exports.getByIdController = async (req, res) => {
 
 exports.getByParamsController = async (req, res) => {
   try {
-    const { schoolYear, class: classId, month } = req.query;
+    const { schoolYear: schoolYearString, class: classId, month } = req.query;
 
-    if (!schoolYear || !classId || !month) {
+    if (!schoolYearString || !classId || !month) {
       return res.status(400).json({
         message: "Thiếu tham số schoolYear, class hoặc month",
       });
@@ -283,8 +283,17 @@ exports.getByParamsController = async (req, res) => {
       return res.status(400).json({ message: "Giá trị tháng không hợp lệ" });
     }
 
+    const schoolYearDoc = await SchoolYear.findOne({
+      schoolYear: { $regex: '^' + schoolYearString }
+    });
+
+    if (!schoolYearDoc) {
+      return res
+        .status(404)
+        .json({ message: `Không tìm thấy năm học nào bắt đầu bằng ${schoolYearString}` });
+    }
     const schedule = await Schedule.findOne({
-      schoolYear: new mongoose.Types.ObjectId(schoolYear),
+      schoolYear: schoolYearDoc._id,
       class: new mongoose.Types.ObjectId(classId),
       month: targetMonth,
     })

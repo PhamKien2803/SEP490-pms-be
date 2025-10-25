@@ -360,7 +360,7 @@ exports.getByParamsController = async (req, res) => {
       const activities = (day.activities || [])
         .filter(a => a.activity)
         .map(a => ({
-          _id: a.activity,
+          activity: a.activity._id,
           activityCode: a.activity.activityCode || null,
           activityName: a.activity.activityName || null,
           type: a.activity.type || null,

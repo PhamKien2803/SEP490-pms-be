@@ -13,8 +13,8 @@ const { createGeneric, deletedSoftGeneric, findAllGeneric, updateGeneric, getByI
 // );
 
 router.get("/getById/:id",
-    verifyToken,
-    authorizeAction("view"),
+    // verifyToken,
+    // authorizeAction("view"),
     getByIdController
 )
 

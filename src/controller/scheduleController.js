@@ -243,30 +243,46 @@ exports.getByIdController = async (req, res) => {
       .populate({ path: "class", select: "classCode className" })
       .populate("scheduleDays.activities.activity");
 
+    if (!schedule)
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy lịch" });
+
     const formattedSchedule = schedule.scheduleDays.map(day => ({
       date: day.date,
       dayName: day.dayName,
       isHoliday: day.isHoliday,
       notes: day.notes,
-      activities: day.activities.map(a => {
-        const { activityCode, activityName, type, _id } = a.activity;
-        return {
-          activityCode,
-          activityName,
-          type,
-          startTime: a.startTime,
-          endTime: a.endTime,
-          _id: a._id
-        };
-      }).sort((x, y) => x.startTime - y.startTime)
+      activities: (day.activities || [])
+        .map(a => {
+          const act = a.activity || {}; 
+          return {
+            activityCode: act.activityCode,
+            activityName: act.activityName,
+            type: act.type,
+            startTime: a.startTime || null,
+            endTime: a.endTime || null,
+            _id: a._id || null
+          };
+        })
+        .sort((x, y) => {
+          if (!x.startTime || !y.startTime) return 0;
+          return x.startTime - y.startTime;
+        })
     }));
 
-    return res.status(HTTP_STATUS.OK).json(formattedSchedule);
+    const newObject = {
+      schoolYear: schedule.schoolYear.schoolYear,
+      className: schedule.class.className,
+      status: schedule.status,
+      scheduleDays: formattedSchedule,
+    }
+
+    return res.status(HTTP_STATUS.OK).json(newObject);
   } catch (error) {
     console.log("Error getByIdController", error);
     return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
   }
 };
+
 
 exports.getByParamsController = async (req, res) => {
   try {

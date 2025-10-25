@@ -669,8 +669,8 @@ exports.createScheduleController = async (req, res) => {
 
 exports.getListAvailableController = async (req, res) => {
   try {
-    const { class: classId, month } = req.query;
-
+    // const { class: classId, month } = req.query;
+    const { classId, month } = req.query;
     if (!classId) {
       return res
         .status(HTTP_STATUS.BAD_REQUEST)

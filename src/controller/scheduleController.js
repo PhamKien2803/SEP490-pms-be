@@ -269,7 +269,14 @@ exports.getByIdController = async (req, res) => {
         })
     }));
 
-    return res.status(HTTP_STATUS.OK).json(formattedSchedule);
+    const newObject = {
+      schoolYear: schedule.schoolYear.schoolYear,
+      className: schedule.class.className,
+      status: schedule.status,
+      scheduleDays: formattedSchedule,
+    }
+
+    return res.status(HTTP_STATUS.OK).json(newObject);
   } catch (error) {
     console.log("Error getByIdController", error);
     return res.status(HTTP_STATUS.SERVER_ERROR).json(error);

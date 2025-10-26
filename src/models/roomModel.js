@@ -16,14 +16,12 @@ const facilitySchema = new mongoose.Schema(
       default: 1,
       min: [1, "Số lượng phải lớn hơn 0."],
     },
-    condition: {
-      type: String,
-      enum: ["Mới", "Tốt", "Trung bình", "Hỏng", "Khác"],
-      default: "Tốt",
-    },
-    price: {
+    quantityDefect: {
       type: Number,
-      min: 0,
+      default: 0,
+    },
+    quantityMissing: {
+      type: Number,
       default: 0,
     },
     notes: {
@@ -31,7 +29,7 @@ const facilitySchema = new mongoose.Schema(
       trim: true,
     },
   },
-  { _id: false } 
+  { _id: false }
 );
 
 const roomSchema = new mongoose.Schema(
@@ -42,7 +40,7 @@ const roomSchema = new mongoose.Schema(
       trim: true,
     },
     roomType: {
-      type: String,  
+      type: String,
     },
     capacity: {
       type: Number,
@@ -51,11 +49,19 @@ const roomSchema = new mongoose.Schema(
     },
     facilities: [facilitySchema],
 
+    state: {
+      type: String,
+      enum: ["Dự thảo", "Chờ giáo viên duyệt", "Chờ nhân sự xác nhận", "Chờ xử lý", "Hoàn thành"],
+      default: "Dự thảo",
+    },
     notes: {
       type: String,
       trim: true,
     },
-
+    notesHRA: {
+      type: String,
+      trim: true,
+    },
     active: { type: Boolean, default: true },
 
     createdBy: String,

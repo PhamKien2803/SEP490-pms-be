@@ -1,42 +1,43 @@
 const express = require("express");
 const router = express.Router();
-const Room = require("../models/roomModel");
+const Event = require("../models/eventModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
-const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
-const { getByIdRoomController } = require("../controller/roomController");
+const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric, getByIdGeneric } = require('../controller/useController');
+const { getListEventController } = require("../controller/schoolYearController");
 
 router.get(
     "/list",
     verifyToken,
     authorizeAction("view"),
-    findAllGeneric(Room)
+    getListEventController
 );
 
 router.post(
     "/create",
     verifyToken,
     authorizeAction("create"),
-    createGeneric(Room)
+    createGeneric(Event)
 );
 
 router.post(
     "/delete/:id",
     verifyToken,
     authorizeAction("delete"),
-    deletedSoftGeneric(Room)
+    deletedSoftGeneric(Event)
 );
 
 router.put(
     "/update/:id",
     verifyToken,
     authorizeAction("update"),
-    updateGeneric(Room)
+    updateGeneric(Event)
 );
 
-router.get("/getById/:id",
+router.get(
+    "/getById/:id",
     verifyToken,
     authorizeAction("view"),
-    getByIdRoomController
+    getByIdGeneric(Event)
 );
 
 module.exports = router;

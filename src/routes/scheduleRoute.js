@@ -1,0 +1,71 @@
+const express = require("express");
+const router = express.Router();
+const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
+const Schedule = require('../models/scheduleModel');
+const { createScheduleController, getByIdController, getByParamsController, getClassBySchoolYearController, updateScheduleController,
+    previewScheduleController, getListActivityFixController, getListAvailableController, confirmScheduleController, } = require("../controller/scheduleController")
+const { createGeneric, deletedSoftGeneric, findAllGeneric, updateGeneric, getByIdGeneric } = require("../controller/useController");
+
+// router.post("/create",
+//     verifyToken,
+//     authorizeAction("create"),
+//     createScheduleController
+// );
+
+router.get("/getById/:id",
+    // verifyToken,
+    // authorizeAction("view"),
+    getByIdController
+)
+
+router.get("/getByParams",
+    verifyToken,
+    authorizeAction("view"),
+    getByParamsController
+);
+
+router.get("/previewSchedules",
+    verifyToken,
+    authorizeAction("view"),
+    previewScheduleController
+);
+
+router.get("/getFixActivity",
+    verifyToken,
+    authorizeAction("view"),
+    getListActivityFixController
+);
+
+router.get("/getListAvailable",
+    verifyToken,
+    authorizeAction("view"),
+    getListAvailableController
+);
+
+router.get("/getClassBySchoolYear",
+    verifyToken,
+    authorizeAction("view"),
+    getClassBySchoolYearController
+);
+
+router.post("/createSchedule",
+    verifyToken,
+    authorizeAction("create"),
+    createScheduleController
+);
+
+router.put("/updateSchedule/:id",
+    verifyToken,
+    authorizeAction("update"),
+    updateScheduleController
+);
+
+router.put("/confirm/:id",
+    verifyToken,
+    authorizeAction("update"),
+    confirmScheduleController
+)
+
+
+
+module.exports = router;

@@ -65,7 +65,14 @@
     "enrollmentStartDate": "Thời gian bắt đầu tuyển sinh",
     "enrollmentEndDate": "Thời gian kết thúc tuyển sinh",
     "className": "Tên lớp học",
-    "room": "Phòng học"
+    "room": "Phòng học",
+    "startTime": "Thời gian bắt đầu",
+    "endTime": "Thời gian kết thúc",
+    "age": "Tuổi",
+    "category": "Loại danh mục hoạt động",
+    "eventName": "Tên sự kiện",
+    "holidayStartDate": "Thời gian bắt đầu",
+    "holidayEndDate": "Thời gian kết thúc"
   },
   "messages": {
     "alreadyExists": "{{field}} đã tồn tại",

@@ -1,31 +1,27 @@
 const mongoose = require("mongoose");
 
-const activitySchema = new mongoose.Schema(
-    {
-        time: { type: String, required: true },
-        fixed: { type: Boolean, required: true },
-        curriculum: {
-            type: mongoose.Types.ObjectId,
-            ref: "Curriculum",
-            required: true,
-        },
-    },
-    { _id: false }
-);
+const ScheduleSchema = new mongoose.Schema({
+    schoolYear: { type: mongoose.Schema.Types.ObjectId, ref: "SchoolYear", required: true },
+    class: { type: mongoose.Schema.Types.ObjectId, ref: "Class", required: true },
+    month: { type: Number, required: true },
+    scheduleDays: [
+        {
+            date: { type: Date, required: true },
+            dayName: { type: String },
+            activities: [
+                {
+                    activity: { type: mongoose.Schema.Types.ObjectId, ref: "Activity" },
+                    startTime: { type: Number },
+                    endTime: { type: Number },
+                    isFix: { type: Boolean }
+                }
+            ],
+            isHoliday: { type: Boolean, default: false },
+            notes: { type: String }
+        }
+    ],
+    status: { type: String, enum: ["Dự thảo", "Xác nhận"], default: "Dự thảo" }
+}, { timestamps: true });
 
-const scheduleSchema = new mongoose.Schema(
-    {
-        class: { type: mongoose.Types.ObjectId, ref: "Class", required: true },
-        schoolYear: { type: String, required: true },
-        schedule: {
-            Monday: [activitySchema],
-            Tuesday: [activitySchema],
-            Wednesday: [activitySchema],
-            Thursday: [activitySchema],
-            Friday: [activitySchema],
-        },
-    },
-    { timestamps: true, versionKey: false }
-);
 
-module.exports = mongoose.model("Schedule", scheduleSchema);
+module.exports = mongoose.model("Schedule", ScheduleSchema);

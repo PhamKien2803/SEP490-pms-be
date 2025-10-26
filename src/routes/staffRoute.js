@@ -3,7 +3,7 @@ const router = express.Router();
 const Staff = require("../models/staffModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { createGeneric, deletedSoftGeneric, findAllGeneric, updateGeneric } = require("../controller/useController");
-const { createStaffController, deleteStaff, getDetailStaffController } = require("../controller/staffController");
+const { createStaffController, deleteStaff, getDetailStaffController, getClassAndStudentByTeacherController } = require("../controller/staffController");
 
 router.get("/list",
     verifyToken,
@@ -16,6 +16,12 @@ router.get("/getById/:id",
     authorizeAction("view"),
     getDetailStaffController
 )
+
+// router.get("/getClassByTeacher/:id",
+//     verifyToken,
+//     authorizeAction("view"),
+//     getClassAndStudentByTeacherController
+// )
 
 router.post("/create",
     verifyToken,

@@ -1,42 +1,51 @@
 const express = require("express");
 const router = express.Router();
-const Room = require("../models/roomModel");
+const MedicalRecord = require("../models/medicalModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
-const { getByIdRoomController } = require("../controller/roomController");
+const { getByIdMedicalController, getAllMedicalController, getAllMedicalByFilter } = require("../controller/medicalController");
 
 router.get(
     "/list",
     verifyToken,
     authorizeAction("view"),
-    findAllGeneric(Room)
+    getAllMedicalController
+);
+
+router.get(
+    "/listByFilter",
+    verifyToken,
+    authorizeAction("view"),
+    getAllMedicalByFilter
 );
 
 router.post(
     "/create",
     verifyToken,
     authorizeAction("create"),
-    createGeneric(Room)
+    createGeneric(MedicalRecord)
 );
 
 router.post(
     "/delete/:id",
     verifyToken,
     authorizeAction("delete"),
-    deletedSoftGeneric(Room)
+    deletedSoftGeneric(MedicalRecord)
 );
 
 router.put(
     "/update/:id",
     verifyToken,
     authorizeAction("update"),
-    updateGeneric(Room)
+    updateGeneric(MedicalRecord)
 );
 
 router.get("/getById/:id",
     verifyToken,
     authorizeAction("view"),
-    getByIdRoomController
+    getByIdMedicalController
 );
+
+
 
 module.exports = router;

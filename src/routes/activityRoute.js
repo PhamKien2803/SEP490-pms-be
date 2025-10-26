@@ -1,42 +1,43 @@
 const express = require("express");
 const router = express.Router();
-const Room = require("../models/roomModel");
+const Activity = require("../models/activityModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
-const { getByIdRoomController } = require("../controller/roomController");
+const { createActivityController, getByIdController } = require('../controller/activityController')
 
 router.get(
     "/list",
     verifyToken,
     authorizeAction("view"),
-    findAllGeneric(Room)
+    findAllGeneric(Activity)
 );
 
 router.post(
     "/create",
     verifyToken,
     authorizeAction("create"),
-    createGeneric(Room)
+    createActivityController
 );
 
 router.post(
     "/delete/:id",
     verifyToken,
     authorizeAction("delete"),
-    deletedSoftGeneric(Room)
+    deletedSoftGeneric(Activity)
 );
 
 router.put(
     "/update/:id",
     verifyToken,
     authorizeAction("update"),
-    updateGeneric(Room)
+    updateGeneric(Activity)
 );
 
-router.get("/getById/:id",
+router.get(
+    "/getById/:id",
     verifyToken,
     authorizeAction("view"),
-    getByIdRoomController
+    getByIdController
 );
 
 module.exports = router;

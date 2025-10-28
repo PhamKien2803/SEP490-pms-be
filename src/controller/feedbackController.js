@@ -1,5 +1,9 @@
 const { HTTP_STATUS } = require('../constants/useConstants');
 const Feedback = require('../models/feedbackModel');
+const Staff = require('../models/staffModel');
+const SchoolYear = require('../models/schoolYearModel');
+const Class = require('../models/classModel');
+const { getGFS } = require("../configs/gridfs");
 
 exports.createMultipleFeedbacks = async (req, res) => {
   try {
@@ -97,7 +101,7 @@ exports.getFeedbacksByClassAndDate = async (req, res) => {
         select: "studentCode fullName dob gender address healthCertId",
       })
       .populate({ path: "classId", select: "classCode className" });
-      
+
     return res.status(200).json(feedbacks);
   } catch (error) {
     console.error("❌ Lỗi khi lấy feedback theo lớp và ngày:", error);
@@ -124,6 +128,118 @@ exports.getByIdFeedbackController = async (req, res) => {
     console.error("error getByIdFeedbackController:", error);
     return res.status(500).json({
       message: "Lỗi máy chủ khi lấy thông tin feedback",
+      error: error.message,
+    });
+  }
+};
+
+exports.getClassAndStudentByTeacherController = async (req, res) => {
+  console.log("1111111111");
+  
+  try {
+    const teacherId = req.params.id;
+    const schoolYearId = req.query.schoolYearId;
+    // 1️⃣ Tìm giáo viên
+    const teacher = await Staff.findById(teacherId);
+    if (!teacher) {
+      return res
+        .status(HTTP_STATUS.NOT_FOUND)
+        .json({ message: "Nhân viên không tồn tại." });
+    }
+
+    if (!teacher.isTeacher) {
+      return res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json({ message: "Nhân viên này không phải giáo viên." });
+    }
+
+    // 2️⃣ Tìm năm học hiện tại
+    const activeSchoolYear = await SchoolYear.findOne({
+      _id: schoolYearId,
+      active: true,
+    })
+
+    if (!activeSchoolYear) {
+      return res
+        .status(HTTP_STATUS.NOT_FOUND)
+        .json({ message: "Không có năm học nào đang hoạt động." });
+    }
+
+    // 3️⃣ Tìm lớp giáo viên đang dạy
+    const classes = await Class.find({
+      teachers: teacherId,
+      schoolYear: activeSchoolYear._id,
+      active: true,
+    })
+      .populate({
+        path: "students",
+        select:
+          "studentCode fullName gender dob address parent healthCertId birthCertId",
+      })
+      .populate("room", "roomName facilities")
+      .populate("schoolYear", "schoolYear state")
+      .lean();
+
+    if (!classes || classes.length === 0) {
+      return res.status(HTTP_STATUS.OK).json({
+        message: `Giáo viên này chưa được phân công lớp trong năm học ${activeSchoolYear.schoolYear}.`,
+        classes: [],
+      });
+    }
+
+    // 4️⃣ Lấy file healthCert và birthCert từ GridFS
+    const gfs = getGFS();
+    if (!gfs) {
+      return res
+        .status(HTTP_STATUS.SERVER_ERROR)
+        .json({ message: "GridFS chưa kết nối." });
+    }
+
+    for (const classItem of classes) {
+      if (classItem.students?.length) {
+        for (const student of classItem.students) {
+          let healthCertFile = null;
+          let birthCertFile = null;
+
+          if (student.healthCertId) {
+            const files = await gfs
+              .find({ _id: student.healthCertId })
+              .toArray();
+            healthCertFile = files.length > 0 ? files[0] : null;
+          }
+
+          if (student.birthCertId) {
+            const files = await gfs
+              .find({ _id: student.birthCertId })
+              .toArray();
+            birthCertFile = files.length > 0 ? files[0] : null;
+          }
+
+          student.healthCertFile = healthCertFile;
+          student.birthCertFile = birthCertFile;
+        }
+      }
+    }
+
+    // 5️⃣ Trả về dữ liệu
+    return res.status(HTTP_STATUS.OK).json({
+      teacher: {
+        _id: teacher._id,
+        fullName: teacher.fullName,
+        email: teacher.email,
+      },
+      schoolYear: {
+        _id: activeSchoolYear._id,
+        schoolYear: activeSchoolYear.schoolYear,
+        startDate: activeSchoolYear.startDate,
+        endDate: activeSchoolYear.endDate,
+      },
+      classes,
+    });
+  } catch (error) {
+    console.error("❌ Error getClassAndStudentByTeacherController:", error);
+    return res.status(HTTP_STATUS.SERVER_ERROR).json({
+      message: "Lỗi khi lấy danh sách lớp và học sinh.",
       error: error.message,
     });
   }

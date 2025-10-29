@@ -71,7 +71,7 @@ app.use("/api/pms/topics", topic);
 app.use("/api/pms/schedules", schedule);
 app.use("/api/pms/attendances", attendance);
 app.use("/api/pms/feedbacks", feedback);
-app.use("/api/pms/lessons", lesson)
+app.use("/api/pms/lessons", lesson);
 // route test
 app.get("/", (req, res) => {
     res.send("👋 Welcome to the Blue Dolphin Management API");

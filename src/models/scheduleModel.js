@@ -15,7 +15,6 @@ const ScheduleSchema = new mongoose.Schema({
                     endTime: { type: Number },
                     isFix: { type: Boolean },
                     tittle: { type: String },
-                    description: { type: String },
                 }
             ],
             isHoliday: { type: Boolean, default: false },

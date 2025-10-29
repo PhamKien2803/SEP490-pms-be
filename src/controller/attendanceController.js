@@ -258,9 +258,10 @@ exports.updateAttendanceController = async (req, res) => {
       { path: "takenBy", select: "fullName" },
     ]);
 
-    const absentStudents = attendance.students.filter(
-      (item) => item.status === "Vắng mặt không phép"
-    );
+    const absentStudents =
+      (attendance && Array.isArray(attendance.students))
+        ? attendance.students.filter(item => item.status === "Vắng mặt không phép")
+        : [];
 
     if (absentStudents.length > 0) {
       setImmediate(async () => {
@@ -338,7 +339,7 @@ exports.getAttendanceByStudentAndDate = async (req, res) => {
     if (!studentId || !date) {
       return res.status(400).json({
         success: false,
-        message: "Thiếu studentId hoặc date trong query",
+        message: "Cần phải đưa vào học sinh và ngày để tìm kiếm",
       });
     }
 
@@ -392,6 +393,7 @@ exports.getAttendanceByStudentAndDate = async (req, res) => {
         student: studentAttendance?.student || null,
       },
     });
+
   } catch (error) {
     console.error("❌ Lỗi getAttendanceByStudentAndDate:", error);
     res.status(500).json({

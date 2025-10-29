@@ -449,7 +449,7 @@ exports.getClassByStudentAndSchoolYear = async (req, res) => {
     if (!studentId || !schoolYearId) {
       return res.status(400).json({
         success: false,
-        message: "Thiếu studentId hoặc schoolYearId trong query",
+        message: "Cần có thông tin của học sinh và năm học để tìm kiếm",
       });
     }
 

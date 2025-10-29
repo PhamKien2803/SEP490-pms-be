@@ -246,7 +246,7 @@ exports.getFeedbackByStudentAndDate = async (req, res) => {
 
     if (!studentId || !date) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        message: "Thiếu studentId hoặc date",
+        message: "Cần phải đưa vào thông tin học sinh và ngày để tìm kiếm",
       });
     }
 
@@ -261,7 +261,7 @@ exports.getFeedbackByStudentAndDate = async (req, res) => {
     const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
 
     const feedback = await Feedback.findOne({
-      studentId: new mongoose.Types.ObjectId(studentId),
+      studentId: studentId,
       date: { $gte: startOfDay, $lte: endOfDay },
     })
       .populate({

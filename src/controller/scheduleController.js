@@ -928,14 +928,14 @@ exports.getScheduleByClassAndMonth = async (req, res) => {
 
   if (!classId || !month) {
     return res.status(400).json({
-      message: "Missing required parameters: classId and month are required."
+      message: "Cần đưa vào thông tin của lớp học và tháng để lấy thông tin lịch học!"
     });
   }
 
   const numericMonth = parseInt(month);
   if (isNaN(numericMonth) || numericMonth < 1 || numericMonth > 12) {
     return res.status(400).json({
-      message: "Invalid month value. Month must be a number between 1 and 12."
+      message: "Tháng phải bắt buộc từ 1 đến 12"
     });
   }
 
@@ -944,32 +944,32 @@ exports.getScheduleByClassAndMonth = async (req, res) => {
 
     if (schedules.length === 0) {
       return res.status(404).json({
-        message: "No schedule found for the specified class and month."
+        message: "Không tìm thấy lịch học theo lớp học và tháng đã chỉ định!"
       });
     }
 
     return res.status(200).json(schedules);
 
   } catch (error) {
-    if (error.message.includes("Invalid classId")) {
+    if (error.message.includes("Lớp học không hợp lệ")) {
       return res.status(400).json({ message: error.message });
     }
 
     console.error("Server Error:", error);
     return res.status(500).json({
-      message: "An internal server error occurred while fetching the schedule."
+      message: "Lỗi server"
     });
   }
 };
 
 const findSchedule = async (classId, month) => {
+  
   if (!mongoose.Types.ObjectId.isValid(classId)) {
-    throw new Error("Invalid classId format.");
+    throw new Error("Thông tin lớp học không hợp lệ");
   }
-  const classObjectId = new mongoose.Types.ObjectId(classId);
 
   const query = {
-    'class': classObjectId,
+    'class': classId,
     'month': month,
   };
 

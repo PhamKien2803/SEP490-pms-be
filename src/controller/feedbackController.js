@@ -2,8 +2,10 @@ const { HTTP_STATUS } = require('../constants/useConstants');
 const Feedback = require('../models/feedbackModel');
 const Staff = require('../models/staffModel');
 const SchoolYear = require('../models/schoolYearModel');
+const Teacher = require('../models/staffModel');
 const Class = require('../models/classModel');
 const { getGFS } = require("../configs/gridfs");
+const mongoose = require("mongoose");
 
 exports.createMultipleFeedbacks = async (req, res) => {
   try {
@@ -134,12 +136,9 @@ exports.getByIdFeedbackController = async (req, res) => {
 };
 
 exports.getClassAndStudentByTeacherController = async (req, res) => {
-  console.log("1111111111");
-  
   try {
     const teacherId = req.params.id;
     const schoolYearId = req.query.schoolYearId;
-    // 1️⃣ Tìm giáo viên
     const teacher = await Staff.findById(teacherId);
     if (!teacher) {
       return res
@@ -153,7 +152,6 @@ exports.getClassAndStudentByTeacherController = async (req, res) => {
         .json({ message: "Nhân viên này không phải giáo viên." });
     }
 
-    // 2️⃣ Tìm năm học hiện tại
     const activeSchoolYear = await SchoolYear.findOne({
       _id: schoolYearId,
       active: true,
@@ -165,7 +163,6 @@ exports.getClassAndStudentByTeacherController = async (req, res) => {
         .json({ message: "Không có năm học nào đang hoạt động." });
     }
 
-    // 3️⃣ Tìm lớp giáo viên đang dạy
     const classes = await Class.find({
       teachers: teacherId,
       schoolYear: activeSchoolYear._id,
@@ -187,7 +184,6 @@ exports.getClassAndStudentByTeacherController = async (req, res) => {
       });
     }
 
-    // 4️⃣ Lấy file healthCert và birthCert từ GridFS
     const gfs = getGFS();
     if (!gfs) {
       return res
@@ -221,7 +217,6 @@ exports.getClassAndStudentByTeacherController = async (req, res) => {
       }
     }
 
-    // 5️⃣ Trả về dữ liệu
     return res.status(HTTP_STATUS.OK).json({
       teacher: {
         _id: teacher._id,
@@ -242,5 +237,62 @@ exports.getClassAndStudentByTeacherController = async (req, res) => {
       message: "Lỗi khi lấy danh sách lớp và học sinh.",
       error: error.message,
     });
+  }
+};
+
+exports.getFeedbackByStudentAndDate = async (req, res) => {
+  try {
+    const { studentId, date } = req.query;
+
+    if (!studentId || !date) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        message: "Thiếu studentId hoặc date",
+      });
+    }
+
+    const targetDate = new Date(date);
+    if (isNaN(targetDate.getTime())) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        message: "Ngày không hợp lệ",
+      });
+    }
+
+    const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+
+    const feedback = await Feedback.findOne({
+      studentId: new mongoose.Types.ObjectId(studentId),
+      date: { $gte: startOfDay, $lte: endOfDay },
+    })
+      .populate({
+        path: "studentId",
+        select: "studentCode fullName dob gender",
+      })
+      .populate({
+        path: "classId",
+        select: "className classCode",
+      })
+      .populate({
+        path: "teacherId",
+        model: "Staff",
+        select: "fullName staffCode",
+      })
+      .lean();
+
+    if (!feedback) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        message: "Không tìm thấy feedback cho học sinh trong ngày này",
+      });
+    }
+
+    return res.status(HTTP_STATUS.OK).json({
+      message: "Lấy feedback thành công",
+      data: feedback,
+    });
+  } catch (error) {
+    console.error("Error getFeedbackByStudentAndDate:", error);
+    return res
+      .status(HTTP_STATUS.SERVER_ERROR)
+      .json({ message: "Lỗi server", error });
   }
 };

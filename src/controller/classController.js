@@ -441,3 +441,57 @@ exports.changeClassTeacherController = async (req, res) => {
             .json({ message: "Lỗi khi chuyển lớp giáo viên", error: error.message });
     }
 };
+
+exports.getClassByStudentAndSchoolYear = async (req, res) => {
+  try {
+    const { studentId, schoolYearId } = req.query;
+
+    if (!studentId || !schoolYearId) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu studentId hoặc schoolYearId trong query",
+      });
+    }
+
+    const classFound = await Class.findOne({
+      schoolYear: schoolYearId,
+      students: { $in: [studentId] },
+      active: true,
+    })
+      .populate({
+        path: "students",
+        select: "studentCode fullName gender",
+      })
+      .populate({
+        path: "teachers",
+        select: "teacherCode fullName phoneNumber",
+      })
+      .populate({
+        path: "schoolYear",
+        select: "schoolyearCode schoolYear",
+      })
+      .populate({
+        path: "room",
+        select: "roomCode roomName",
+      });
+
+    if (!classFound) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy lớp cho học sinh trong năm học này",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      class: classFound,
+    });
+  } catch (error) {
+    console.error("❌ Lỗi getClassByStudentAndSchoolYear:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi máy chủ",
+      error: error.message,
+    });
+  }
+};

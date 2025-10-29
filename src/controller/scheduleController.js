@@ -922,3 +922,69 @@ exports.updateScheduleController = async (req, res) => {
     return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
   }
 }
+
+exports.getScheduleByClassAndMonth = async (req, res) => {
+  const { classId, month } = req.query;
+
+  if (!classId || !month) {
+    return res.status(400).json({
+      message: "Missing required parameters: classId and month are required."
+    });
+  }
+
+  const numericMonth = parseInt(month);
+  if (isNaN(numericMonth) || numericMonth < 1 || numericMonth > 12) {
+    return res.status(400).json({
+      message: "Invalid month value. Month must be a number between 1 and 12."
+    });
+  }
+
+  try {
+    const schedules = await findSchedule(classId, numericMonth);
+
+    if (schedules.length === 0) {
+      return res.status(404).json({
+        message: "No schedule found for the specified class and month."
+      });
+    }
+
+    return res.status(200).json(schedules);
+
+  } catch (error) {
+    if (error.message.includes("Invalid classId")) {
+      return res.status(400).json({ message: error.message });
+    }
+
+    console.error("Server Error:", error);
+    return res.status(500).json({
+      message: "An internal server error occurred while fetching the schedule."
+    });
+  }
+};
+
+const findSchedule = async (classId, month) => {
+  if (!mongoose.Types.ObjectId.isValid(classId)) {
+    throw new Error("Invalid classId format.");
+  }
+  const classObjectId = new mongoose.Types.ObjectId(classId);
+
+  const query = {
+    'class': classObjectId,
+    'month': month,
+  };
+
+  const schedules = await Schedule.find(query)
+    .populate({
+      path: 'scheduleDays.activities.activity',
+      model: 'Activity',
+      select: 'activityCode activityName type age category startTime endTime eventName'
+    })
+    .populate({
+      path: 'class',
+      model: 'Class',
+      select: 'classCode className'
+    })
+    .exec();
+
+  return schedules;
+};

@@ -189,9 +189,9 @@ exports.getLessonList = async (req, res) => {
 
 exports.createLessonController = async (req, res) => {
     try {
-        const { classId, schoolYearId, month, weekNumber, activities, status } = req.body;
+        const { classId, schoolYearId, month, weekNumber, scheduleDays, status } = req.body;
 
-        if (!classId || !schoolYearId || !month || !weekNumber || !activities || !Array.isArray(activities)) {
+        if (!classId || !schoolYearId || !month || !weekNumber) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Thiếu thông tin bắt buộc nhập" });
         }
         const newLesson = new Lesson({
@@ -199,12 +199,7 @@ exports.createLessonController = async (req, res) => {
             schoolYearId,
             month,
             weekNumber,
-            activities: activities.map(act => ({
-                activity: act.activity,
-                startTime: act.startTime,
-                endTime: act.endTime,
-                tittle: act.tittle,
-            })),
+            scheduleDays,
             status: status || "Dự thảo"
         });
 

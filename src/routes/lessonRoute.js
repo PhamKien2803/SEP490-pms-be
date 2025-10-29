@@ -4,7 +4,7 @@ const Lesson = require("../models/lessonModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
 const { getScheduleByWeek, getLessonList, createLessonController, confirmRequestLessonController,
-    rejectRequestLessonController, sendRequestLessonController, updateLessonController } = require('../controller/lessonController');
+    rejectRequestLessonController, sendRequestLessonController, updateLessonController, getByIdLessonController } = require('../controller/lessonController');
 
 router.get(
     "/get-schedule-week",
@@ -19,6 +19,14 @@ router.get(
     authorizeAction("view"),
     getLessonList
 );
+
+router.get(
+    "/getById/:id",
+    verifyToken,
+    authorizeAction("view"),
+    getByIdLessonController
+);
+
 
 router.post(
     "/create",

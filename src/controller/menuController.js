@@ -400,3 +400,38 @@ exports.getMenuByQuery = async (req, res) => {
   }
 };
 
+exports.getMenuByAgeGroupAndWeekNumber = async (req, res) => {
+  try {
+    let { ageGroup, weekNumber } = req.query;
+
+    if (!ageGroup || !weekNumber) {
+      return res.status(400).json({
+        message: "Thiếu tham số ageGroup hoặc weekNumber",
+      });
+    }
+
+    const menu = await Menu.findOne({
+      ageGroup: ageGroup,
+      weekNumber: weekNumber,
+      active: true,
+    }).populate({
+      path: "days.meals.foods.food", // 🔥 populate sâu tới food
+      model: "Food", // Tên model món ăn
+      select: "foodName totalCalories ingredients", // Chọn các trường cần thiết
+    });
+
+    if (!menu) {
+      return res.status(404).json({
+        message: "Không tìm thấy thực đơn cho nhóm tuổi và tuần này",
+      });
+    }
+
+    return res.status(200).json(menu);
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy menu:", error);
+    return res.status(500).json({
+      message: "Đã xảy ra lỗi khi lấy dữ liệu menu",
+      error: error.message,
+    });
+  }
+};

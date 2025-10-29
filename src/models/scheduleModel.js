@@ -13,7 +13,9 @@ const ScheduleSchema = new mongoose.Schema({
                     activity: { type: mongoose.Schema.Types.ObjectId, ref: "Activity" },
                     startTime: { type: Number },
                     endTime: { type: Number },
-                    isFix: { type: Boolean }
+                    isFix: { type: Boolean },
+                    tittle: { type: String },
+                    description: { type: String },
                 }
             ],
             isHoliday: { type: Boolean, default: false },

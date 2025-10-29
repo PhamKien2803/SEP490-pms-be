@@ -3,7 +3,8 @@ const router = express.Router();
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { getMenuByDateFromTo, createMenu, updateMenu, getMenuById, 
     approveMenuById, rejectMenuById, 
-    getMenuByQuery} = require("../controller/menuController");
+    getMenuByQuery,
+    getMenuByAgeGroupAndWeekNumber} = require("../controller/menuController");
 const Menu = require("../models/menuModel");
 const { deletedSoftGeneric } = require("../controller/useController");
 
@@ -60,6 +61,12 @@ router.get("/list/",
     verifyToken,
     authorizeAction("view"),
     getMenuByQuery
+);
+
+router.get("/getMenuByAgeAndWeek/",
+    verifyToken,
+    authorizeAction("view"),
+    getMenuByAgeGroupAndWeekNumber
 );
 
 

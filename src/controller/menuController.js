@@ -357,7 +357,6 @@ exports.getMenuByQuery = async (req, res) => {
 
     if (ageGroup) query.ageGroup = ageGroup;
     if (state) query.state = state;
-    // if (active !== undefined) query.active = active === 'true';
 
     if (weekStart && weekEnd) {
       query.weekStart = { $gte: new Date(weekStart) };
@@ -400,29 +399,33 @@ exports.getMenuByQuery = async (req, res) => {
   }
 };
 
-exports.getMenuByAgeGroupAndWeekNumber = async (req, res) => {
+exports.getMenuByAgeGroupAndDate = async (req, res) => {
   try {
-    let { ageGroup, weekNumber } = req.query;
+    let { ageGroup, date } = req.query;
 
-    if (!ageGroup || !weekNumber) {
+    if (!ageGroup || !date) {
       return res.status(400).json({
-        message: "Thiếu tham số ageGroup hoặc weekNumber",
+        message: "Thiếu tham số ageGroup hoặc date",
       });
     }
 
+    const targetDate = new Date(date);
+
     const menu = await Menu.findOne({
       ageGroup: ageGroup,
-      weekNumber: weekNumber,
+      weekStart: { $lte: targetDate },
+      weekEnd: { $gte: targetDate },
+      state: "Đã duyệt",
       active: true,
     }).populate({
-      path: "days.meals.foods.food", // 🔥 populate sâu tới food
-      model: "Food", // Tên model món ăn
-      select: "foodName totalCalories ingredients", // Chọn các trường cần thiết
+      path: "days.meals.foods.food",
+      model: "Food",
+      select: "foodName totalCalories ingredients",
     });
 
     if (!menu) {
       return res.status(404).json({
-        message: "Không tìm thấy thực đơn cho nhóm tuổi và tuần này",
+        message: "Không tìm thấy thực đơn cho nhóm tuổi và ngày này",
       });
     }
 

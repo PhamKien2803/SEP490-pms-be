@@ -4,13 +4,23 @@ const LessonSchema = new mongoose.Schema({
     schoolYearId: { type: mongoose.Schema.Types.ObjectId, ref: "SchoolYear", required: true },
     month: { type: Number, required: true },
     weekNumber: { type: Number, required: true },
-    activities: [
+    topicName: { type: String },
+    scheduleDays: [
         {
-            activity: { type: mongoose.Schema.Types.ObjectId, ref: "Activity", required: true },
-            startTime: { type: Number },
-            endTime: { type: Number },
-            tittle: { type: String },
-            description: { type: String },
+            date: { type: Date, required: true },
+            dayName: { type: String },
+            activities: [
+                {
+                    activity: { type: mongoose.Schema.Types.ObjectId, ref: "Activity" },
+                    startTime: { type: Number },
+                    endTime: { type: Number },
+                    isFix: { type: Boolean },
+                    tittle: { type: String },
+                    description: { type: String },
+                }
+            ],
+            isHoliday: { type: Boolean, default: false },
+            notes: { type: String }
         }
     ],
     status: { type: String, enum: ["Dự thảo", "Chờ duyệt", "Hoàn thành"], default: "Dự thảo" }

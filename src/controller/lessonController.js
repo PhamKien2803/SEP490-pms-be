@@ -122,18 +122,34 @@ exports.getScheduleByWeek = async (req, res) => {
 
 exports.getLessonList = async(req, res) => {
     try {
-    let { limit, page } = req.query;
+    let { limit, page, teacherId, schoolYear } = req.query;
 
     limit = parseInt(limit) || 30;
     page = parseInt(page) || 1;
 
     const offset = (page - 1) * limit;
 
-
+    const schoolYearData = await SchoolYear.findOne({
+        active: {$eq: true},
+        schoolYear: schoolYear
+    })
+    if(!schoolYearData){
+        return res.status(HTTP_STATUS.NOT_FOUND).json({message: "Không tìm thấy năm học"});
+    }
+    const classData = await Class.findOne({
+        schoolYear: schoolYearData._id,
+         active: {$eq: true},
+         teachers: teacherId
+    })
+      if(!classData){
+        return res.status(HTTP_STATUS.NOT_FOUND).json({message: "Không tìm thấy lớp học"});
+    }
     const totalCount = await Lesson.countDocuments();
-    console.log("[Bthieu] ~ totalCount:", totalCount)
 
-    const data = await Lesson.find()
+    const data = await Lesson.find({
+        classId: classData._id,
+        schoolYearId: schoolYearData._id,
+    })
     .populate("classId")
     .populate("schoolYearId")
       .skip(offset)

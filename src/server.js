@@ -28,6 +28,7 @@ const teacher = require("./routes/teacherRoute.js");
 const schedule = require("./routes/scheduleRoute.js");
 const attendance = require("./routes/attendanceRoute.js");
 const feedback = require("./routes/feedbackRoute.js");
+const lesson = require("./routes/lessonRoute.js");
 
 require("./helpers/emailWorkQueue.js");
 
@@ -70,7 +71,7 @@ app.use("/api/pms/topics", topic);
 app.use("/api/pms/schedules", schedule);
 app.use("/api/pms/attendances", attendance);
 app.use("/api/pms/feedbacks", feedback);
-
+app.use("/api/pms/lessons", lesson)
 // route test
 app.get("/", (req, res) => {
     res.send("👋 Welcome to the Blue Dolphin Management API");

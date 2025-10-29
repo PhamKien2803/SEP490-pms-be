@@ -152,7 +152,7 @@ exports.getLessonList = async(req, res) => {
         weekNumber: item.weekNumber,
     }))
     return res.status(HTTP_STATUS.OK).json({
-      newObject,
+      data: newObject,
       page: {
         totalCount,
         limit,

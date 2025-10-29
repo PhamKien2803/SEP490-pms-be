@@ -63,11 +63,5 @@ router.get("/list/",
     getMenuByQuery
 );
 
-router.get("/getMenuByAgeAndWeek/",
-    verifyToken,
-    authorizeAction("view"),
-    getMenuByAgeGroupAndWeekNumber
-);
-
 
 module.exports = router;

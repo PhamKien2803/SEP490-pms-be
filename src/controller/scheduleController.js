@@ -922,3 +922,69 @@ exports.updateScheduleController = async (req, res) => {
     return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
   }
 }
+
+exports.getScheduleByClassAndMonth = async (req, res) => {
+  const { classId, month } = req.query;
+
+  if (!classId || !month) {
+    return res.status(400).json({
+      message: "Cần đưa vào thông tin của lớp học và tháng để lấy thông tin lịch học!"
+    });
+  }
+
+  const numericMonth = parseInt(month);
+  if (isNaN(numericMonth) || numericMonth < 1 || numericMonth > 12) {
+    return res.status(400).json({
+      message: "Tháng phải bắt buộc từ 1 đến 12"
+    });
+  }
+
+  try {
+    const schedules = await findSchedule(classId, numericMonth);
+
+    if (schedules.length === 0) {
+      return res.status(404).json({
+        message: "Không tìm thấy lịch học theo lớp học và tháng đã chỉ định!"
+      });
+    }
+
+    return res.status(200).json(schedules);
+
+  } catch (error) {
+    if (error.message.includes("Lớp học không hợp lệ")) {
+      return res.status(400).json({ message: error.message });
+    }
+
+    console.error("Server Error:", error);
+    return res.status(500).json({
+      message: "Lỗi server"
+    });
+  }
+};
+
+const findSchedule = async (classId, month) => {
+  
+  if (!mongoose.Types.ObjectId.isValid(classId)) {
+    throw new Error("Thông tin lớp học không hợp lệ");
+  }
+
+  const query = {
+    'class': classId,
+    'month': month,
+  };
+
+  const schedules = await Schedule.find(query)
+    .populate({
+      path: 'scheduleDays.activities.activity',
+      model: 'Activity',
+      select: 'activityCode activityName type age category startTime endTime eventName'
+    })
+    .populate({
+      path: 'class',
+      model: 'Class',
+      select: 'classCode className'
+    })
+    .exec();
+
+  return schedules;
+};

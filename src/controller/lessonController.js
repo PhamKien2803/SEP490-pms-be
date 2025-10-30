@@ -166,6 +166,7 @@ exports.getLessonList = async (req, res) => {
         }
 
         const newObject = data.map(item => ({
+            _id: item._id,
             className: item.classId.className,
             schoolYear: item.schoolYearId.schoolYear,
             month: item.month,

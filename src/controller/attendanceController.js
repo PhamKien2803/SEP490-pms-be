@@ -45,7 +45,6 @@ exports.getAttendanceByClassAndDate = async (req, res) => {
 exports.getAttendanceByClassAndSchoolYear = async (req, res) => {
   try {
     const { classId, schoolYearId } = req.params;
-    // get and populate student, takenBy, schoolYear, class fields
     const attendanceRecords = await Attendance.find
       ({ class: classId, schoolYear: schoolYearId })
       .populate({
@@ -85,7 +84,6 @@ exports.getAttendanceByClassAndSchoolYear = async (req, res) => {
 exports.getAttendanceBySchoolYearAndTeacher = async (req, res) => {
   try {
     const { teacherId, schoolYearId } = req.params;
-    // get and populate student, takenBy, schoolYear, class fields
     const attendanceRecords = await Attendance.find
       ({ class: classId, schoolYear: schoolYearId })
       .populate({
@@ -124,7 +122,6 @@ exports.getAttendanceBySchoolYearAndTeacher = async (req, res) => {
 
 exports.getAllAttendance = async (req, res) => {
   try {
-    // get and populate student, takenBy, schoolYear, class fields, get 2 3 fields
     const attendanceRecords = await Attendance.find()
       .populate({
         path: "class",
@@ -224,7 +221,6 @@ exports.updateAttendanceController = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
-    // 🔍 1️⃣ Tìm bản ghi điểm danh
     const attendance = await Attendance.findById(id)
       .populate({
         path: "students.student",
@@ -256,19 +252,17 @@ exports.updateAttendanceController = async (req, res) => {
     Object.assign(attendance, updateData);
     await attendance.save();
 
-    // 🔁 Populate lại sau khi lưu (để dùng dữ liệu populate đầy đủ)
     await attendance.populate([
       { path: "students.student", select: "studentCode fullName" },
       { path: "class", select: "className" },
       { path: "takenBy", select: "fullName" },
     ]);
 
-    // 📩 4️⃣ Lọc học sinh “Vắng mặt không phép”
-    const absentStudents = attendance.students.filter(
-      (item) => item.status === "Vắng mặt không phép"
-    );
+    const absentStudents =
+      (attendance && Array.isArray(attendance.students))
+        ? attendance.students.filter(item => item.status === "Vắng mặt không phép")
+        : [];
 
-    // 📧 5️⃣ Gửi mail nếu có học sinh vắng mặt không phép
     if (absentStudents.length > 0) {
       setImmediate(async () => {
         try {
@@ -319,7 +313,6 @@ exports.updateAttendanceController = async (req, res) => {
       });
     }
 
-    // ✅ 6️⃣ Trả phản hồi
     return res.status(HTTP_STATUS.UPDATED).json({
       message: "Cập nhật điểm danh thành công.",
       data: attendance,
@@ -338,3 +331,76 @@ exports.updateAttendanceController = async (req, res) => {
     });
   }
 };
+
+exports.getAttendanceByStudentAndDate = async (req, res) => {
+  try {
+    const { studentId, date } = req.query;
+
+    if (!studentId || !date) {
+      return res.status(400).json({
+        success: false,
+        message: "Cần phải đưa vào học sinh và ngày để tìm kiếm",
+      });
+    }
+
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const attendance = await Attendance.findOne({
+      date: { $gte: startOfDay, $lte: endOfDay },
+      "students.student": studentId,
+      active: true,
+    })
+      .populate({
+        path: "class",
+        select: "classCode className",
+      })
+      .populate({
+        path: "schoolYear",
+        select: "schoolyearCode schoolYear",
+      })
+      .populate({
+        path: "takenBy",
+        select: "teacherCode fullName phoneNumber",
+      })
+      .populate({
+        path: "students.student",
+        select: "studentCode fullName gender",
+      });
+
+    if (!attendance) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy điểm danh cho học sinh trong ngày này",
+      });
+    }
+
+    const studentAttendance = attendance.students.find(
+      (s) => s.student && s.student._id.toString() === studentId
+    );
+
+    res.status(200).json({
+      success: true,
+      class: attendance.class,
+      schoolYear: attendance.schoolYear,
+      teacher: attendance.takenBy,
+      date: attendance.date,
+      generalNote: attendance.generalNote,
+      student: {
+        ...studentAttendance,
+        student: studentAttendance?.student || null,
+      },
+    });
+
+  } catch (error) {
+    console.error("❌ Lỗi getAttendanceByStudentAndDate:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi máy chủ",
+      error: error.message,
+    });
+  }
+};
+

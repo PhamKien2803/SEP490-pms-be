@@ -331,7 +331,7 @@ exports.getByIdLessonController = async (req, res) => {
                 date: day.date,
                 dayName: day.dayName,
                 activities: day.activities.map(act => ({
-                    _id: act._id,
+                    activity: act.activity?._id,
                     activityCode: act.activity?.activityCode,
                     activityName: act.activity?.activityName,
                     type: act.activity?.type,

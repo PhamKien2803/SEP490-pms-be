@@ -202,8 +202,8 @@ exports.createLessonController = async (req, res) => {
             month: month,
             weekNumber: weekNumber
         })
-        if(dataCheck){
-            return res.status(HTTP_STATUS.BAD_REQUEST).json({message: "Báo giảng đã được tạo"})
+        if (dataCheck) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Báo giảng đã được tạo" })
         }
         const newLesson = new Lesson({
             classId,
@@ -310,16 +310,35 @@ exports.getByIdLessonController = async (req, res) => {
         const { id } = req.params;
 
         const lesson = await Lesson.findById(id)
-        .populate("classId")
-        .populate("schoolYearId")
-        .populate("scheduleDays.activities.");
-
+            .populate("classId")
+            .populate("schoolYearId")
+            .populate("scheduleDays.activities.activity");
         if (!lesson) {
             return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy lesson" });
         }
 
-        
-        return res.status(HTTP_STATUS.OK).json(lesson);
+        const newObject = {
+            classCode: lesson.classId.classCode,
+            className: lesson.classId.className,
+            schoolYear: lesson.schoolYearId.schoolYear,
+            scheduleDays: lesson.scheduleDays.map(day => ({
+                _id: day._id,
+                date: day.date,
+                dayName: day.dayName,
+                activities: day.activities.map(act => ({
+                    _id: act._id,
+                    activityCode: act.activity?.activityCode,
+                    activityName: act.activity?.activityName,
+                    type: act.activity?.type,
+                    startTime: act.startTime,
+                    endTime: act.endTime,
+                    tittle: act.tittle,
+                    description: act.description,
+                }))
+            }))
+        }
+
+        return res.status(HTTP_STATUS.OK).json(newObject);
 
     } catch (error) {
         console.log("error getByIdLessonController", error);

@@ -74,7 +74,7 @@ exports.createMultipleFeedbacks = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error("❌ Lỗi khi tạo nhiều feedback:", error);
+    console.error("Lỗi khi tạo nhiều feedback:", error);
     return res
       .status(500)
       .json({ message: "Lỗi server", error: error.message });
@@ -89,29 +89,59 @@ exports.getFeedbacksByClassAndDate = async (req, res) => {
         message: "Thiếu classId hoặc date",
       });
     }
+
     const targetDate = new Date(date);
     targetDate.setHours(0, 0, 0, 0);
+    const nextDay = new Date(targetDate.getTime() + 24 * 60 * 60 * 1000);
+
     const feedbacks = await Feedback.find({
       classId,
-      date: {
-        $gte: targetDate,
-        $lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000),
-      },
+      date: { $gte: targetDate, $lt: nextDay },
     })
       .populate({
         path: "studentId",
         select: "studentCode fullName dob gender address healthCertId",
       })
-      .populate({ path: "classId", select: "classCode className" });
+      .populate({
+        path: "classId",
+        select: "classCode className",
+      })
+      .lean();
+
+    const gfs = getGFS();
+    if (!gfs) {
+      return res.status(500).json({ message: "GridFS chưa kết nối." });
+    }
+
+    const healthCertIds = feedbacks
+      .map((fb) => fb.studentId?.healthCertId)
+      .filter(Boolean);
+
+    const uniqueHealthCertIds = [...new Set(healthCertIds.map((id) => id.toString()))];
+
+    let healthFiles = [];
+    if (uniqueHealthCertIds.length > 0) {
+      healthFiles = await gfs.find({ _id: { $in: uniqueHealthCertIds } }).toArray();
+    }
+
+    const fileMap = new Map(healthFiles.map((f) => [f._id.toString(), f]));
+
+    for (const fb of feedbacks) {
+      const student = fb.studentId;
+      if (student && student.healthCertId) {
+        student.healthCertFile = fileMap.get(student.healthCertId.toString()) || null;
+      }
+    }
 
     return res.status(200).json(feedbacks);
   } catch (error) {
-    console.error("❌ Lỗi khi lấy feedback theo lớp và ngày:", error);
+    console.error("Lỗi khi lấy feedback theo lớp và ngày:", error);
     return res
       .status(500)
       .json({ message: "Lỗi server", error: error.message });
   }
 };
+
 
 exports.getByIdFeedbackController = async (req, res) => {
   try {
@@ -120,11 +150,27 @@ exports.getByIdFeedbackController = async (req, res) => {
         path: "studentId",
         select: "studentCode fullName dob gender address healthCertId",
       })
-      .populate({ path: "classId", select: "classCode className" })
+      .populate({
+        path: "classId",
+        select: "classCode className",
+      })
+      .lean();
 
     if (!data) {
       return res.status(404).json({ message: "Không tìm thấy feedback" });
     }
+    const student = data.studentId;
+    if (!student?.healthCertId) {
+      return res.status(200).json(data);
+    }
+    const gfs = getGFS();
+    if (!gfs) {
+      return res.status(500).json({ message: "GridFS chưa kết nối." });
+    }
+
+    const files = await gfs.find({ _id: student.healthCertId }).toArray();
+    student.healthCertFile = files.length > 0 ? files[0] : null;
+
     return res.status(200).json(data);
   } catch (error) {
     console.error("error getByIdFeedbackController:", error);
@@ -134,6 +180,7 @@ exports.getByIdFeedbackController = async (req, res) => {
     });
   }
 };
+
 
 exports.getClassAndStudentByTeacherController = async (req, res) => {
   try {
@@ -232,7 +279,7 @@ exports.getClassAndStudentByTeacherController = async (req, res) => {
       classes,
     });
   } catch (error) {
-    console.error("❌ Error getClassAndStudentByTeacherController:", error);
+    console.error("Error getClassAndStudentByTeacherController:", error);
     return res.status(HTTP_STATUS.SERVER_ERROR).json({
       message: "Lỗi khi lấy danh sách lớp và học sinh.",
       error: error.message,

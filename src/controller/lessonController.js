@@ -270,7 +270,6 @@ exports.sendRequestLessonController = async (req, res) => {
         }
         data.status = "Chờ duyệt";
         await data.save();
-        return res.status(HTTP_STATUS.OK).json({ message: "Gửi yêu cầu duyệt thành công" });
     } catch (error) {
         console.log("error sendRequestLessonController", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
@@ -286,7 +285,6 @@ exports.rejectRequestLessonController = async (req, res) => {
         }
         data.status = "Dự thảo";
         await data.save();
-        return res.status(HTTP_STATUS.OK).json({ message: "Từ chối yêu cầu duyệt thành công" });
     } catch (error) {
         console.log("error sendRequestLessonController", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
@@ -302,8 +300,6 @@ exports.confirmRequestLessonController = async (req, res) => {
         }
         data.status = "Hoàn thành";
         await data.save();
-        return res.status(HTTP_STATUS.OK).json({ message: "Duyệt yêu cầu duyệt thành công" });
-
     } catch (error) {
         console.log("error sendRequestLessonController", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);

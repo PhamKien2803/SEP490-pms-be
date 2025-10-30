@@ -45,41 +45,50 @@ exports.getAttendanceByClassAndDate = async (req, res) => {
 exports.getAttendanceByClassAndSchoolYear = async (req, res) => {
   try {
     const { classId, schoolYearId } = req.params;
-    const attendanceRecords = await Attendance.find
-      ({ class: classId, schoolYear: schoolYearId })
+
+    if (!classId || !schoolYearId) {
+      return res.status(400).json({ message: "Thiếu classId hoặc schoolYearId." });
+    }
+
+    const attendanceRecords = await Attendance.find({
+      class: classId,
+      schoolYear: schoolYearId,
+    })
       .populate({
         path: "class",
-        select: "classCode className"
+        select: "classCode className",
       })
       .populate({
         path: "schoolYear",
-        select: "schoolyearCode schoolYear"
+        select: "schoolyearCode schoolYear",
       })
       .populate({
         path: "takenBy",
-        select: "fullName staffCode email"
+        select: "fullName staffCode email",
       })
       .populate({
         path: "students.student",
-        select: "studentCode fullName gender classGroup dob address"
+        select: "studentCode fullName gender classGroup dob address",
       })
-      .select("class schoolYear date students takenBy generalNote takenAt");
+      .select("class schoolYear date students takenBy generalNote takenAt")
+      .lean();
 
-
-    if (attendanceRecords.length === 0) {
+    if (!attendanceRecords?.length) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
-        message: "Không tìm thấy bản ghi điểm danh nào cho lớp và năm học đã chỉ định."
+        message: "Không tìm thấy bản ghi điểm danh nào cho lớp và năm học đã chỉ định.",
       });
     }
+
     return res.status(HTTP_STATUS.OK).json(attendanceRecords);
   } catch (error) {
-    console.error("Error in getAttendanceByClassAndSchoolYear:", error);
+    console.error("❌ Error in getAttendanceByClassAndSchoolYear:", error);
     return res.status(HTTP_STATUS.SERVER_ERROR).json({
       message: "Lỗi server xảy ra khi lấy bản ghi điểm danh.",
-      error
+      error: error.message,
     });
   }
 };
+
 
 exports.getAttendanceBySchoolYearAndTeacher = async (req, res) => {
   try {
@@ -345,6 +354,7 @@ exports.getAttendanceByStudentAndDate = async (req, res) => {
 
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
+
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
@@ -368,7 +378,8 @@ exports.getAttendanceByStudentAndDate = async (req, res) => {
       .populate({
         path: "students.student",
         select: "studentCode fullName gender",
-      });
+      })
+      .lean();
 
     if (!attendance) {
       return res.status(404).json({
@@ -381,7 +392,14 @@ exports.getAttendanceByStudentAndDate = async (req, res) => {
       (s) => s.student && s.student._id.toString() === studentId
     );
 
-    res.status(200).json({
+    if (!studentAttendance) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy dữ liệu điểm danh của học sinh trong bản ghi.",
+      });
+    }
+
+    return res.status(200).json({
       success: true,
       class: attendance.class,
       schoolYear: attendance.schoolYear,
@@ -390,7 +408,7 @@ exports.getAttendanceByStudentAndDate = async (req, res) => {
       generalNote: attendance.generalNote,
       student: {
         ...studentAttendance,
-        student: studentAttendance?.student || null,
+        student: studentAttendance.student,
       },
     });
 
@@ -403,4 +421,5 @@ exports.getAttendanceByStudentAndDate = async (req, res) => {
     });
   }
 };
+
 

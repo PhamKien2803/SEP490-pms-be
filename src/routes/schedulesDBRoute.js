@@ -1,12 +1,12 @@
 const express = require("express");
+const { getScheduleByClassAndMonth } = require("../controller/scheduleController");
 const router = express.Router();
-const { getStudentByParentController } = require("../controller/studentController");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 
-router.get("/getStudentByParent/:id",
+router.get("/getSchedulesByClassAndMonth",
     verifyToken,
     authorizeAction("view"),
-    getStudentByParentController
+    getScheduleByClassAndMonth
 );
 
 module.exports = router;

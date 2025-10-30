@@ -1,12 +1,12 @@
 const express = require("express");
+const { getAllMedicalByStudent } = require("../controller/medicalController");
 const router = express.Router();
-const { getStudentByParentController } = require("../controller/studentController");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 
-router.get("/getStudentByParent/:id",
+router.get("/getMedicalByStudent/:id",
     verifyToken,
     authorizeAction("view"),
-    getStudentByParentController
+    getAllMedicalByStudent
 );
 
 module.exports = router;

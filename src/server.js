@@ -37,6 +37,7 @@ const menuDashboardRoute = require("./routes/menuDashboardRoute.js");
 const feedbackDBRoute = require("./routes/feedbackDBRoute.js");
 const medicalDashboardRoute = require("./routes/medicalDashboardRoute.js");
 
+const timetable = require("./routes/timetableRoute.js");
 require("./helpers/emailWorkQueue.js");
 
 // Khai báo dotenv
@@ -86,6 +87,7 @@ app.use("/api/pms/dashboard-feedbacks", feedbackDBRoute);
 app.use("/api/pms/dashboard-attendances", attendanceDBRoute);
 app.use("/api/pms/dashboard-class", classDBRoute);
 
+app.use("/api/pms/time-table", timetable);
 
 app.use("/api/pms/lessons", lesson);
 // route test

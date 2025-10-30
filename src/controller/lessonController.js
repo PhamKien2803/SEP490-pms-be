@@ -8,7 +8,10 @@ const Schedule = require("../models/scheduleModel");
 const Topic = require("../models/topicModel");
 const Room = require("../models/roomModel");
 const Lesson = require("../models/lessonModel");
+const { IMAP_CONFIG, SMTP_CONFIG } = require('../constants/mailConstants');
 const _ = require('lodash')
+const SMTP = require('../helpers/stmpHelper');
+const IMAP = require('../helpers/iMapHelper');
 const i18n = require("../middlewares/i18n.middelware");
 
 
@@ -268,9 +271,50 @@ exports.sendRequestLessonController = async (req, res) => {
         if (!data) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Không tìm thấy lịch học" });
         }
+
+        const dataClass = await Class.findById(data.classId);
+        if (!dataClass) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Không tìm thấy lớp học" });
+        }
+        const teacherId = dataClass.teachers;
+        console.log("[Bthieu] ~ teacherId:", teacherId);
+        const dataStaff = await Staff.find({
+            _id: { $in: teacherId }
+        });
+        const emailRecipients = dataStaff.map(staff => staff.email);
+
+
         data.status = "Chờ duyệt";
         await data.save();
-        return res.status(HTTP_STATUS.OK).json({ message: "Gửi yêu cầu duyệt thành công" });
+
+        res.status(HTTP_STATUS.OK).json({ message: "Gửi yêu cầu duyệt thành công" });
+        setImmediate(async () => {
+            try {
+                const htmlContent = `
+                    <p>Xin chào quý giáo viên,</p>
+                    <p>Báo giảng tuần <b>${data.weekNumber}</b> của lớp <b>${dataClass.className}</b> 
+                    đã được gửi đến Ban giám hiệu</p>
+                    <p>Chủ đề: <b>${data.topicName || "Không có"}</b></p>
+                    <p>Vui lòng kiểm tra lại trên hệ thống.</p>
+                    <br/>
+                    <p>Trân trọng,<br/>Ban giám hiệu</p>
+                `
+
+                const mail = new SMTP(SMTP_CONFIG);
+                const to = emailRecipients[0];
+                const cc = emailRecipients.length > 1 ? emailRecipients[1] : null;
+                await mail.send(
+                    to,
+                    cc,
+                    "THÔNG BÁO DUYỆT BÁO GIẢNG",
+                    htmlContent
+                );
+
+                console.log("✅ Đã gửi mail thành công");
+            } catch (mailErr) {
+                console.error("Lỗi khi gửi mail:", mailErr);
+            }
+        });
     } catch (error) {
         console.log("error sendRequestLessonController", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
@@ -284,9 +328,48 @@ exports.rejectRequestLessonController = async (req, res) => {
         if (!data) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Không tìm thấy lịch học" });
         }
+
+        const dataClass = await Class.findById(data.classId);
+        if (!dataClass) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Không tìm thấy lớp học" });
+        }
+        const teacherId = dataClass.teachers;
+        const dataStaff = await Staff.find({
+            _id: { $in: teacherId }
+        });
+
+        const emailRecipients = dataStaff.map(staff => staff.email);
+
         data.status = "Dự thảo";
         await data.save();
-        return res.status(HTTP_STATUS.OK).json({ message: "Từ chối yêu cầu duyệt thành công" });
+        res.status(HTTP_STATUS.OK).json({ message: "Từ chối yêu cầu duyệt thành công" });
+        setImmediate(async () => {
+            try {
+                const htmlContent = `
+                    <p>Xin chào quý giáo viên,</p>
+                    <p>Báo giảng tuần <b>${data.weekNumber}</b> của lớp <b>${dataClass.className}</b> 
+                    chưa được phê duyệt thành công và cần sửa đổi.</p>
+                    <p>Chủ đề: <b>${data.topicName || "Không có"}</b></p>
+                    <p>Vui lòng kiểm tra lại trên hệ thống.</p>
+                    <br/>
+                    <p>Trân trọng,<br/>Ban giám hiệu</p>
+                `
+
+                const mail = new SMTP(SMTP_CONFIG);
+                const to = emailRecipients[0];
+                const cc = emailRecipients.length > 1 ? emailRecipients[1] : null;
+                await mail.send(
+                    to,
+                    cc,
+                    "THÔNG BÁO DUYỆT BÁO GIẢNG",
+                    htmlContent
+                );
+
+                console.log("✅ Đã gửi mail thành công");
+            } catch (mailErr) {
+                console.error("Lỗi khi gửi mail:", mailErr);
+            }
+        });
     } catch (error) {
         console.log("error sendRequestLessonController", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
@@ -300,9 +383,82 @@ exports.confirmRequestLessonController = async (req, res) => {
         if (!data) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Không tìm thấy lịch học" });
         }
+        const dataClass = await Class.findById(data.classId);
+        if (!dataClass) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Không tìm thấy lớp học" });
+        }
+        const teacherId = dataClass.teachers;
+        const dataStaff = await Staff.find({
+            _id: { $in: teacherId }
+        });
+
+        const emailRecipients = dataStaff.map(staff => staff.email);
+        const schedule = await Schedule.findOne({
+            schoolYear: data.schoolYearId,
+            class: data.classId,
+            month: data.month,
+            status: "Xác nhận"
+        });
+
+        if (!schedule) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Không tìm thấy thời khóa biểu tương ứng" });
+        }
+
+        for (const lessonDay of data.scheduleDays) {
+            const scheduleDay = schedule.scheduleDays.find(
+                s => new Date(s.date).toDateString() === new Date(lessonDay.date).toDateString()
+            );
+            if (scheduleDay) {
+                lessonDay.activities.forEach(lessonAct => {
+                    const act = scheduleDay.activities.find(
+                        s => String(s.activity) === String(lessonAct.activity)
+                    );
+                    if (act) {
+                        act.tittle = lessonAct.tittle || act.tittle;
+                    } else {
+                        scheduleDay.activities.push({
+                            activity: lessonAct.activity,
+                            tittle: lessonAct.tittle,
+                            startTime: lessonAct.startTime,
+                            endTime: lessonAct.endTime,
+                            isFix: lessonAct.isFix
+                        });
+                    }
+                });
+            }
+        }
+        await schedule.save();
         data.status = "Hoàn thành";
         await data.save();
-        return res.status(HTTP_STATUS.OK).json({ message: "Duyệt yêu cầu duyệt thành công" });
+
+        res.status(HTTP_STATUS.OK).json({ message: "Duyệt yêu cầu duyệt thành công" });
+        setImmediate(async () => {
+            try {
+                const htmlContent = `
+                    <p>Xin chào quý giáo viên,</p>
+                    <p>Báo giảng tuần <b>${data.weekNumber}</b> của lớp <b>${dataClass.className}</b> 
+                    đã được duyệt thành công.</p>
+                    <p>Chủ đề: <b>${data.topicName || "Không có"}</b></p>
+                    <p>Vui lòng kiểm tra lại trên hệ thống.</p>
+                    <br/>
+                    <p>Trân trọng,<br/>Ban giám hiệu</p>
+                `
+
+                const mail = new SMTP(SMTP_CONFIG);
+                const to = emailRecipients[0];
+                const cc = emailRecipients.length > 1 ? emailRecipients[1] : null;
+                await mail.send(
+                    to,
+                    cc,
+                    "THÔNG BÁO DUYỆT BÁO GIẢNG",
+                    htmlContent
+                );
+
+                console.log("✅ Đã gửi mail thành công");
+            } catch (mailErr) {
+                console.error("Lỗi khi gửi mail:", mailErr);
+            }
+        });
 
     } catch (error) {
         console.log("error sendRequestLessonController", error);
@@ -353,6 +509,74 @@ exports.getByIdLessonController = async (req, res) => {
 
     } catch (error) {
         console.log("error getByIdLessonController", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+    }
+}
+
+exports.getTimeTableByTeacherController = async (req, res) => {
+    try {
+        const { teacherId, schoolYear, month } = req.query;
+
+        const schoolYearData = await SchoolYear.findOne({
+            active: true,
+            schoolYear: schoolYear
+        });
+        if (!schoolYearData) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy năm học" });
+        }
+        const classData = await Class.findOne({
+            active: true,
+            schoolYear: schoolYearData._id,
+            teachers: teacherId
+        });
+        if (!classData) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy lớp học" });
+        }
+
+        const scheduleData = await Schedule.findOne({
+            schoolYear: schoolYearData._id,
+            class: classData._id,
+            month: Number(month),
+            status: "Xác nhận"
+        })
+            .populate("class")
+            .populate("schoolYear")
+            .populate({
+                path: "scheduleDays.activities.activity",
+                select: "activityCode activityName type category"
+            })
+            .lean();
+
+            
+          const newObject = {
+            _id: scheduleData._id,
+            classId: scheduleData.class._id,
+            classCode: scheduleData.class.classCode,
+            className: scheduleData.class.className,
+            schoolYearId: scheduleData.schoolYear._id,
+            schoolYear: scheduleData.schoolYear.schoolYear,
+            month: scheduleData.month,
+            scheduleDays: scheduleData.scheduleDays.map(day => ({
+                _id: day._id,
+                date: day.date,
+                dayName: day.dayName,
+                activities: day.activities.map(act => ({
+                    activity: act.activity?._id,
+                    activityCode: act.activity?.activityCode,
+                    activityName: act.activity?.activityName,
+                    type: act.activity?.type,
+                    startTime: act.startTime,
+                    endTime: act.endTime,
+                    tittle: act.tittle,
+                }))
+            }))
+        }    
+        if (!scheduleData) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy thời khóa biểu" });
+        }
+        return res.status(HTTP_STATUS.OK).json(newObject);
+    } catch (error) {
+        console.log("error getTimeTableByTeacherController", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
     }
 }

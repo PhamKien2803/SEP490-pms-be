@@ -194,6 +194,16 @@ exports.createLessonController = async (req, res) => {
         if (!classId || !schoolYearId || !month || !weekNumber) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Thiếu thông tin bắt buộc nhập" });
         }
+
+        const dataCheck = await Lesson.findOne({
+            classId: classId,
+            schoolYearId: schoolYearId,
+            month: month,
+            weekNumber: weekNumber
+        })
+        if(!dataCheck){
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({message: "Báo giảng đã được tạo"})
+        }
         const newLesson = new Lesson({
             classId,
             schoolYearId,

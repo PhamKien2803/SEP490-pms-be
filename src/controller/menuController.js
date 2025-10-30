@@ -410,6 +410,8 @@ exports.getMenuByAgeGroupAndDate = async (req, res) => {
     }
 
     const targetDate = new Date(date);
+    console.log("🚀 ~ targetDate:", targetDate)
+      console.log("🚀 ~ ageGroup:", ageGroup)
 
     const menu = await Menu.findOne({
       ageGroup: ageGroup,

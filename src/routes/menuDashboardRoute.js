@@ -1,12 +1,12 @@
 const express = require("express");
+const { getMenuByAgeGroupAndDate } = require("../controller/menuController");
 const router = express.Router();
-const { getStudentByParentController } = require("../controller/studentController");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 
-router.get("/getStudentByParent/:id",
+router.get("/getMenuByAgeAndDate/",
     verifyToken,
     authorizeAction("view"),
-    getStudentByParentController
+    getMenuByAgeGroupAndDate
 );
 
 module.exports = router;

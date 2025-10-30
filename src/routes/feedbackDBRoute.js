@@ -1,12 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const { getStudentByParentController } = require("../controller/studentController");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
+const { getFeedbackByStudentAndDate } = require("../controller/feedbackController");
 
-router.get("/getStudentByParent/:id",
+router.get("/getFbByStuAndDate",
     verifyToken,
     authorizeAction("view"),
-    getStudentByParentController
+    getFeedbackByStudentAndDate
 );
 
 module.exports = router;

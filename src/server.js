@@ -30,6 +30,12 @@ const attendance = require("./routes/attendanceRoute.js");
 const feedback = require("./routes/feedbackRoute.js");
 const dashboardParent = require("./routes/dashboardParentRoute.js");
 const lesson = require("./routes/lessonRoute.js");
+const classDBRoute = require("./routes/classDBRoute.js");
+const attendanceDBRoute = require("./routes/attendanceDBRoute.js");
+const schedulesDBRoute = require("./routes/schedulesDBRoute.js");
+const menuDashboardRoute = require("./routes/menuDashboardRoute.js");
+const feedbackDBRoute = require("./routes/feedbackDBRoute.js");
+const medicalDashboardRoute = require("./routes/medicalDashboardRoute.js");
 
 require("./helpers/emailWorkQueue.js");
 
@@ -73,6 +79,13 @@ app.use("/api/pms/schedules", schedule);
 app.use("/api/pms/attendances", attendance);
 app.use("/api/pms/feedbacks", feedback);
 app.use("/api/pms/dashboard-parent", dashboardParent);
+app.use("/api/pms/dashboard-menus", menuDashboardRoute);
+app.use("/api/pms/dashboard-medicals", medicalDashboardRoute);
+app.use("/api/pms/dashboard-schedules", schedulesDBRoute);
+app.use("/api/pms/dashboard-feedbacks", feedbackDBRoute);
+app.use("/api/pms/dashboard-attendances", attendanceDBRoute);
+app.use("/api/pms/dashboard-class", classDBRoute);
+
 
 app.use("/api/pms/lessons", lesson);
 // route test

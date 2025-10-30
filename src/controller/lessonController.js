@@ -202,7 +202,7 @@ exports.createLessonController = async (req, res) => {
             month: month,
             weekNumber: weekNumber
         })
-        if(!dataCheck){
+        if(dataCheck){
             return res.status(HTTP_STATUS.BAD_REQUEST).json({message: "Báo giảng đã được tạo"})
         }
         const newLesson = new Lesson({
@@ -310,10 +310,15 @@ exports.getByIdLessonController = async (req, res) => {
         const { id } = req.params;
 
         const lesson = await Lesson.findById(id)
+        .populate("classId")
+        .populate("schoolYearId")
+        .populate("scheduleDays.activities.");
 
         if (!lesson) {
             return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy lesson" });
         }
+
+        
         return res.status(HTTP_STATUS.OK).json(lesson);
 
     } catch (error) {

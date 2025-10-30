@@ -190,7 +190,7 @@ exports.getLessonList = async (req, res) => {
 
 exports.createLessonController = async (req, res) => {
     try {
-        const { classId, schoolYearId, month, weekNumber, scheduleDays, status } = req.body;
+        const { classId, schoolYearId, month, weekNumber, scheduleDays, status, topicName } = req.body;
 
         if (!classId || !schoolYearId || !month || !weekNumber) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Thiếu thông tin bắt buộc nhập" });
@@ -211,6 +211,7 @@ exports.createLessonController = async (req, res) => {
             month,
             weekNumber,
             scheduleDays,
+            topicName,
             status: status || "Dự thảo"
         });
 
@@ -321,6 +322,10 @@ exports.getByIdLessonController = async (req, res) => {
             classCode: lesson.classId.classCode,
             className: lesson.classId.className,
             schoolYear: lesson.schoolYearId.schoolYear,
+            month: lesson.month,
+            weekNumber: lesson.weekNumber,
+            topicName: lesson.topicName,
+            status: lesson.status,
             scheduleDays: lesson.scheduleDays.map(day => ({
                 _id: day._id,
                 date: day.date,

@@ -30,7 +30,7 @@ const attendance = require("./routes/attendanceRoute.js");
 const feedback = require("./routes/feedbackRoute.js");
 const dashboardParent = require("./routes/dashboardParentRoute.js");
 const lesson = require("./routes/lessonRoute.js");
-
+const timetable = require("./routes/timetableRoute.js");
 require("./helpers/emailWorkQueue.js");
 
 // Khai báo dotenv
@@ -73,6 +73,7 @@ app.use("/api/pms/schedules", schedule);
 app.use("/api/pms/attendances", attendance);
 app.use("/api/pms/feedbacks", feedback);
 app.use("/api/pms/dashboard-parent", dashboardParent);
+app.use("/api/pms/time-table", timetable);
 
 app.use("/api/pms/lessons", lesson);
 // route test

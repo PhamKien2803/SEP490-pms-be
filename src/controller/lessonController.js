@@ -319,6 +319,8 @@ exports.getByIdLessonController = async (req, res) => {
         }
 
         const newObject = {
+            classId: lesson.classId._id,
+            schoolYearId: lesson.schoolYearId._id,
             classCode: lesson.classId.classCode,
             className: lesson.classId.className,
             schoolYear: lesson.schoolYearId.schoolYear,

@@ -401,3 +401,5 @@ exports.getListEventController = async (req, res) => {
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
     }
 }
+
+

@@ -402,4 +402,3 @@ exports.getListEventController = async (req, res) => {
     }
 }
 
-

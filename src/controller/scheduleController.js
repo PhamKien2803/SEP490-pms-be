@@ -963,15 +963,11 @@ exports.getScheduleByClassAndMonth = async (req, res) => {
 };
 
 const findSchedule = async (classId, month) => {
-  
   if (!mongoose.Types.ObjectId.isValid(classId)) {
     throw new Error("Thông tin lớp học không hợp lệ");
   }
 
-  const query = {
-    'class': classId,
-    'month': month,
-  };
+  const query = { class: classId, month: month };
 
   const schedules = await Schedule.find(query)
     .populate({
@@ -984,7 +980,21 @@ const findSchedule = async (classId, month) => {
       model: 'Class',
       select: 'classCode className'
     })
-    .exec();
+    .lean();
 
-  return schedules;
+  const transformedSchedules = schedules.map(schedule => ({
+    ...schedule,
+    scheduleDays: schedule.scheduleDays.map(day => ({
+      ...day,
+      activities: day.activities.map(item => ({
+        _id: item._id,
+        tittle: item.tittle,
+        startTime: item.startTime,
+        endTime: item.endTime,
+        ...(item.activity ? { ...item.activity } : {})
+      }))
+    }))
+  }));
+
+  return transformedSchedules;
 };

@@ -18,7 +18,8 @@ exports.getByIdMedicalController = async (req, res) => {
       .lean();
 
     if (!data) {
-      return res.status(404).json({ message: "Không tìm thấy hồ sơ sức khỏe" });
+      // return res.status(404).json({ message: "Không tìm thấy hồ sơ sức khỏe" });
+      return res.status(200).json([]);
     }
 
     let healthCertFiles = null;

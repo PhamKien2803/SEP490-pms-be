@@ -1,6 +1,7 @@
 
 const Menu = require('../models/menuModel');
 const Food = require('../models/foodModel');
+const Student = require('../models/studentModel');
 const mongoose = require("mongoose");
 const { HTTP_STATUS } = require('../constants/useConstants');
 
@@ -33,7 +34,8 @@ exports.getMenuById = async (req, res) => {
       select: "foodName ageGroup totalCalories calo ingredients",
     });
     if (!menu) {
-      return res.status(404).json({ message: "Không tìm thấy thực đơn." });
+      // return res.status(404).json({ message: "Không tìm thấy thực đơn." });
+      return res.status(200).json([]);
     }
     res.status(200).json(menu);
   } catch (error) {
@@ -168,7 +170,7 @@ exports.updateMenu = async (req, res) => {
 
     const currentMenu = await Menu.findById(id);
     if (!currentMenu) {
-      return res.status(404).json({ message: "Không tìm thấy thực đơn để cập nhật." });
+      // return res.status(404).json({ message: "Không tìm thấy thực đơn để cập nhật." });
     }
 
     if (updatedData.weekStart && updatedData.ageGroup) {
@@ -401,20 +403,35 @@ exports.getMenuByQuery = async (req, res) => {
 
 exports.getMenuByAgeGroupAndDate = async (req, res) => {
   try {
-    let { ageGroup, date } = req.query;
+    let { studentId, date } = req.query;
 
-    if (!ageGroup || !date) {
+    if (!studentId || !date) {
       return res.status(400).json({
-        message: "Thiếu tham số ageGroup hoặc date",
+        message: "Thiếu tham số học sinh hoặc date để lấy menu!",
       });
     }
 
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({
+        message: "Không tìm thấy học sinh",
+      });
+    }
+
+    const dob = new Date(student.dob);
+    const ageYears = (Date.now() - dob.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+
+    let ageGroup = "";
+    if (ageYears < 4) {
+      ageGroup = "1-3 tuổi";
+    } else {
+      ageGroup = "4-5 tuổi";
+    }
+
     const targetDate = new Date(date);
-    console.log("🚀 ~ targetDate:", targetDate)
-      console.log("🚀 ~ ageGroup:", ageGroup)
 
     const menu = await Menu.findOne({
-      ageGroup: ageGroup,
+      ageGroup,
       weekStart: { $lte: targetDate },
       weekEnd: { $gte: targetDate },
       state: "Đã duyệt",
@@ -426,9 +443,7 @@ exports.getMenuByAgeGroupAndDate = async (req, res) => {
     });
 
     if (!menu) {
-      return res.status(404).json({
-        message: "Không tìm thấy thực đơn cho nhóm tuổi và ngày này",
-      });
+      return res.status(200).json([]);
     }
 
     return res.status(200).json(menu);

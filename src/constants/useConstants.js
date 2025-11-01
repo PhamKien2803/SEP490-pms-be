@@ -62,7 +62,9 @@ const SEQUENCE_CODE = {
     EVENT: "EV",
     MEDICAL: "MED",
     ATTENDANCE: "ATT",
-    TOPIC: "TP"
+    TOPIC: "TP",
+    FEEDBACK: "FEE",
+    DASHBOARDPARENT: "DAS"
 }
 
 

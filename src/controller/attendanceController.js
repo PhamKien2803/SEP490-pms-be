@@ -393,10 +393,7 @@ exports.getAttendanceByStudentAndDate = async (req, res) => {
     );
 
     if (!studentAttendance) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy dữ liệu điểm danh của học sinh trong bản ghi.",
-      });
+      return res.status(200).json([]);
     }
 
     return res.status(200).json({

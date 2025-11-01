@@ -34,7 +34,8 @@ exports.getMenuById = async (req, res) => {
       select: "foodName ageGroup totalCalories calo ingredients",
     });
     if (!menu) {
-      return res.status(404).json({ message: "Không tìm thấy thực đơn." });
+      // return res.status(404).json({ message: "Không tìm thấy thực đơn." });
+      return res.status(200).json([]);
     }
     res.status(200).json(menu);
   } catch (error) {
@@ -169,7 +170,7 @@ exports.updateMenu = async (req, res) => {
 
     const currentMenu = await Menu.findById(id);
     if (!currentMenu) {
-      return res.status(404).json({ message: "Không tìm thấy thực đơn để cập nhật." });
+      // return res.status(404).json({ message: "Không tìm thấy thực đơn để cập nhật." });
     }
 
     if (updatedData.weekStart && updatedData.ageGroup) {
@@ -417,7 +418,6 @@ exports.getMenuByAgeGroupAndDate = async (req, res) => {
       });
     }
 
-    // ✅ Tính tuổi (theo năm)
     const dob = new Date(student.dob);
     const ageYears = (Date.now() - dob.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
 
@@ -443,9 +443,7 @@ exports.getMenuByAgeGroupAndDate = async (req, res) => {
     });
 
     if (!menu) {
-      return res.status(404).json({
-        message: `Không tìm thấy thực đơn cho nhóm tuổi (${ageGroup}) và ngày này`,
-      });
+      return res.status(200).json([]);
     }
 
     return res.status(200).json(menu);

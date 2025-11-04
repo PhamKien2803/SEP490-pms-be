@@ -36,7 +36,7 @@ const schedulesDBRoute = require("./routes/schedulesDBRoute.js");
 const menuDashboardRoute = require("./routes/menuDashboardRoute.js");
 const feedbackDBRoute = require("./routes/feedbackDBRoute.js");
 const medicalDashboardRoute = require("./routes/medicalDashboardRoute.js");
-
+const guardianRoute = require("./routes/guardianRoute.js");
 const timetable = require("./routes/timetableRoute.js");
 require("./helpers/emailWorkQueue.js");
 
@@ -86,7 +86,7 @@ app.use("/api/pms/dashboard-schedules", schedulesDBRoute);
 app.use("/api/pms/dashboard-feedbacks", feedbackDBRoute);
 app.use("/api/pms/dashboard-attendances", attendanceDBRoute);
 app.use("/api/pms/dashboard-class", classDBRoute);
-
+app.use("/api/pms/guardians", guardianRoute);
 app.use("/api/pms/time-table", timetable);
 
 app.use("/api/pms/lessons", lesson);

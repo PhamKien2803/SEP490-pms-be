@@ -74,9 +74,7 @@ exports.getAttendanceByClassAndSchoolYear = async (req, res) => {
       .lean();
 
     if (!attendanceRecords?.length) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        message: "Không tìm thấy bản ghi điểm danh nào cho lớp và năm học đã chỉ định.",
-      });
+      return res.status(200).json([]);
     }
 
     return res.status(HTTP_STATUS.OK).json(attendanceRecords);

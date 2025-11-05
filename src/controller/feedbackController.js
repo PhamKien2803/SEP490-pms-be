@@ -3,6 +3,7 @@ const Feedback = require('../models/feedbackModel');
 const Staff = require('../models/staffModel');
 const SchoolYear = require('../models/schoolYearModel');
 const Teacher = require('../models/staffModel');
+const Guardian = require('../models/guardianModel');
 const Class = require('../models/classModel');
 const { getGFS } = require("../configs/gridfs");
 const mongoose = require("mongoose");
@@ -202,7 +203,7 @@ exports.getClassAndStudentByTeacherController = async (req, res) => {
     const activeSchoolYear = await SchoolYear.findOne({
       _id: schoolYearId,
       active: true,
-    })
+    });
 
     if (!activeSchoolYear) {
       return res
@@ -238,9 +239,13 @@ exports.getClassAndStudentByTeacherController = async (req, res) => {
         .json({ message: "GridFS chưa kết nối." });
     }
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     for (const classItem of classes) {
       if (classItem.students?.length) {
         for (const student of classItem.students) {
+          // 🔹 Gắn file giấy tờ
           let healthCertFile = null;
           let birthCertFile = null;
 
@@ -260,6 +265,17 @@ exports.getClassAndStudentByTeacherController = async (req, res) => {
 
           student.healthCertFile = healthCertFile;
           student.birthCertFile = birthCertFile;
+
+          // 🔹 Thêm phần kiểm tra người giám hộ trong ngày hôm nay
+          const guardianToday = await Guardian.findOne({
+            studentId: student._id,
+            pickUpDate: today,
+            active: true,
+          })
+            .populate("parentId", "fullName phoneNumber")
+            .lean();
+
+          student.guardianToday = guardianToday || null;
         }
       }
     }

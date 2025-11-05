@@ -13,6 +13,8 @@ const mongoose = require("mongoose");
 exports.getAttendanceByClassAndDate = async (req, res) => {
   try {
     const { classId, date } = req.params;
+    const attendanceRecord1 = await Attendance.findOne({ class: classId, date: new Date(date) })
+    console.log("🚀 ~ attendanceRecord1:", attendanceRecord1)
     const attendanceRecord = await Attendance.findOne({ class: classId, date: new Date(date) })
       .populate({
         path: "class",
@@ -21,6 +23,10 @@ exports.getAttendanceByClassAndDate = async (req, res) => {
       .populate({
         path: "schoolYear",
         select: "schoolyearCode schoolYear"
+      })
+      .populate({
+        path: "students.guardian",
+        select: "fullName dob phoneNumber relationship pickUpDate"
       })
       .populate({
         path: "takenBy",
@@ -74,9 +80,7 @@ exports.getAttendanceByClassAndSchoolYear = async (req, res) => {
       .lean();
 
     if (!attendanceRecords?.length) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        message: "Không tìm thấy bản ghi điểm danh nào cho lớp và năm học đã chỉ định.",
-      });
+      return res.status(200).json([]);
     }
 
     return res.status(HTTP_STATUS.OK).json(attendanceRecords);
@@ -207,6 +211,10 @@ exports.getByIdController = async (req, res) => {
       .populate({
         path: "students.student",
         select: "studentCode fullName gender classGroup dob address"
+      })
+      .populate({
+        path: "students.guardian",
+        select: "fullName dob phoneNumber relationship pickUpDate"
       })
       .select("class schoolYear date students takenBy generalNote takenAt");
     ;
@@ -379,6 +387,10 @@ exports.getAttendanceByStudentAndDate = async (req, res) => {
         path: "students.student",
         select: "studentCode fullName gender",
       })
+      .populate({
+        path: "students.guardian",
+        select: "fullName dob phoneNumber relationship pickUpDate"
+      })
       .lean();
 
     if (!attendance) {
@@ -418,5 +430,3 @@ exports.getAttendanceByStudentAndDate = async (req, res) => {
     });
   }
 };
-
-

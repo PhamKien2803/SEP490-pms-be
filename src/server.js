@@ -33,6 +33,7 @@ const lesson = require("./routes/lessonRoute.js");
 const revenues = require("./routes/revenueRoute.js");
 const services = require("./routes/serviceRoute.js");
 const manageServices = require("./routes/manageServices.js");
+const receipts = require("./routes/receiptRoute.js");
 const classDBRoute = require("./routes/classDBRoute.js");
 const attendanceDBRoute = require("./routes/attendanceDBRoute.js");
 const schedulesDBRoute = require("./routes/schedulesDBRoute.js");
@@ -95,6 +96,8 @@ app.use("/api/pms/guardians", guardianRoute);
 app.use("/api/pms/time-table", timetable);
 app.use("/api/pms/lessons", lesson);
 app.use("/api/pms/manage-services", manageServices);
+app.use("/api/pms/receipts", receipts);
+
 // route test
 app.get("/", (req, res) => {
     res.send("👋 Welcome to the Blue Dolphin Management API");

@@ -67,7 +67,8 @@ const SEQUENCE_CODE = {
     DASHBOARDPARENT: "DAS",
     REVENUE: "RV",
     SERVICE: "SV",
-    GUARDIAN: "GUA"
+    GUARDIAN: "GUA",
+    RECEIPT: "RC"
 }
 
 

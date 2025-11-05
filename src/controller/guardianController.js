@@ -2,6 +2,7 @@ const Guardian = require("../models/guardianModel");
 const { HTTP_STATUS } = require("../constants/useConstants");
 const mongoose = require("mongoose");
 
+// 🟢 Tạo người giám hộ mới
 exports.createGuardian = async (req, res) => {
   try {
     const {
@@ -11,53 +12,40 @@ exports.createGuardian = async (req, res) => {
       studentId,
       parentId,
       relationship,
-      delegationPeriod,
+      relationshipDetail,
+      pickUpDate,
       note,
       createdBy,
     } = req.body;
 
-    if (!fullName || !dob || !phoneNumber || !studentId || !delegationPeriod) {
+    if (!fullName || !dob || !phoneNumber || !studentId || !pickUpDate) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        message: "Thiếu thông tin bắt buộc (fullName, dob, phoneNumber, studentId, delegationPeriod)",
+        message: "Thiếu thông tin bắt buộc (fullName, dob, phoneNumber, studentId, pickUpDate).",
       });
     }
 
-    const fromDate = new Date(delegationPeriod.fromDate);
-    const toDate = new Date(delegationPeriod.toDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const pickUp = new Date(pickUpDate);
+    pickUp.setHours(0, 0, 0, 0);
 
-    const activeGuardiansCount = await Guardian.countDocuments({
-      studentId,
-      "delegationPeriod.toDate": { $gte: today },
-    });
-
-    if (activeGuardiansCount >= 3) {
+    if (pickUp < today) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        message: "Mỗi học sinh chỉ được có tối đa 3 người đón hộ còn hiệu lực.",
+        message: "Ngày đón hộ không được ở trong quá khứ.",
       });
     }
 
-    const duplicateGuardian = await Guardian.findOne({
+    const existingGuardian = await Guardian.findOne({
       studentId,
-      fullName: { $regex: new RegExp(`^${fullName}$`, "i") }, // không phân biệt hoa thường
-      dob: new Date(dob),
-      phoneNumber,
-      $or: [
-        {
-          "delegationPeriod.fromDate": { $lte: toDate },
-          "delegationPeriod.toDate": { $gte: fromDate },
-        },
-      ],
+      pickUpDate: pickUp,
+      active: true,
     });
 
-    if (duplicateGuardian) {
+    if (existingGuardian) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        message: "Người đón hộ trùng lặp (Họ tên, Ngày sinh, SĐT, và thời gian ủy quyền).",
+        message: "Đã có người giám hộ cho học sinh này trong ngày đó.",
       });
     }
-
-    const isExpired = toDate < today;
 
     const guardian = new Guardian({
       fullName,
@@ -66,22 +54,23 @@ exports.createGuardian = async (req, res) => {
       studentId,
       parentId,
       relationship,
-      delegationPeriod: { fromDate, toDate },
+      relationshipDetail,
+      pickUpDate: pickUp,
       note,
       createdBy,
-      status: isExpired ? "Hết hạn" : "Còn hiệu lực",
+      active: true,
     });
 
     await guardian.save();
 
     return res.status(HTTP_STATUS.CREATED).json({
-      message: "Tạo người đón hộ thành công.",
+      message: "Tạo người giám hộ thành công.",
       data: guardian,
     });
   } catch (error) {
-    console.error("❌ Lỗi khi tạo người đón hộ:", error);
+    console.error("❌ Lỗi khi tạo người giám hộ:", error);
     return res.status(HTTP_STATUS.SERVER_ERROR).json({
-      message: "Lỗi server",
+      message: "Lỗi server.",
       error: error.message,
     });
   }
@@ -91,31 +80,54 @@ exports.updateGuardian = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
     const guardian = await Guardian.findById(id);
     if (!guardian) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy người đón hộ" });
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        message: "Không tìm thấy người giám hộ.",
+      });
     }
 
-    if (guardian.delegationPeriod.toDate < today) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const newPickUpDate = updateData.pickUpDate
+      ? new Date(updateData.pickUpDate)
+      : new Date(guardian.pickUpDate);
+
+    newPickUpDate.setHours(0, 0, 0, 0);
+
+    if (newPickUpDate < today) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        message: "Không thể chỉnh sửa người đón hộ đã hết hạn.",
+        message: "Không thể đặt ngày đón hộ trong quá khứ.",
+      });
+    }
+
+    const duplicate = await Guardian.findOne({
+      _id: { $ne: id },
+      studentId: guardian.studentId,
+      pickUpDate: newPickUpDate,
+      active: true,
+    });
+
+    if (duplicate) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        message: "Đã có người giám hộ khác cho học sinh này trong ngày đó.",
       });
     }
 
     Object.assign(guardian, updateData);
+    guardian.pickUpDate = newPickUpDate;
     await guardian.save();
 
     return res.status(HTTP_STATUS.OK).json({
-      message: "Cập nhật người đón hộ thành công",
+      message: "Cập nhật người giám hộ thành công.",
       data: guardian,
     });
   } catch (error) {
-    console.error("❌ Lỗi khi cập nhật người đón hộ:", error);
+    console.error("❌ Lỗi khi cập nhật người giám hộ:", error);
     return res.status(HTTP_STATUS.SERVER_ERROR).json({
-      message: "Lỗi server",
+      message: "Lỗi server.",
       error: error.message,
     });
   }
@@ -124,33 +136,24 @@ exports.updateGuardian = async (req, res) => {
 exports.getGuardianById = async (req, res) => {
   try {
     const { id } = req.params;
-
     const guardian = await Guardian.findById(id)
       .populate("studentId", "fullName className")
       .populate("parentId", "fullName phoneNumber");
 
     if (!guardian) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
-        message: "Không tìm thấy người đón hộ",
+        message: "Không tìm thấy người giám hộ.",
       });
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (guardian.delegationPeriod.toDate < today && guardian.active) {
-      guardian.active = false;
-      guardian.status = "Hết hạn";
-      await guardian.save();
-    }
-
     return res.status(HTTP_STATUS.OK).json({
-      message: "Lấy thông tin người đón hộ thành công",
+      message: "Lấy thông tin người giám hộ thành công.",
       data: guardian,
     });
   } catch (error) {
-    console.error("❌ Lỗi khi lấy người đón hộ theo ID:", error);
+    console.error("❌ Lỗi khi lấy người giám hộ theo ID:", error);
     return res.status(HTTP_STATUS.SERVER_ERROR).json({
-      message: "Lỗi server",
+      message: "Lỗi server.",
       error: error.message,
     });
   }
@@ -161,63 +164,54 @@ exports.getGuardiansByStudentId = async (req, res) => {
     const { id } = req.params;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    console.log("🚀 ~ today:", today)
-    console.log(today.toISOString());
-    await Guardian.updateMany(
-      {
-        "delegationPeriod.toDate": { $lt: today },
-        active: true,
-      },
-      { $set: { active: false, status: "Hết hạn" } }
-    );
 
     const guardians = await Guardian.find({
       studentId: id,
       active: true,
-      "delegationPeriod.toDate": { $gte: today },
     })
       .populate("parentId", "fullName phoneNumber")
-      .sort({ "delegationPeriod.fromDate": 1 });
+      .sort({ pickUpDate: 1 });
+
+    await Guardian.updateMany(
+      { pickUpDate: { $lt: today }, active: true },
+      { $set: { active: false } }
+    );
 
     return res.status(HTTP_STATUS.OK).json({
-      message: "Lấy danh sách người đón hộ hiệu lực thành công",
+      message: "Lấy danh sách người giám hộ còn hiệu lực thành công.",
       count: guardians.length,
       data: guardians,
     });
   } catch (error) {
-    console.error("❌ Lỗi khi lấy danh sách người đón hộ theo học sinh:", error);
+    console.error("❌ Lỗi khi lấy danh sách người giám hộ:", error);
     return res.status(HTTP_STATUS.SERVER_ERROR).json({
-      message: "Lỗi server",
+      message: "Lỗi server.",
       error: error.message,
     });
   }
 };
 
-exports.getGuardiansByParentId = async (req, res) => {
+exports.deleteGuardian = async (req, res) => {
   try {
     const { id } = req.params;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const guardian = await Guardian.findById(id);
 
-    console.log("🚀 ~ today:", today)
-    console.log(today.toISOString());
-    const guardians = await Guardian.find({
-      parentId: id,
-      active: true,
-      "delegationPeriod.toDate": { $gte: today },
-    })
-      .populate("studentId", "fullName classId")
-      .sort({ "delegationPeriod.toDate": 1 });
+    if (!guardian) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        message: "Không tìm thấy người giám hộ.",
+      });
+    }
+
+    guardian.active = false;
+    await guardian.save();
 
     return res.status(HTTP_STATUS.OK).json({
-      message: "Lấy danh sách người đón hộ hiệu lực thành công",
-      count: guardians.length,
-      data: guardians,
+      message: "Hủy kích hoạt người giám hộ thành công.",
     });
   } catch (error) {
-    console.error("❌ Lỗi khi lấy danh sách người đón hộ theo parentId:", error);
+    console.error("❌ Lỗi khi xóa người giám hộ:", error);
     return res.status(HTTP_STATUS.SERVER_ERROR).json({
-      message: "Lỗi server",
+      message: "Lỗi server.",
       error: error.message,
     });
   }

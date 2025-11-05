@@ -19,12 +19,12 @@ router.get(
     getGuardiansByStudentId
 );
 
-router.get(
-    "/listByParent/:id",
-    verifyToken,
-    authorizeAction("view"),
-    getGuardiansByParentId
-);
+// router.get(
+//     "/listByParent/:id",
+//     verifyToken,
+//     authorizeAction("view"),
+//     getGuardiansByParentId
+// );
 
 router.get(
     "/getById/:id",

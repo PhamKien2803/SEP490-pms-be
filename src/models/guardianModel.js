@@ -16,7 +16,10 @@ const GuardianSchema = new mongoose.Schema(
       validate: {
         validator: function (v) {
           const today = new Date();
-          const age = today.getFullYear() - v.getFullYear();
+          const age =
+            today.getFullYear() -
+            v.getFullYear() -
+            (today < new Date(today.getFullYear(), v.getMonth(), v.getDate()) ? 1 : 0);
           return age >= 16;
         },
         message: "Người đón hộ phải từ 16 tuổi trở lên",
@@ -25,36 +28,28 @@ const GuardianSchema = new mongoose.Schema(
     phoneNumber: {
       type: String,
       required: [true, "Số điện thoại là bắt buộc"],
-      match: [/^(0|\+84)[0-9]{9}$/, "Số điện thoại không hợp lệ (phải theo định dạng Việt Nam)"],
+      match: [
+        /^(0|\+84)(3|5|7|8|9)[0-9]{8}$/,
+        "Số điện thoại không hợp lệ (phải theo định dạng Việt Nam)",
+      ],
     },
     relationship: {
       type: String,
       enum: ["Ông", "Bà", "Cô", "Dì", "Chú", "Bác", "Bạn bố mẹ", "Anh", "Chị", "Khác"],
-      required: true,
+      required: [true, "Mối quan hệ là bắt buộc"],
     },
     studentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Student",
+      required: [true, "Phải có học sinh liên kết"],
     },
     parentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Parent",
     },
-    delegationPeriod: {
-      fromDate: {
-        type: Date,
-        required: [true, "Ngày bắt đầu ủy quyền là bắt buộc"],
-      },
-      toDate: {
-        type: Date,
-        validate: {
-          validator: function (v) {
-            if (!v) return true; // cho phép null (vô thời hạn)
-            return v >= this.delegationPeriod.fromDate;
-          },
-          message: "Ngày kết thúc phải sau hoặc bằng ngày bắt đầu",
-        },
-      },
+    pickUpDate: {
+      type: Date,
+      required: [true, "Ngày đón hộ là bắt buộc"],
     },
     note: {
       type: String,
@@ -62,28 +57,9 @@ const GuardianSchema = new mongoose.Schema(
     },
     createdBy: { type: String },
     updatedBy: { type: String },
-    status: { type: String },
     active: { type: Boolean, default: true },
   },
   { timestamps: true, versionKey: false }
 );
-
-GuardianSchema.pre("save", function (next) {
-  const today = new Date();
-  const { fromDate, toDate } = this.delegationPeriod || {};
-
-  if (fromDate && fromDate < today.setHours(0, 0, 0, 0)) {
-    return next(new Error("Ngày bắt đầu phải từ hôm nay trở đi"));
-  }
-
-  if (fromDate && toDate) {
-    const diffInDays = (toDate - fromDate) / (1000 * 60 * 60 * 24);
-    if (diffInDays > 365) {
-      return next(new Error("Thời gian ủy quyền không được vượt quá 1 năm"));
-    }
-  }
-
-  next();
-});
 
 module.exports = mongoose.model("Guardian", GuardianSchema);

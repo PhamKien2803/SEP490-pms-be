@@ -16,6 +16,7 @@ const SMTP = require('../helpers/stmpHelper');
 const IMAP = require('../helpers/iMapHelper');
 const { getGFS } = require("../configs/gridfs");
 const { HTTP_STATUS, RESPONSE_MESSAGE, USER_ROLES, VALIDATION_CONSTANTS } = require('../constants/useConstants');
+const Guardian = require("../models/guardianModel");
 
 exports.createStaffController = async (req, res) => {
     const session = await Staff.startSession();
@@ -267,99 +268,123 @@ exports.deleteStaff = async (req, res) => {
 
 
 exports.getClassAndStudentByTeacherController = async (req, res) => {
-    try {
-        const teacherId = req.params.id;
-        const schoolYearId = req.query.schoolYearId;
+  try {
+    const teacherId = req.params.id;
+    const schoolYearId = req.query.schoolYearId;
+    const teacher = await Staff.findById(teacherId);
+    if (!teacher) {
+      return res
+        .status(HTTP_STATUS.NOT_FOUND)
+        .json({ message: "Nhân viên không tồn tại." });
+    }
 
-        const [teacher, activeSchoolYear] = await Promise.all([
-            Staff.findById(teacherId),
-            SchoolYear.findOne({ _id: schoolYearId, active: true }),
-        ]);
+    if (!teacher.isTeacher) {
+      return res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json({ message: "Nhân viên này không phải giáo viên." });
+    }
 
-        if (!teacher) {
-            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Nhân viên không tồn tại." });
-        }
+    const activeSchoolYear = await SchoolYear.findOne({
+      _id: schoolYearId,
+      active: true,
+    });
 
-        if (!teacher.isTeacher) {
-            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Nhân viên này không phải giáo viên." });
-        }
+    if (!activeSchoolYear) {
+      return res
+        .status(HTTP_STATUS.NOT_FOUND)
+        .json({ message: "Không có năm học nào đang hoạt động." });
+    }
 
-        if (!activeSchoolYear) {
-            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không có năm học nào đang hoạt động." });
-        }
+    const classes = await Class.find({
+      teachers: teacherId,
+      schoolYear: activeSchoolYear._id,
+      active: true,
+    })
+      .populate({
+        path: "students",
+        select:
+          "studentCode fullName gender dob address parent healthCertId birthCertId",
+      })
+      .populate("room", "roomName facilities")
+      .populate("schoolYear", "schoolYear state")
+      .lean();
 
-        const classes = await Class.find({
-            teachers: teacherId,
-            schoolYear: activeSchoolYear._id,
+    if (!classes || classes.length === 0) {
+      return res.status(HTTP_STATUS.OK).json({
+        message: `Giáo viên này chưa được phân công lớp trong năm học ${activeSchoolYear.schoolYear}.`,
+        classes: [],
+      });
+    }
+
+    const gfs = getGFS();
+    if (!gfs) {
+      return res
+        .status(HTTP_STATUS.SERVER_ERROR)
+        .json({ message: "GridFS chưa kết nối." });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (const classItem of classes) {
+      if (classItem.students?.length) {
+        for (const student of classItem.students) {
+          // 🔹 Gắn file giấy tờ
+          let healthCertFile = null;
+          let birthCertFile = null;
+
+          if (student.healthCertId) {
+            const files = await gfs
+              .find({ _id: student.healthCertId })
+              .toArray();
+            healthCertFile = files.length > 0 ? files[0] : null;
+          }
+
+          if (student.birthCertId) {
+            const files = await gfs
+              .find({ _id: student.birthCertId })
+              .toArray();
+            birthCertFile = files.length > 0 ? files[0] : null;
+          }
+
+          student.healthCertFile = healthCertFile;
+          student.birthCertFile = birthCertFile;
+
+          // 🔹 Thêm phần kiểm tra người giám hộ trong ngày hôm nay
+          const guardianToday = await Guardian.findOne({
+            studentId: student._id,
+            pickUpDate: today,
             active: true,
-        })
-            .populate({
-                path: "students",
-                select: "studentCode fullName gender dob address parent healthCertId birthCertId",
-            })
-            .populate("room", "roomName facilities")
-            .populate("schoolYear", "schoolYear state")
+          })
+            .populate("parentId", "fullName phoneNumber")
             .lean();
 
-        if (!classes || classes.length === 0) {
-            return res.status(HTTP_STATUS.OK).json({
-                message: `Giáo viên này chưa được phân công lớp trong năm học ${activeSchoolYear.schoolYear}.`,
-                classes: [],
-            });
+          student.guardianToday = guardianToday || null;
         }
-
-        const gfs = getGFS();
-        if (!gfs) {
-            return res.status(HTTP_STATUS.SERVER_ERROR).json({ message: "GridFS chưa kết nối." });
-        }
-
-        const healthCertIds = [];
-        const birthCertIds = [];
-        for (const classItem of classes) {
-            for (const student of classItem.students || []) {
-                if (student.healthCertId) healthCertIds.push(student.healthCertId);
-                if (student.birthCertId) birthCertIds.push(student.birthCertId);
-            }
-        }
-
-        const [healthFiles, birthFiles] = await Promise.all([
-            gfs.find({ _id: { $in: healthCertIds } }).toArray(),
-            gfs.find({ _id: { $in: birthCertIds } }).toArray(),
-        ]);
-
-        const healthFileMap = new Map();
-        const birthFileMap = new Map();
-        healthFiles.forEach(file => healthFileMap.set(file._id.toString(), file));
-        birthFiles.forEach(file => birthFileMap.set(file._id.toString(), file));
-
-        for (const classItem of classes) {
-            for (const student of classItem.students || []) {
-                student.healthCertFile = student.healthCertId ? healthFileMap.get(student.healthCertId.toString()) || null : null;
-                student.birthCertFile = student.birthCertId ? birthFileMap.get(student.birthCertId.toString()) || null : null;
-            }
-        }
-
-        return res.status(HTTP_STATUS.OK).json({
-            teacher: {
-                _id: teacher._id,
-                fullName: teacher.fullName,
-                email: teacher.email,
-            },
-            schoolYear: {
-                _id: activeSchoolYear._id,
-                schoolYear: activeSchoolYear.schoolYear,
-                startDate: activeSchoolYear.startDate,
-                endDate: activeSchoolYear.endDate,
-            },
-            classes,
-        });
-    } catch (error) {
-        console.error("❌ Error getClassAndStudentByTeacherController:", error);
-        return res.status(HTTP_STATUS.SERVER_ERROR).json({
-            message: "Lỗi khi lấy danh sách lớp và học sinh.",
-            error: error.message,
-        });
+      }
     }
+
+    return res.status(HTTP_STATUS.OK).json({
+      teacher: {
+        _id: teacher._id,
+        fullName: teacher.fullName,
+        email: teacher.email,
+      },
+      schoolYear: {
+        _id: activeSchoolYear._id,
+        schoolYear: activeSchoolYear.schoolYear,
+        startDate: activeSchoolYear.startDate,
+        endDate: activeSchoolYear.endDate,
+      },
+      classes,
+    });
+  } catch (error) {
+    console.error("Error getClassAndStudentByTeacherController:", error);
+    return res.status(HTTP_STATUS.SERVER_ERROR).json({
+      message: "Lỗi khi lấy danh sách lớp và học sinh.",
+      error: error.message,
+    });
+  }
 };
 
 exports.getByIdStudentController = async (req, res) => {

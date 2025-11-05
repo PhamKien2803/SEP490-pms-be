@@ -9,9 +9,26 @@ const studentAttendanceSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Có mặt", "Vắng mặt có phép", "Đi muộn", "Vắng mặt không phép"],
+      enum: ["Có mặt", "Vắng mặt có phép", "Đã đón trẻ", "Vắng mặt không phép"],
       default: "Có mặt",
     },
+
+    timeCheckIn: {
+      type: Date,
+      default: null,
+    },
+
+    timeCheckOut: {
+      type: Date,
+      default: null,
+    },
+
+    guardian: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Guardian",
+      default: null,
+    },
+
     note: {
       type: String,
       trim: true,
@@ -39,7 +56,7 @@ const attendanceSchema = new mongoose.Schema(
       required: [true, "Ngày điểm danh là bắt buộc."],
     },
 
-    students: [studentAttendanceSchema], // dùng schema con đã định nghĩa ở trên
+    students: [studentAttendanceSchema],
 
     takenBy: {
       type: mongoose.Schema.Types.ObjectId,

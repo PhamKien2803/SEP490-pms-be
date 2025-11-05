@@ -30,6 +30,9 @@ const attendance = require("./routes/attendanceRoute.js");
 const feedback = require("./routes/feedbackRoute.js");
 const dashboardParent = require("./routes/dashboardParentRoute.js");
 const lesson = require("./routes/lessonRoute.js");
+const revenues = require("./routes/revenueRoute.js");
+const services = require("./routes/serviceRoute.js");
+const manageServices = require("./routes/manageServices.js");
 const classDBRoute = require("./routes/classDBRoute.js");
 const attendanceDBRoute = require("./routes/attendanceDBRoute.js");
 const schedulesDBRoute = require("./routes/schedulesDBRoute.js");
@@ -79,6 +82,7 @@ app.use("/api/pms/topics", topic);
 app.use("/api/pms/schedules", schedule);
 app.use("/api/pms/attendances", attendance);
 app.use("/api/pms/feedbacks", feedback);
+app.use("/api/pms/revenues", revenues);
 app.use("/api/pms/dashboard-parent", dashboardParent);
 app.use("/api/pms/dashboard-menus", menuDashboardRoute);
 app.use("/api/pms/dashboard-medicals", medicalDashboardRoute);
@@ -86,10 +90,10 @@ app.use("/api/pms/dashboard-schedules", schedulesDBRoute);
 app.use("/api/pms/dashboard-feedbacks", feedbackDBRoute);
 app.use("/api/pms/dashboard-attendances", attendanceDBRoute);
 app.use("/api/pms/dashboard-class", classDBRoute);
-
+app.use("/api/pms/services", services);
 app.use("/api/pms/time-table", timetable);
-
 app.use("/api/pms/lessons", lesson);
+app.use("/api/pms/manage-services", manageServices);
 // route test
 app.get("/", (req, res) => {
     res.send("👋 Welcome to the Blue Dolphin Management API");

@@ -14,6 +14,8 @@ const SchoolYearSchema = new mongoose.Schema(
     },
     enrollmentStartDate: { type: Date, required: true },
     enrollmentEndDate: { type: Date, required: true },
+    serviceStartTime: { type: Date },
+    serviceEndTime: { type: Date },
     active: { type: Boolean, default: true },
     createdBy: { type: String },
     updatedBy: { type: String },

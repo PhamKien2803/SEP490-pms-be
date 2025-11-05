@@ -2,7 +2,7 @@ const { Model } = require("mongoose");
 const fs = require('fs');
 const path = require('path');
 const ejs = require('ejs');
-const { HTTP_STATUS, RESPONSE_MESSAGE, USER_ROLES, VALIDATION_CONSTANTS } = require('../constants/useConstants');
+const { HTTP_STATUS, RESPONSE_MESSAGE, VALIDATION_CONSTANTS } = require('../constants/useConstants');
 const { IMAP_CONFIG, SMTP_CONFIG } = require('../constants/mailConstants');
 const { sequencePattern } = require('../helpers/useHelpers');
 const { getGFS } = require("../configs/gridfs");
@@ -12,6 +12,7 @@ const Student = require("../models/studentModel");
 const Parent = require("../models/parentModel");
 const SchoolYear = require("../models/schoolYearModel");
 const User = require("../models/userModel");
+const Role = require('../models/roleModel');
 const SMTP = require('../helpers/stmpHelper');
 const IMAP = require('../helpers/iMapHelper');
 const { emailQueue } = require('../configs/queue');
@@ -396,8 +397,9 @@ exports.approvedEnrollAllController = async (req, res) => {
                     healthCertId
                 });
 
+                //permission
+                const role = await Role.findOne({ roleName: "Phụ huynh" });
                 //dad
-
                 let dadCreated = false;
                 let dad = await Parent.findOne({ active: true, IDCard: fatherIdCard });
                 if (!dad) {
@@ -417,6 +419,7 @@ exports.approvedEnrollAllController = async (req, res) => {
                     await User.create({
                         email: fatherEmail,
                         password: "12345678",
+                        roleList: [role._id],
                         active: true,
                         parent: dad._id
                     });
@@ -448,6 +451,7 @@ exports.approvedEnrollAllController = async (req, res) => {
                     await User.create({
                         email: motherEmail,
                         password: "12345678",
+                        roleList: [role._id],
                         active: true,
                         parent: mom._id
                     });

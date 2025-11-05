@@ -8,6 +8,7 @@ const { IMAP_CONFIG, SMTP_CONFIG } = require('../constants/mailConstants');
 const { sequencePattern } = require('../helpers/useHelpers');
 const { SEQUENCE_CODE } = require('../constants/useConstants');
 const i18n = require("../middlewares/i18n.middelware");
+const User = require("../models/userModel");
 const SchoolYear = require("../models/schoolYearModel");
 const Class = require("../models/classModel");
 const Student = require("../models/studentModel");
@@ -23,7 +24,7 @@ exports.createSchoolYearController = async (req, res) => {
         const modelName = SchoolYear.modelName.toLowerCase();
         const sequence = await sequencePattern(SchoolYear.modelName);
 
-        const { startDate, endDate, enrollmentStartDate, enrollmentEndDate } = req.body;
+        const { startDate, endDate, enrollmentStartDate, enrollmentEndDate, serviceStartTime, serviceEndTime } = req.body;
         const startYearNumber = new Date(startDate).getFullYear();
         const endYearNumber = new Date(endDate).getFullYear();
         const currentYearNumber = new Date().getFullYear();
@@ -39,6 +40,12 @@ exports.createSchoolYearController = async (req, res) => {
         if (enrollmentStartDate < startDate || enrollmentEndDate > endDate) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({
                 message: "Thời gian tuyển sinh phải nằm trong khoảng năm học",
+            });
+        }
+
+        if (serviceStartTime < startDate || serviceEndTime > endDate) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                message: "Thời gian đăng kí dịch vụ phải nằm trong khoảng năm học",
             });
         }
 
@@ -186,7 +193,43 @@ exports.confirmSchoolYearController = async (req, res) => {
             }
         );
 
-        return res.status(HTTP_STATUS.OK).json("Đã chuyển trạng thái thành công");
+        res.status(HTTP_STATUS.OK).json("Đã chuyển trạng thái thành công");
+        setImmediate(async () => {
+            if (dataCheck.serviceStartTime && data.serviceEndTime) {
+                const dataParent = await Parent.find({ active: true }).lean();
+                const emails = dataParent.map(parent => parent.email);
+                const userData = await User.find({
+                    active: { $eq: true },
+                    email: { $in: emails }
+                });
+                const roleData = await Role.findOne({ roleName: "Đăng kí đồng phục" });
+                await User.updateMany(
+                    { _id: { $in: userData.map(user => user._id) } },
+                    { $addToSet: { roleList: roleData._id } }
+                );
+                for (const email of emails) {
+                    const htmlContent = `
+                <h2>Thông báo Hồ sơ Tuyển Sinh</h2>
+                <p>Xin chào Quý phụ huynh</strong>,</p>
+                <p>Năm học <strong>${data.schoolYear}</strong> đã bắt đầu. Quý phụ huynh vui lòng đăng ký dịch vụ cho con em mình trong khoảng thời gian từ <strong>${data.serviceStartTime}</strong> đến <strong>${data.serviceEndTime}</strong>.</p>
+                <p>Tại chức năng đăng kí dịch vụ của nhà trường</strong>,</p>
+                <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
+            `;
+                    const mail = new SMTP(SMTP_CONFIG);
+                    await mail.send(
+                        email,
+                        ``,
+                        'THÔNG BÁO ĐĂNG KÍ DỊCH VỤ',
+                        htmlContent,
+                        ``,
+                        () => {
+                            console.log(`✅ Mail gửi thành công đến email : ${email}`);
+                        }
+                    );
+                }
+            }
+        })
+
     } catch (error) {
         console.log("Error confirmSchoolYearController", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
@@ -259,6 +302,17 @@ exports.endSchoolYearController = async (req, res) => {
         setImmediate(async () => {
             for (const student of allStudents) {
                 const parentData = await Parent.find({ students: student }).lean();
+                const emails = parentData.map(parent => parent.email);
+                const userData = await User.find({
+                    active: { $eq: true },
+                    email: { $in: emails }
+                });
+
+                await User.updateMany(
+                    { _id: { $in: userData.map(user => user._id) } },
+                    { $set: { active: false } }
+                );
+
                 const studentData = await Student.findById(student).lean();
                 if (parentData.length > 0) {
                     if (!emailQueue) {

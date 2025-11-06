@@ -58,7 +58,7 @@ exports.registerEnrollController = async (req, res) => {
             if (validateDuplicates([fatherEmail, motherEmail])) {
                 return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Email của cha và mẹ không được trùng nhau." });
             }
-            
+
             if (validateDuplicates([fatherPhoneNumber, motherPhoneNumber])) {
                 return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Số điện thoại của cha và mẹ không được trùng nhau." });
             }
@@ -487,46 +487,44 @@ exports.approvedEnrollAllController = async (req, res) => {
             }
         }
 
-        for (const r of results) {
-            if (r.status !== 'fulfilled') continue;
-            if (!emailQueue) {
-                console.error('❌ Email Queue chưa khởi tạo');
-                continue;
+        setImmediate(async () => {
+            for (const r of results) {
+                if (r.status !== 'fulfilled') continue;
+
+                const htmlContent = `
+            <h2>Thông báo Hồ sơ Tuyển Sinh</h2>
+            <p>Xin chào Quý phụ huynh của học sinh <strong>${r.studentName}</strong>,</p>
+            <p>Học sinh <strong>${r.studentName}</strong> với mã <strong>${r.studentCode}</strong> đã <strong>trúng tuyển</strong>.</p>
+            ${r.fatherCreated || r.motherCreated
+                        ? `<p>Tài khoản phụ huynh:</p>
+                   <ul>${r.fatherCreated ? `<li>Email: ${r.fatherEmail} | Mật khẩu: 12345678</li>` : `<li>Email: ${r.fatherEmail}</li>`}</ul>
+                   <ul>${r.motherCreated ? `<li>Email: ${r.motherEmail} | Mật khẩu: 12345678</li>` : `<li>Email: ${r.motherEmail}</li>`}</ul>
+                   <p>Vui lòng đổi mật khẩu sau khi đăng nhập.</p>`
+                        : `<p>Email phụ huynh:</p>
+                   <ul><li>${r.fatherEmail}</li></ul>
+                   <ul><li>${r.motherEmail}</li></ul>`}
+            <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
+        `;
+
+                const mail = new SMTP(SMTP_CONFIG);
+
+                try {
+                    await mail.send(
+                        r.fatherEmail,
+                        r.motherEmail,
+                        'THÔNG BÁO TRÚNG TUYỂN NHẬP HỌC',
+                        htmlContent,
+                        ``,
+                        () => console.log(`Mail gửi thành công đến: ${r.fatherEmail} (cc: ${r.motherEmail})`)
+                    );
+                } catch (err) {
+                    console.error(`Lỗi gửi mail cho ${r.fatherEmail}:`, err);
+                }
             }
+        });
 
-            const htmlContent = `
-                <h2>Thông báo Hồ sơ Tuyển Sinh</h2>
-                <p>Xin chào Quý phụ huynh của học sinh <strong>${r.studentName}</strong>,</p>
-                <p>Học sinh <strong>${r.studentName}</strong> với mã <strong>${r.studentCode}</strong> đã <strong>trúng tuyển</strong>.</p>
-                ${r.fatherCreated || r.motherCreated
-                    ? `<p>Tài khoản phụ huynh:</p>
-                       <ul>${r.fatherCreated ? `<li>Email: ${r.fatherEmail} | Mật khẩu: 12345678</li>` : `<li>Email: ${r.fatherEmail}</li>`}</ul>
-                       <ul>${r.motherCreated ? `<li>Email: ${r.motherEmail} | Mật khẩu: 12345678</li>` : `<li>Email: ${r.motherEmail}</li>`}</ul>
-                       <p>Vui lòng đổi mật khẩu sau khi đăng nhập.</p>`
-                    : `<p>Email phụ huynh:</p>
-                       <ul><li>${r.fatherEmail}</li></ul>
-                       <ul><li>${r.motherEmail}</li></ul>`}
-                <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
-            `;
-
-            await emailQueue.add({
-                to: r.fatherEmail,
-                cc: r.motherEmail,
-                subject: 'THÔNG BÁO TRÚNG TUYỂN NHẬP HỌC',
-                html: htmlContent
-            });
-        }
-
-        const successCount = results.filter(r => r.status === "fulfilled").length;
-        const failCount = results.filter(r => r.status === "rejected").length;
-
-        if (failCount > 0) {
-            console.error("Một số hồ sơ bị lỗi:", results.filter(r => r.status === "rejected").map(r => r.reason?.message));
-        }
-
-        return res.status(HTTP_STATUS.OK).json({
-            message: `Phê duyệt thành công ${successCount}/${dataProcess.length} hồ sơ.`,
-            failed: failCount
+        res.status(HTTP_STATUS.OK).json({
+            message: `Phê duyệt thành công hồ sơ.`,
         });
 
     } catch (error) {

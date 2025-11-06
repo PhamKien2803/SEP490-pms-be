@@ -32,6 +32,7 @@ const dashboardParent = require("./routes/dashboardParentRoute.js");
 const lesson = require("./routes/lessonRoute.js");
 const revenues = require("./routes/revenueRoute.js");
 const services = require("./routes/serviceRoute.js");
+const tuitions = require("./routes/tuitionRoute.js");
 const manageServices = require("./routes/manageServices.js");
 const receipts = require("./routes/receiptRoute.js");
 const classDBRoute = require("./routes/classDBRoute.js");
@@ -97,6 +98,8 @@ app.use("/api/pms/time-table", timetable);
 app.use("/api/pms/lessons", lesson);
 app.use("/api/pms/manage-services", manageServices);
 app.use("/api/pms/receipts", receipts);
+app.use("/api/pms/tuition-manage", tuitions);
+
 
 // route test
 app.get("/", (req, res) => {

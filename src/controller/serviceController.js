@@ -43,11 +43,37 @@ exports.getByStudentId = async (req, res) => {
         if (!schoolYearData) {
             return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy năm học" });
         }
+        const revenue = await Revenue.findOne({
+            revenueName: "Đồng phục",
+            active: true,
+        });
+        if (!revenue) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy khoản thu Đồng phục" });
+        }
+
         const services = await Service.findOne({ student: studentId, active: true, schoolYearId: schoolYearData._id });
         if (!services) {
             return res.status(HTTP_STATUS.OK).json({ data: [] });
         }
-        return res.status(HTTP_STATUS.OK).json(services);
+        
+        const object = {
+            _id: services._id,
+            serviceCode: services.serviceCode,
+            schoolYearId: services.schoolYearId,
+            student: services.student,
+            revenue: services.revenue,
+            amount: revenue.amount,
+            imageUniform: services.imageUniform,
+            qty: services.qty,
+            totalAmount: services.totalAmount,
+            createdBy: services.createdBy,
+            updatedBy: services.updatedBy,
+            active: services.active,
+            createdAt: services.createdAt,
+            updatedAt: services.updatedAt
+        }
+
+        return res.status(HTTP_STATUS.OK).json(object);
     } catch (error) {
         console.log("error getByStudentId", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);

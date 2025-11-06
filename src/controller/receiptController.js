@@ -145,6 +145,7 @@ exports.confirmReceiptController = async (req, res) => {
                 schoolYearId: receipt.schoolYear,
                 active: true
             });
+            console.log("[Bthieu] ~ services:", services);
 
             const totalServiceAmount = services.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
 
@@ -152,6 +153,8 @@ exports.confirmReceiptController = async (req, res) => {
             const parent = await Parent.find({ students: student._id, active: true });
 
             results.push({
+                receipt: receipt._id,
+                services: services[0]?._id,
                 studentId: student._id,
                 studentName: student.fullName,
                 tuitionName: receipt.receiptName,

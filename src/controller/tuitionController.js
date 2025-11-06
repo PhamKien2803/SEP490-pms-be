@@ -1,18 +1,20 @@
 const { Model } = require("mongoose");
+const { PayOS } = require("@payos/node");
 const { HTTP_STATUS, RESPONSE_MESSAGE, USER_ROLES, VALIDATION_CONSTANTS } = require('../constants/useConstants');
-const { IMAP_CONFIG, SMTP_CONFIG } = require('../constants/mailConstants');
-const { sequencePattern } = require('../helpers/useHelpers');
-const Receipt = require("../models/receiptModel");
-const Revenue = require("../models/revenueModel");
 const SchoolYear = require("../models/schoolYearModel");
-const Student = require("../models/studentModel");
-const Service = require("../models/serviceModel");
-const Tuition = require("../models/tuitionModel");
 const Parent = require("../models/parentModel");
-const { SEQUENCE_CODE } = require('../constants/useConstants');
-const i18n = require("../middlewares/i18n.middelware");
-const SMTP = require('../helpers/stmpHelper');
-const IMAP = require('../helpers/iMapHelper');
+const Tuition = require("../models/tuitionModel");
+const Receipt = require("../models/receiptModel");
+const Service = require("../models/serviceModel");
+const Student = require("../models/studentModel");
+const dotenv = require("dotenv");
+dotenv.config();
+
+const payos = new PayOS({
+    clientId: process.env.CLIENT_ID,
+    apiKey: process.env.API_KEY,
+    checksumKey: process.env.CHECKSUM_KEY,
+});
 
 exports.getListController = async (req, res) => {
     try {
@@ -87,3 +89,185 @@ exports.getListController = async (req, res) => {
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
     }
 }
+
+exports.getDetailTuitionController = async (req, res) => {
+    try {
+        const { parentId } = req.params;
+
+        const dataParent = await Parent.findById(parentId);
+        if (!dataParent) {
+            return res
+                .status(HTTP_STATUS.BAD_REQUEST)
+                .json("Không tìm thấy phụ huynh");
+        }
+
+        const students = dataParent.students;
+
+        const dataTuition = await Tuition.find({
+            studentId: { $in: students },
+            state: "Chưa thanh toán",
+        })
+            .populate({
+                path: "receipt",
+                populate: {
+                    path: "revenueList.revenue",
+                    model: "Revenue",
+                },
+            })
+            .populate("schoolYear")
+            .populate("studentId")
+            .lean();
+
+        const dataService = await Service.find({
+            student: { $in: students },
+            active: true,
+        })
+            .populate("revenue")
+            .lean();
+
+        const result = dataTuition.map((item) => {
+            const tuitionRevenueList =
+                item.receipt?.revenueList?.map((r) => ({
+                    revenueId: r.revenue?._id,
+                    revenueCode: r.revenue?.revenueCode,
+                    revenueName: r.revenue?.revenueName,
+                    amount: r.amount,
+                    source: "Tuition",
+                })) || [];
+
+            const studentServices = dataService.filter(
+                (sv) => sv.student.toString() === item.studentId.toString()
+            );
+
+            const serviceRevenueList = studentServices.map((sv) => ({
+                revenueId: sv.revenue?._id,
+                revenueCode: sv.revenue?.revenueCode,
+                revenueName: sv.revenue?.revenueName,
+                amount: sv.totalAmount,
+                qty: sv.qty,
+                source: "Service",
+            }));
+
+            return {
+                tuitionId: item._id,
+                tuitionName: item.tuitionName,
+                month: item.month,
+                totalAmount:
+                    item.totalAmount +
+                    serviceRevenueList.reduce((sum, s) => sum + s.amount, 0),
+                state: item.state,
+                studentId: item.studentId?._id,
+                studentName: item.studentId?.fullName,
+                schoolYear: item.schoolYear?.schoolYear,
+                receiptCode: item.receipt?.receiptCode,
+                receiptName: item.receipt?.receiptName,
+                createdBy: item.createdBy,
+                createdAt: item.createdAt,
+                revenueList: [...tuitionRevenueList, ...serviceRevenueList],
+            };
+        });
+
+        const totalAmount = result.reduce((sum, s) => sum + s.totalAmount, 0);
+        return res.status(HTTP_STATUS.OK).json({
+            message: "Lấy chi tiết học phí thành công",
+            data: result,
+            totalAmount: totalAmount
+        });
+    } catch (error) {
+        console.log("error getDetailTuitionController", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+    }
+};
+
+exports.createTuitionPayment = async (req, res) => {
+    try {
+        const { parentId, totalAmount } = req.body;
+
+        const parent = await Parent.findById(parentId);
+        if (!parent) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                success: false,
+                message: "Không tìm thấy phụ huynh",
+            });
+        }
+        const studentIds = parent.students;
+        const transactionCode = Date.now();
+        const tuitions = await Tuition.find({
+            studentId: { $in: studentIds },
+            state: "Chưa thanh toán",
+        });
+
+        if (tuitions.length === 0) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json({
+                message: "Không có học phí nào cần thanh toán",
+            });
+        }
+
+        const paymentData = {
+            orderCode: transactionCode,
+            amount: totalAmount,
+            description: `HOCPHI${parent.parentCode}`,
+            cancelUrl: process.env.PAYOS_CANCEL_URL,
+            returnUrl: process.env.PAYOS_RETURN_URL, 
+        };
+
+        const paymentLinkResponse = await payos.paymentRequests.create(paymentData);
+
+        const tuitionIds = tuitions.map(t => t._id);
+        await Tuition.updateMany(
+            { _id: { $in: tuitionIds } },
+            { $set: { orderCode: transactionCode, state: "Đang xử lý" } }
+        );
+
+        return res.status(HTTP_STATUS.OK).json({
+            success: true,
+            message: "Tạo link thanh toán thành công",
+            data: {
+                paymentUrl: paymentLinkResponse.checkoutUrl,
+                transactionCode,
+                qrCode: paymentLinkResponse.qrCode,
+            },
+        });
+    } catch (error) {
+        console.error("error createTuitionPayment", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+    }
+};
+
+
+exports.handlePayOSWebhook = async (req, res) => {
+    try {
+    const webhookData = req.body;
+
+        const isValid = await payos.webhooks.verify(webhookData);
+        if (!isValid) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: "Lỗi ký số" });
+        }
+
+        const orderCode = webhookData.data.orderCode;
+        const success = webhookData.success || webhookData.data.code === "00";
+
+        if (success) {
+            const result = await Tuition.updateMany(
+                { orderCode: Number(orderCode) }, 
+                {
+                    state: "Đã thanh toán",
+                    paidAt: new Date(),
+                    payosData: webhookData,
+                }
+            );
+
+            console.log(`Đã cập nhật ${result.modifiedCount} bản ghi thành "Đã thanh toán"`);
+        } else {
+            await Tuition.updateMany(
+                { orderCode: Number(orderCode) },
+                { state: "Thanh toán lỗi", payosData: webhookData }
+            );
+        }
+
+        return res.json({ success: true });
+    } catch (error) {
+        console.error("Webhook error:", error);
+        return res.status(500).json({ success: false });
+    }
+};

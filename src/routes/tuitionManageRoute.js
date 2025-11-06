@@ -2,24 +2,15 @@ const express = require("express");
 const router = express.Router();
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
-const { getDetailTuitionController, createTuitionPayment, handlePayOSWebhook } = require("../controller/tuitionController");
+const { getListRoleController } = require("../controller/roleController");
+const { getListUser } = require("../controller/authController");
+const { getListController } = require("../controller/tuitionController");
 
 router.get(
-    "/detail/:parentId",
+    "/list",
     verifyToken,
     authorizeAction("view"),
-    getDetailTuitionController
+    getListController
 );
 
-router.post(
-    "/confirm",
-    verifyToken,
-    authorizeAction("approve"),
-    createTuitionPayment
-)
-
-router.post(
-    "/web-hook",
-    handlePayOSWebhook
-)
 module.exports = router;

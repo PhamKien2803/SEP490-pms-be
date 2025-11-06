@@ -32,7 +32,8 @@ const dashboardParent = require("./routes/dashboardParentRoute.js");
 const lesson = require("./routes/lessonRoute.js");
 const revenues = require("./routes/revenueRoute.js");
 const services = require("./routes/serviceRoute.js");
-const tuitions = require("./routes/tuitionRoute.js");
+const tuitionManage = require("./routes/tuitionManageRoute.js");
+const tuitions = require("./routes/tuitionRoute.js")
 const manageServices = require("./routes/manageServices.js");
 const receipts = require("./routes/receiptRoute.js");
 const classDBRoute = require("./routes/classDBRoute.js");
@@ -43,6 +44,7 @@ const feedbackDBRoute = require("./routes/feedbackDBRoute.js");
 const medicalDashboardRoute = require("./routes/medicalDashboardRoute.js");
 const guardianRoute = require("./routes/guardianRoute.js");
 const timetable = require("./routes/timetableRoute.js");
+const payment = require("./routes/paymentRoute.js");
 require("./helpers/emailWorkQueue.js");
 
 // Khai báo dotenv
@@ -98,13 +100,16 @@ app.use("/api/pms/time-table", timetable);
 app.use("/api/pms/lessons", lesson);
 app.use("/api/pms/manage-services", manageServices);
 app.use("/api/pms/receipts", receipts);
-app.use("/api/pms/tuition-manage", tuitions);
+app.use("/api/pms/tuition-manage", tuitionManage);
+app.use("/api/pms/tuitions", tuitions);
+app.use("/api/pms/payments", payment)
 
 
 // route test
 app.get("/", (req, res) => {
     res.send("👋 Welcome to the Blue Dolphin Management API");
 });
+
 
 // Start server
 const PORT = process.env.PORT || 9999;

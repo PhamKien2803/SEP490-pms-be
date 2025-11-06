@@ -194,6 +194,24 @@ exports.confirmSchoolYearController = async (req, res) => {
         );
 
         res.status(HTTP_STATUS.OK).json("Đã chuyển trạng thái thành công");
+       
+
+    } catch (error) {
+        console.log("Error confirmSchoolYearController", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+    }
+}
+
+exports.publishServiceController = async (req, res) => {
+    try {
+        const data = await SchoolYear.findById(req.params.id);
+        if (!data) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy dữ liệu năm học" });
+        }
+        data.isPublished = true;
+        data.save();
+        res.status(HTTP_STATUS.OK).json("Đã mở đăng kí dịch vụ thành công");
+       
         setImmediate(async () => {
             if (dataCheck.serviceStartTime && data.serviceEndTime) {
                 const dataParent = await Parent.find({ active: true }).lean();
@@ -229,9 +247,8 @@ exports.confirmSchoolYearController = async (req, res) => {
                 }
             }
         })
-
     } catch (error) {
-        console.log("Error confirmSchoolYearController", error);
+        console.log("Error publishServiceController", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
     }
 }

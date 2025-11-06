@@ -17,6 +17,7 @@ const SchoolYearSchema = new mongoose.Schema(
     serviceStartTime: { type: Date },
     serviceEndTime: { type: Date },
     active: { type: Boolean, default: true },
+    isPublished: { type: Boolean, default: false },
     createdBy: { type: String },
     updatedBy: { type: String },
     confirmedBy: { type: String },

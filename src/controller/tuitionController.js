@@ -212,13 +212,6 @@ exports.createTuitionPayment = async (req, res) => {
         };
 
         const paymentLinkResponse = await payos.paymentRequests.create(paymentData);
-
-        const tuitionIds = tuitions.map(t => t._id);
-        await Tuition.updateMany(
-            { _id: { $in: tuitionIds } },
-            { $set: { orderCode: transactionCode, state: "Đang xử lý" } }
-        );
-
         return res.status(HTTP_STATUS.OK).json({
             success: true,
             message: "Tạo link thanh toán thành công",
@@ -299,3 +292,4 @@ exports.checkTuitionPaymentStatus = async (req, res) => {
         return res.status(500).json({ success: false, message: "Lỗi server" });
     }
 };
+

@@ -208,7 +208,7 @@ exports.createTuitionPayment = async (req, res) => {
             amount: totalAmount,
             description: `HOCPHI${parent.parentCode}`,
             cancelUrl: process.env.PAYOS_CANCEL_URL,
-            returnUrl: process.env.PAYOS_RETURN_URL, 
+            returnUrl: process.env.PAYOS_RETURN_URL,
         };
 
         const paymentLinkResponse = await payos.paymentRequests.create(paymentData);
@@ -237,7 +237,7 @@ exports.createTuitionPayment = async (req, res) => {
 
 exports.handlePayOSWebhook = async (req, res) => {
     try {
-    const webhookData = req.body;
+        const webhookData = req.body;
 
         const isValid = await payos.webhooks.verify(webhookData);
         if (!isValid) {
@@ -249,7 +249,7 @@ exports.handlePayOSWebhook = async (req, res) => {
 
         if (success) {
             const result = await Tuition.updateMany(
-                { orderCode: Number(orderCode) }, 
+                { orderCode: Number(orderCode) },
                 {
                     state: "Đã thanh toán",
                     paidAt: new Date(),
@@ -269,5 +269,27 @@ exports.handlePayOSWebhook = async (req, res) => {
     } catch (error) {
         console.error("Webhook error:", error);
         return res.status(500).json({ success: false });
+    }
+};
+
+exports.checkTuitionPaymentStatus = async (req, res) => {
+    try {
+        const { orderCode } = req.params;
+        const tuition = await Tuition.findOne({ orderCode: Number(orderCode) });
+
+        if (!tuition) {
+            return res.status(200).json({ success: false, message: "Không tìm thấy học phí" });
+        }
+
+        const status = tuition.state === "Đã thanh toán" ? "PAID" : "PENDING";
+
+        return res.json({
+            success: true,
+            status,
+            message: `Trạng thái: ${status}`,
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ success: false, message: "Lỗi server" });
     }
 };

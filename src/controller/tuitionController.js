@@ -237,7 +237,7 @@ exports.createTuitionPayment = async (req, res) => {
 
 exports.handlePayOSWebhook = async (req, res) => {
     try {
-    const webhookData = req.body;
+        const webhookData = req.body;
 
         const isValid = await payos.webhooks.verify(webhookData);
         if (!isValid) {
@@ -245,19 +245,25 @@ exports.handlePayOSWebhook = async (req, res) => {
         }
 
         const orderCode = webhookData.data.orderCode;
-        const success = webhookData.success || webhookData.data.code === "00";
+        const statusCode = webhookData.data.code;
+        const success = webhookData.success || statusCode === "00";
 
         if (success) {
             const result = await Tuition.updateMany(
-                { orderCode: Number(orderCode) }, 
+                { orderCode: Number(orderCode) },
                 {
                     state: "Đã thanh toán",
                     paidAt: new Date(),
                     payosData: webhookData,
                 }
             );
-
             console.log(`Đã cập nhật ${result.modifiedCount} bản ghi thành "Đã thanh toán"`);
+        } else if (statusCode === "01") {
+            await Tuition.updateMany(
+                { orderCode: Number(orderCode) },
+                { state: "Chưa thanh toán", payosData: webhookData }
+            );
+            console.log(`Đã cập nhật ${orderCode} về trạng thái "Chưa thanh toán" do hủy giao dịch`);
         } else {
             await Tuition.updateMany(
                 { orderCode: Number(orderCode) },

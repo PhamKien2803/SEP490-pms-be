@@ -212,6 +212,12 @@ exports.createTuitionPayment = async (req, res) => {
         };
 
         const paymentLinkResponse = await payos.paymentRequests.create(paymentData);
+
+        const tuitionIds = tuitions.map(t => t._id);
+        await Tuition.updateMany(
+            { _id: { $in: tuitionIds } },
+            { $set: { orderCode: transactionCode } }
+        );
         return res.status(HTTP_STATUS.OK).json({
             success: true,
             message: "Tạo link thanh toán thành công",
@@ -238,8 +244,11 @@ exports.handlePayOSWebhook = async (req, res) => {
         }
 
         const orderCode = webhookData.data.orderCode;
+        console.log("[Bthieu] ~ orderCode:", orderCode)
         const statusCode = webhookData.data.code;
+        console.log("[Bthieu] ~ statusCode:", statusCode)
         const success = webhookData.success || statusCode === "00";
+        console.log("[Bthieu] ~ success:", success)
 
         if (success) {
             const result = await Tuition.updateMany(

@@ -12,6 +12,7 @@ const TuitionModel = new mongoose.Schema(
         studentId: { type: mongoose.Schema.Types.ObjectId, ref: "Student", required: true },
         createdBy: { type: String },
         updatedBy: { type: String },
+        paidAt: { type: String },
         state: { type: String, enum: ['Đã thanh toán', 'Chưa thanh toán', 'Đang xử lý', 'Thanh toán lỗi'], default: 'Chưa thanh toán' },
     },
     { timestamps: true, versionKey: false }

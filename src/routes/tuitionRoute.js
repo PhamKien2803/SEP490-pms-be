@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
-const { getDetailTuitionController, createTuitionPayment, handlePayOSWebhook } = require("../controller/tuitionController");
+const { getDetailTuitionController, createTuitionPayment, handlePayOSWebhook, checkTuitionPaymentStatus } = require("../controller/tuitionController");
 
 router.get(
     "/detail/:parentId",
@@ -22,4 +22,6 @@ router.post(
     "/web-hook",
     handlePayOSWebhook
 )
+
+router.get("/check-status/:orderCode", checkTuitionPaymentStatus)
 module.exports = router;

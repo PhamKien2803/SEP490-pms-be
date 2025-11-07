@@ -73,6 +73,10 @@ exports.getAttendanceByClassAndSchoolYear = async (req, res) => {
         select: "fullName staffCode email",
       })
       .populate({
+        path: "students.guardian",
+        select: "fullName dob phoneNumber relationship pickUpDate"
+      })
+      .populate({
         path: "students.student",
         select: "studentCode fullName gender classGroup dob address",
       })
@@ -277,7 +281,7 @@ exports.updateAttendanceController = async (req, res) => {
 
     const absentStudents =
       (attendance && Array.isArray(attendance.students))
-        ? attendance.students.filter(item => item.status === "Vắng mặt không phép")
+        ? attendance.students.filter(item => item.status === "Vắng mặt")
         : [];
 
     if (absentStudents.length > 0) {
@@ -307,7 +311,7 @@ exports.updateAttendanceController = async (req, res) => {
               studentName: student.fullName || "",
               className: attendance.class?.className || "Không xác định",
               date: attendance.date.toLocaleDateString("vi-VN"),
-              reason: "Vắng mặt không phép",
+              reason: "Vắng mặt hôm nay",
               absentDate: attendance.date.toLocaleDateString("vi-VN"),
               teacherName: staff.fullName || "",
               portalLink: "http://school-portal.example.com/login",

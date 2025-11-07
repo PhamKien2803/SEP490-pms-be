@@ -9,7 +9,7 @@ const studentAttendanceSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Có mặt", "Vắng mặt có phép", "Đã đón trẻ", "Vắng mặt không phép"],
+      enum: ["Có mặt", "Đã đón trẻ", "Vắng mặt"],
       default: "Có mặt",
     },
 
@@ -30,6 +30,10 @@ const studentAttendanceSchema = new mongoose.Schema(
     },
 
     note: {
+      type: String,
+      trim: true,
+    },
+    noteCheckout: {
       type: String,
       trim: true,
     },

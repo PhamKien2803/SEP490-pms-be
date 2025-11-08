@@ -62,4 +62,6 @@ const GuardianSchema = new mongoose.Schema(
   { timestamps: true, versionKey: false }
 );
 
+GuardianSchema.index({ studentId: 1, pickUpDate: 1 }, { unique: true });
+
 module.exports = mongoose.model("Guardian", GuardianSchema);

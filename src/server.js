@@ -45,6 +45,7 @@ const medicalDashboardRoute = require("./routes/medicalDashboardRoute.js");
 const guardianRoute = require("./routes/guardianRoute.js");
 const timetable = require("./routes/timetableRoute.js");
 const payment = require("./routes/paymentRoute.js");
+const balance = require("./routes/balanceRoute.js");
 require("./helpers/emailWorkQueue.js");
 
 // Khai báo dotenv
@@ -102,7 +103,9 @@ app.use("/api/pms/manage-services", manageServices);
 app.use("/api/pms/receipts", receipts);
 app.use("/api/pms/tuition-manage", tuitionManage);
 app.use("/api/pms/tuitions", tuitions);
-app.use("/api/pms/payments", payment)
+app.use("/api/pms/payments", payment);
+app.use("/api/pms/balances", balance);
+
 
 
 // route test

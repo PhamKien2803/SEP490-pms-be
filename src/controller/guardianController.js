@@ -191,6 +191,38 @@ exports.getGuardiansByStudentId = async (req, res) => {
   }
 };
 
+exports.getGuardiansByParentId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const guardians = await Guardian.find({
+      parentId: id,
+      active: true,
+    })
+      .populate("parentId", "fullName phoneNumber")
+      .sort({ pickUpDate: 1 });
+
+    await Guardian.updateMany(
+      { pickUpDate: { $lt: today }, active: true },
+      { $set: { active: false } }
+    );
+
+    return res.status(HTTP_STATUS.OK).json({
+      message: "Lấy danh sách người giám hộ còn hiệu lực thành công.",
+      count: guardians.length,
+      data: guardians,
+    });
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy danh sách người giám hộ:", error);
+    return res.status(HTTP_STATUS.SERVER_ERROR).json({
+      message: "Lỗi server.",
+      error: error.message,
+    });
+  }
+};
+
 exports.deleteGuardian = async (req, res) => {
   try {
     const { id } = req.params;

@@ -24,9 +24,17 @@ const findAllGeneric = (Model) => async (req, res) => {
       .limit(limit);
 
     if (!data || data.length === 0) {
-      return res
-        .status(HTTP_STATUS.BAD_REQUEST)
-        .json("Không tìm thấy dữ liệu");
+      // return res
+      //   .status(HTTP_STATUS.BAD_REQUEST)
+      //   .json("Không tìm thấy dữ liệu");
+      return res.status(HTTP_STATUS.OK).json({
+        data: [],
+        page: {
+          totalCount,
+          limit,
+          page,
+        },
+      })
     }
 
     return res.status(HTTP_STATUS.OK).json({

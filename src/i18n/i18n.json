@@ -72,7 +72,10 @@
     "category": "Loại danh mục hoạt động",
     "eventName": "Tên sự kiện",
     "holidayStartDate": "Thời gian bắt đầu",
-    "holidayEndDate": "Thời gian kết thúc"
+    "holidayEndDate": "Thời gian kết thúc",
+    "revenueCode": "Mã khoản thu",
+    "revenueName": "Tên khoản thu",
+    "amount": "Số tiền"
   },
   "messages": {
     "alreadyExists": "{{field}} đã tồn tại",

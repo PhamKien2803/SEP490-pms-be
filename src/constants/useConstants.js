@@ -64,7 +64,12 @@ const SEQUENCE_CODE = {
     ATTENDANCE: "ATT",
     TOPIC: "TP",
     FEEDBACK: "FEE",
-    DASHBOARDPARENT: "DAS"
+    DASHBOARDPARENT: "DAS",
+    REVENUE: "RV",
+    SERVICE: "SV",
+    GUARDIAN: "GUA",
+    RECEIPT: "RC",
+    DOCUMENT: "DC"
 }
 
 

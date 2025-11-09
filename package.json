@@ -15,6 +15,7 @@
   "description": "",
   "dependencies": {
     "@google/genai": "^1.8.0",
+    "@payos/node": "^2.0.3",
     "bcryptjs": "^3.0.2",
     "bull": "^4.16.5",
     "cloudinary": "^2.7.0",

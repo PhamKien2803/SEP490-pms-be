@@ -48,6 +48,7 @@ const payment = require("./routes/paymentRoute.js");
 const balance = require("./routes/balanceRoute.js");
 const postFileRoute = require("./routes/postFileRoute.js");
 const postRoute = require("./routes/postRoute.js");
+const document = require("./routes/documentRoute.js");
 require("./helpers/emailWorkQueue.js");
 
 // Khai báo dotenv
@@ -109,6 +110,8 @@ app.use("/api/pms/payments", payment);
 app.use("/api/pms/balances", balance);
 app.use("/api/pms/post-files", postFileRoute);
 app.use("/api/pms/posts", postRoute);
+app.use("/api/pms/documents", document);
+
 
 // route test
 app.get("/", (req, res) => {

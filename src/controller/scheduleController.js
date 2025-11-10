@@ -943,9 +943,7 @@ exports.getScheduleByClassAndMonth = async (req, res) => {
     const schedules = await findSchedule(classId, numericMonth);
 
     if (schedules.length === 0) {
-      return res.status(404).json({
-        message: "Không tìm thấy lịch học theo lớp học và tháng đã chỉ định!"
-      });
+      return res.status(200).json([]);
     }
 
     return res.status(200).json(schedules);

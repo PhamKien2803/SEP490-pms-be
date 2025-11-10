@@ -68,7 +68,9 @@ const SEQUENCE_CODE = {
     REVENUE: "RV",
     SERVICE: "SV",
     GUARDIAN: "GUA",
-    RECEIPT: "RC"
+    RECEIPT: "RC",
+    POST: "POST",
+    POSTFILE: "POSTF"
 }
 
 

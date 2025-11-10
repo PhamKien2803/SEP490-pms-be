@@ -3,7 +3,7 @@ const router = express.Router();
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const Post = require("../models/postModel");
 const { deletedSoftGeneric, findAllGeneric, updateGeneric, createGeneric } = require("../controller/useController");
-const { getByIdPostController } = require("../controller/postFileController");
+const { getByIdPostController, getPostByClass } = require("../controller/postFileController");
 
 router.post("/create",
     verifyToken,
@@ -34,6 +34,12 @@ router.get("/getById/:id",
     verifyToken,
     authorizeAction("view"),
     getByIdPostController
+);
+
+router.get("/getPostByClass/:id",
+    verifyToken,
+    authorizeAction("view"),
+    getPostByClass
 );
 
 module.exports = router;

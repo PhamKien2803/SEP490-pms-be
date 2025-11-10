@@ -18,7 +18,13 @@ const IMAP_CONFIG = {
     tlsOptions: { rejectUnauthorized: false }
 }
 
+const IMAGE_CONFIG = {
+    folder: "student_images",
+    filename: "student_upload_images"
+}
+
 module.exports = {
     SMTP_CONFIG,
-    IMAP_CONFIG
+    IMAP_CONFIG,
+    IMAGE_CONFIG
 };

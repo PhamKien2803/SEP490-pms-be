@@ -1,22 +1,45 @@
 const { HTTP_STATUS } = require('../constants/useConstants');
 const Post = require('../models/postModel');
 const PostFile = require('../models/postFileModel');
+const SchoolYear = require('../models/schoolYearModel');
+const Class = require('../models/classModel');
 
-exports.getAllPostFileByClass = async (req, res) => {
+exports.getAllPostFileByTeacher = async (req, res) => {
   try {
-    const classId = req.params.id;
+    const teacherId = req.params.id;
 
-    // 🔹 Lấy tất cả bài post của lớp
+    const schoolYear = await SchoolYear.findOne({
+      active: true,
+      state: "Đang hoạt động"
+    });
+
+    if (!schoolYear) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        message: "Không có năm học nào đang hoạt động!",
+      });
+    }
+
+    const classes = await Class.findOne({
+      teachers: teacherId,
+      schoolYear: schoolYear._id,
+      active: true,
+    })
+
+    if (!classes) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        message: "Giáo viên chưa được phân lớp học trong năm học này!",
+      });
+    }
+
     const posts = await Post.find({
       active: true,
-      classId: classId,
+      classId: classes._id,
     });
 
     if (!posts.length) {
       return res.status(200).json([]);
     }
 
-    // 🔹 Lấy tất cả file thuộc các bài post này
     const postIds = posts.map((p) => p._id);
 
     const postFiles = await PostFile.find({
@@ -135,6 +158,42 @@ exports.getPostByClass = async (req, res) => {
     console.error("error getByIdController:", error);
     return res.status(500).json({
       message: "Lỗi máy chủ khi lấy thông tin Album",
+      error: error.message,
+    });
+  }
+};
+
+exports.getClassByTeacher = async (req, res) => {
+  try {
+    const teacherId = req.params.id;
+
+    const schoolYear = await SchoolYear.findOne({
+      active: true,
+      state: "Đang hoạt động"
+    });
+
+    if (!schoolYear) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        message: "Không có năm học nào đang hoạt động!",
+      });
+    }
+
+    const classes = await Class.findOne({
+      teachers: teacherId,
+      schoolYear: schoolYear._id,
+      active: true,
+    })
+
+    if (!classes) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        message: "Giáo viên chưa được phân lớp học trong năm học này!",
+      });
+    }
+    return res.status(200).json({ classes });
+  } catch (error) {
+    console.error("error getAllPostFileByClass:", error);
+    return res.status(500).json({
+      message: "Lỗi server khi lấy danh sách file của lớp",
       error: error.message,
     });
   }

@@ -3,7 +3,7 @@ const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 const fs = require("fs");
 const PostFile = require("../models/postFileModel");
-const { getAllPostFileByClass } = require("../controller/postFileController");
+const { getAllPostFileByTeacher, getClassByTeacher } = require("../controller/postFileController");
 const { authorizeAction, verifyToken } = require("../middlewares/auth.middleware");
 require("dotenv").config();
 
@@ -78,10 +78,16 @@ router.post("/:id/delete", async (req, res) => {
   }
 });
 
-router.get("/getPostFileByClass/:id",
+router.get("/getPostFileByTeacher/:id",
     verifyToken,
     authorizeAction("view"),
-    getAllPostFileByClass
+    getAllPostFileByTeacher
+);
+
+router.get("/getClassByTeacher/:id",
+    verifyToken,
+    authorizeAction("view"),
+    getClassByTeacher
 );
 
 module.exports = router;

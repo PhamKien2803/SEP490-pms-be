@@ -70,7 +70,8 @@ const SEQUENCE_CODE = {
     GUARDIAN: "GUA",
     RECEIPT: "RC",
     POST: "POST",
-    POSTFILE: "POSTF"
+    POSTFILE: "POSTF",
+    DOCUMENT: "DC"
 }
 
 

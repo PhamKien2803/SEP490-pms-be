@@ -10,6 +10,7 @@ const TuitionModel = new mongoose.Schema(
         services: { type: mongoose.Schema.Types.ObjectId, ref: "Service" },
         schoolYear: { type: mongoose.Schema.Types.ObjectId, ref: "SchoolYear", required: true },
         studentId: { type: mongoose.Schema.Types.ObjectId, ref: "Student", required: true },
+        enrollementId: { type: mongoose.Schema.Types.ObjectId, ref: "Enrollment", required: true },
         createdBy: { type: String },
         updatedBy: { type: String },
         paidAt: { type: String },

@@ -181,6 +181,13 @@ exports.confirmSchoolYearController = async (req, res) => {
         if (dataCheck) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Không thể kích hoạt lớp khi có lớp đang hoạt động" });
         }
+        const startDate = new Date(data.startDate);
+        const endDate = new Date(data.endDate);
+        const enrollmentStart = new Date(data.enrollmentStartDate);
+        const enrollmentEnd = new Date(data.enrollmentEndDate);
+        if (enrollmentStart < startDate || enrollmentEnd > endDate) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Thời gian tuyển sinh phải nằm trong khoảng thời gian của năm học" });
+        }
         data.state = "Đang hoạt động";
         data.save();
         await Room.updateMany(
@@ -194,7 +201,7 @@ exports.confirmSchoolYearController = async (req, res) => {
         );
 
         res.status(HTTP_STATUS.OK).json("Đã chuyển trạng thái thành công");
-       
+
 
     } catch (error) {
         console.log("Error confirmSchoolYearController", error);
@@ -211,7 +218,7 @@ exports.publishServiceController = async (req, res) => {
         data.isPublished = true;
         data.save();
         res.status(HTTP_STATUS.OK).json("Đã mở đăng kí dịch vụ thành công");
-       
+
         setImmediate(async () => {
             if (dataCheck.serviceStartTime && data.serviceEndTime) {
                 const dataParent = await Parent.find({ active: true }).lean();

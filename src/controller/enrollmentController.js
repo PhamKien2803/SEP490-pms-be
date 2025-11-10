@@ -162,7 +162,16 @@ exports.registerEnrollController = async (req, res) => {
           <p>Xin chào Quý phụ huynh của học sinh <strong>${created.studentName}</strong>,</p>
           <p>Nhà trường đã tiếp nhận hồ sơ tuyển sinh của học sinh. Hiện trạng hồ sơ đang <strong>đang xử lý</strong>.</p>
           <p>Quý phụ huynh vui lòng đến trường từ ngày <strong>${enrollmentStartDate}</strong> đến ngày <strong>${enrollmentEndDate}</strong> để nộp giấy tờ cần thiết với mã đăng kí <strong>${created.enrollmentCode}</strong>.</p>
-          <br>
+          <p>Giấy tờ cần mang bao gồm: </p>
+          <p>+ Giấy khai sinh</p>
+          <p>+ Giấy khám sức khỏe</p>
+          <p>+ Hình ảnh chụp của bé</p>
+          <p>Ngoài ra, Quý phụ huynh có thể gửi thông tin giấy tờ đến email của trường theo cấu trúc: </p>
+          <p>Subject: HỒ SƠ NHẬP HỌC ${created.enrollmentCode}</p>
+          <p>+ Giaykhaisinh.pdf</p>
+          <p>+ Giaykhamsuckhoe.pdf</p>
+          <p>+ Ảnh học sinh </p>
+          
           <p>Trân trọng,</p>
           <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
         `;

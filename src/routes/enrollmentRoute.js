@@ -67,7 +67,7 @@ router.post(
 )
 
 router.post(
-    "/payment-enroll",
+    "/payment-enroll/:id",
     authorizeAction("approve"),
     paymentEnrollmentController
 )

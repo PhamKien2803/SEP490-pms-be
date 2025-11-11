@@ -23,7 +23,7 @@ exports.getAllPostFileByTeacher = async (req, res) => {
       teachers: teacherId,
       schoolYear: schoolYear._id,
       active: true,
-    })
+    });
 
     if (!classes) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -48,7 +48,7 @@ exports.getAllPostFileByTeacher = async (req, res) => {
     })
       .populate({
         path: "postId",
-        select: "classId teacherId title content createdBy",
+        select: "classId teacherId title content createdBy createdAt updatedAt",
         populate: [
           { path: "classId", select: "classCode className teachers age room" },
           { path: "teacherId", select: "staffCode fullName email" },
@@ -70,6 +70,8 @@ exports.getAllPostFileByTeacher = async (req, res) => {
             createdBy: post.createdBy,
             teacher: post.teacherId,
             class: post.classId,
+            createdAt: post.createdAt,
+            updatedAt: post.updatedAt,
             files: [],
           };
         }
@@ -81,6 +83,7 @@ exports.getAllPostFileByTeacher = async (req, res) => {
           fileSize: file.fileSize,
           cloudinaryPublicId: file.cloudinaryPublicId,
           createdAt: file.createdAt,
+          updatedAt: file.updatedAt,
         });
 
         return acc;

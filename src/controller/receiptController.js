@@ -78,7 +78,6 @@ exports.getRevenueController = async (req, res) => {
     }
 }
 
-
 exports.getByIdController = async (req, res) => {
     try {
         const { id } = req.params;
@@ -111,6 +110,8 @@ exports.getByIdController = async (req, res) => {
     }
 }
 
+
+//Khi tích chọn isEnroll thì sẽ bỏ năm và state lưu receiptName là Học phí nhập học
 exports.confirmReceiptController = async (req, res) => {
     try {
         const { id } = req.params;
@@ -125,65 +126,63 @@ exports.confirmReceiptController = async (req, res) => {
             return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy năm học đang hoạt động" });
         }
         const currentDate = new Date();
-        console.log("[Bthieu] ~ currentDate:", currentDate);
-        console.log("[Bthieu] ~ schoolYearData.serviceStartTime:", schoolYearData.serviceEndTime);
-        if (schoolYearData.serviceEndTime && currentDate < schoolYearData.serviceEndTime) {
-            return res.status(HTTP_STATUS.BAD_REQUEST).json({
-                message: `Chưa hết hạn đăng ký dịch vụ`
+
+
+        if (receipt.isEnroll === false) {
+            if (schoolYearData.serviceEndTime && currentDate < schoolYearData.serviceEndTime) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                    message: `Chưa hết hạn đăng ký dịch vụ`
+                });
+            }
+            const students = await Student.find({
+                active: true,
+                graduated: { $ne: true }
             });
-        }
 
-        const students = await Student.find({
-            active: true,
-            graduated: { $ne: true }
-        });
+            const results = [];
+            for (const student of students) {
+                const services = await Service.find({
+                    student: student._id,
+                    schoolYearId: receipt.schoolYear,
+                    active: true
+                });
 
-        const results = [];
-        for (const student of students) {
-            const services = await Service.find({
-                student: student._id,
-                schoolYearId: receipt.schoolYear,
-                active: true
+                const totalServiceAmount = services.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+
+                const totalAmount = receipt.totalAmount + totalServiceAmount;
+                const parent = await Parent.find({ students: student._id, active: true });
+
+                results.push({
+                    receipt: receipt._id,
+                    services: services[0]?._id,
+                    studentId: student._id,
+                    studentName: student.fullName,
+                    tuitionName: receipt.receiptName,
+                    month: receipt.month,
+                    schoolYear: receipt.schoolYear,
+                    totalAmount,
+                    createdBy: receipt.createdBy,
+                    state: 'Chưa thanh toán',
+                    dadEmail: parent[0]?.email || null,
+                    momEmail: parent[1]?.email || null,
+                });
+            }
+
+
+            await Tuition.insertMany(results);
+
+            receipt.state = "Đã xác nhận";
+            await receipt.save();
+
+            res.status(HTTP_STATUS.OK).json({
+                message: "Tạo danh sách khoản thu thành công",
             });
-            console.log("[Bthieu] ~ services:", services);
 
-            const totalServiceAmount = services.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
-
-            const totalAmount = receipt.totalAmount + totalServiceAmount;
-            const parent = await Parent.find({ students: student._id, active: true });
-
-            results.push({
-                receipt: receipt._id,
-                services: services[0]?._id,
-                studentId: student._id,
-                studentName: student.fullName,
-                tuitionName: receipt.receiptName,
-                month: receipt.month,
-                schoolYear: receipt.schoolYear,
-                totalAmount,
-                createdBy: receipt.createdBy,
-                state: 'Chưa thanh toán',
-                dadEmail: parent[0]?.email || null,
-                momEmail: parent[1]?.email || null,
-            });
-        }
-
-
-        await Tuition.insertMany(results);
-
-        receipt.state = "Đã xác nhận";
-        await receipt.save();
-
-        res.status(HTTP_STATUS.OK).json({
-            message: "Tạo danh sách khoản thu thành công",
-            data: results
-        });
-
-        for (const item of results) {
-            const { dadEmail, momEmail, studentName, month } = item;
-            setImmediate(async () => {
-                try {
-                    const htmlContent = `
+            for (const item of results) {
+                const { dadEmail, momEmail, studentName, month } = item;
+                setImmediate(async () => {
+                    try {
+                        const htmlContent = `
                   <h2>Thông báo đóng học phí tháng ${month}</h2>
                   <p>Xin chào Quý phụ huynh của học sinh <strong>${studentName}</strong>,</p>
                   <p>Nhà trường xin thông báo học phí tháng ${month} của học sinh ${studentName}. Xin mời Anh/Chị truy cập hệ thống để xem thông tin </strong>.</p>
@@ -192,19 +191,28 @@ exports.confirmReceiptController = async (req, res) => {
                   <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
                 `;
 
-                    const mail = new SMTP(SMTP_CONFIG);
-                    await mail.send(
-                        dadEmail,
-                        momEmail,
-                        "THÔNG BÁO ĐÓNG HỌC PHÍ",
-                        htmlContent
-                    );
+                        const mail = new SMTP(SMTP_CONFIG);
+                        await mail.send(
+                            dadEmail,
+                            momEmail,
+                            "THÔNG BÁO ĐÓNG HỌC PHÍ",
+                            htmlContent
+                        );
 
-                    console.log("✅ Đã gửi mail thành công");
-                } catch (mailErr) {
-                    console.error("❌ Lỗi khi gửi mail:", mailErr);
-                }
+                        console.log("✅ Đã gửi mail thành công");
+                    } catch (mailErr) {
+                        console.error("❌ Lỗi khi gửi mail:", mailErr);
+                    }
+                });
+            }
+        } else {
+            receipt.state = "Đã xác nhận";
+            await receipt.save();
+
+            res.status(HTTP_STATUS.OK).json({
+                message: "Tạo danh sách khoản thu thành công",
             });
+
         }
     } catch (error) {
         console.log("error confirmReceiptController", error);

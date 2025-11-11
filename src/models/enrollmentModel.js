@@ -58,6 +58,7 @@ const EnrollmentSchema = new mongoose.Schema(
     },
     motherJob: { type: String },
     reason: { type: String },
+    schoolYear: { type: mongoose.Schema.Types.ObjectId, ref: "SchoolYear", required: true },
     imageStudent: { type: String },
     statePayment: {
       type: String,

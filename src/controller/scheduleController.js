@@ -879,7 +879,8 @@ exports.getClassBySchoolYearController = async (req, res) => {
       active: { $eq: true }
     }, {
       classCode: 1,
-      className: 1
+      className: 1,
+      age: 1
     }).lean();
 
     return res.status(HTTP_STATUS.OK).json(dataClass);

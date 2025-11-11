@@ -8,6 +8,7 @@ const Receipt = require("../models/receiptModel");
 const Service = require("../models/serviceModel");
 const Student = require("../models/studentModel");
 const Balance = require("../models/balanceModel");
+const Enrollment = require("../models/enrollmentModel");
 const TransactionHistory = require("../models/transactionHistoryModel");
 const dotenv = require("dotenv");
 dotenv.config();
@@ -96,19 +97,44 @@ exports.getDetailTuitionController = async (req, res) => {
     try {
         const { parentId } = req.params;
 
-        const dataParent = await Parent.findById(parentId);
-        if (!dataParent) {
-            return res
-                .status(HTTP_STATUS.BAD_REQUEST)
-                .json("Không tìm thấy phụ huynh");
+        const parent = await Parent.findById(parentId).lean();
+        if (!parent) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Không tìm thấy phụ huynh" });
         }
 
-        const students = dataParent.students;
+        // Xác định danh sách students hoặc enrollmentId dựa trên isPreview
+        let tuitionFilter = { state: "Chưa thanh toán" };
+        let students = parent.students || [];
 
-        const dataTuition = await Tuition.find({
-            studentId: { $in: students },
-            state: "Chưa thanh toán",
-        })
+        if (!parent.isPreview) {
+            tuitionFilter.studentId = { $in: students };
+        } else {
+            let enrollment;
+            if (parent.gender === "Nam") {
+                enrollment = await Enrollment.findOne({
+                    state: "Chờ thanh toán",
+                    fatherIdCard: parent.IDCard
+                }).lean();
+            } else {
+                enrollment = await Enrollment.findOne({
+                    state: "Chờ thanh toán",
+                    motherIdCard: parent.IDCard
+                }).lean();
+            }
+
+            if (!enrollment) {
+                return res.status(HTTP_STATUS.OK).json({
+                    message: "Không có học phí đang chờ thanh toán",
+                    data: [],
+                    totalAmount: 0
+                });
+            }
+
+            tuitionFilter.enrollementId = enrollment._id;
+        }
+
+        // Lấy dữ liệu học phí
+        const tuitions = await Tuition.find(tuitionFilter)
             .populate({
                 path: "receipt",
                 populate: {
@@ -120,66 +146,69 @@ exports.getDetailTuitionController = async (req, res) => {
             .populate("studentId")
             .lean();
 
-        const dataService = await Service.find({
+        // Lấy dữ liệu dịch vụ
+        const services = await Service.find({
             student: { $in: students },
             active: true,
         })
             .populate("revenue")
             .lean();
 
-        const result = dataTuition.map((item) => {
-            const tuitionRevenueList =
-                item.receipt?.revenueList?.map((r) => ({
-                    revenueId: r.revenue?._id,
-                    revenueCode: r.revenue?.revenueCode,
-                    revenueName: r.revenue?.revenueName,
-                    amount: r.amount,
-                    source: "Tuition",
-                })) || [];
+        // Map dữ liệu học phí + dịch vụ
+        const result = tuitions.map(tuition => {
+            const tuitionRevenueList = tuition.receipt?.revenueList?.map(r => ({
+                revenueId: r.revenue?._id,
+                revenueCode: r.revenue?.revenueCode,
+                revenueName: r.revenue?.revenueName,
+                amount: r.amount,
+                source: "Tuition"
+            })) || [];
 
-            const studentServices = dataService.filter(
-                (sv) => sv.student.toString() === item.studentId.toString()
-            );
-
-            const serviceRevenueList = studentServices.map((sv) => ({
-                revenueId: sv.revenue?._id,
-                revenueCode: sv.revenue?.revenueCode,
-                revenueName: sv.revenue?.revenueName,
-                amount: sv.totalAmount,
-                qty: sv.qty,
-                source: "Service",
-            }));
+            const serviceRevenueList = services
+                .filter(s => s.student.toString() === tuition.studentId?._id.toString())
+                .map(s => ({
+                    revenueId: s.revenue?._id,
+                    revenueCode: s.revenue?.revenueCode,
+                    revenueName: s.revenue?.revenueName,
+                    amount: s.totalAmount,
+                    qty: s.qty,
+                    source: "Service"
+                }));
 
             return {
-                tuitionId: item._id,
-                tuitionName: item.tuitionName,
-                month: item.month,
-                totalAmount:
-                    item.totalAmount +
-                    serviceRevenueList.reduce((sum, s) => sum + s.amount, 0),
-                state: item.state,
-                studentId: item.studentId?._id,
-                studentName: item.studentId?.fullName,
-                schoolYear: item.schoolYear?.schoolYear,
-                receiptCode: item.receipt?.receiptCode,
-                receiptName: item.receipt?.receiptName,
-                createdBy: item.createdBy,
-                createdAt: item.createdAt,
-                revenueList: [...tuitionRevenueList, ...serviceRevenueList],
+                tuitionId: tuition._id,
+                tuitionName: tuition.tuitionName,
+                month: tuition.month,
+                totalAmount: tuition.totalAmount + serviceRevenueList.reduce((sum, s) => sum + s.amount, 0),
+                state: tuition.state,
+                studentId: tuition.studentId?._id,
+                studentName: tuition.studentId?.fullName,
+                schoolYear: tuition.schoolYear?.schoolYear,
+                receiptCode: tuition.receipt?.receiptCode,
+                receiptName: tuition.receipt?.receiptName,
+                createdBy: tuition.createdBy,
+                createdAt: tuition.createdAt,
+                revenueList: [...tuitionRevenueList, ...serviceRevenueList]
             };
         });
 
-        const totalAmount = result.reduce((sum, s) => sum + s.totalAmount, 0);
+        const totalAmount = result.reduce((sum, r) => sum + r.totalAmount, 0);
+
         return res.status(HTTP_STATUS.OK).json({
             message: "Lấy chi tiết học phí thành công",
             data: result,
-            totalAmount: totalAmount
+            totalAmount
         });
+
     } catch (error) {
-        console.log("error getDetailTuitionController", error);
-        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+        console.error("error getDetailTuitionController", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json({
+            message: "Lỗi server khi lấy chi tiết học phí",
+            error: error.message
+        });
     }
 };
+
 
 exports.createTuitionPayment = async (req, res) => {
     try {
@@ -289,6 +318,17 @@ exports.handlePayOSWebhook = async (req, res) => {
             await balance.save();
 
             console.log(`[Webhook] Đã ghi nhận giao dịch +${totalAmount} VND`);
+
+            const enrollmentIds = tuitions
+                .filter(t => t.enrollementId)
+                .map(t => t.enrollementId);
+
+            if (enrollmentIds.length > 0) {
+                await Enrollment.updateMany(
+                    { _id: { $in: enrollmentIds } },
+                    { state: "Chờ BGH phê duyệt" }
+                );
+            }
 
         } else if (statusCode === "01") {
             await Tuition.updateMany(

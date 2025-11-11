@@ -3,9 +3,12 @@ const router = express.Router();
 const Enrollment = require("../models/enrollmentModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
-const { registerEnrollController, approvedEnrollController, getByIdController, rejectEnrollController, approvedEnrollAllController } = require("../controller/enrollmentController");
+const { registerEnrollController, approvedEnrollController, getByIdController, rejectEnrollController, approvedEnrollAllController, uploadImageController, paymentEnrollmentController } = require("../controller/enrollmentController");
 const { uploadFile, getFileById } = require("../controller/fileController");
+const multer = require('multer');
 
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 router.get("/list",
     verifyToken,
@@ -57,6 +60,17 @@ router.post("/approvedEnrollAll",
     approvedEnrollAllController
 )
 
+router.post(
+    "/uploadImage",
+    upload.single('image'),
+    uploadImageController
+)
+
+router.post(
+    "payment-enroll",
+    authorizeAction("approve"),
+    paymentEnrollmentController
+)
 
 module.exports = router;
 

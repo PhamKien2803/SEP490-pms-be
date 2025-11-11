@@ -43,6 +43,7 @@ const ParentSchema = new mongoose.Schema(
         }],
         address: { type: String },
         job: { type: String },
+        isPreview: {type: Boolean, default: false},
         createdBy: { type: String },
         updatedBy: { type: String },
         active: { type: Boolean, default: true }

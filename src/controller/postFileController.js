@@ -103,6 +103,129 @@ exports.getAllPostFileByTeacher = async (req, res) => {
   }
 };
 
+exports.getAllPostFileByStudent = async (req, res) => {
+  try {
+    const studentId = req.params.id;
+
+    if (!studentId) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        message: "Thiếu ID học sinh!",
+      });
+    }
+
+    const schoolYear = await SchoolYear.findOne({
+      active: true,
+      state: "Đang hoạt động",
+    });
+
+    if (!schoolYear) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        message: "Không có năm học nào đang hoạt động!",
+      });
+    }
+
+    const currentClass = await Class.findOne({
+      students: studentId,
+      schoolYear: schoolYear._id,
+      active: true,
+    })
+      .populate("teachers", "staffCode fullName email")
+      .populate("room", "roomName roomCode")
+      .lean();
+
+    if (!currentClass) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        message: "Học sinh chưa được xếp lớp trong năm học hiện tại!",
+      });
+    }
+
+    const posts = await Post.find({
+      active: true,
+      classId: currentClass._id,
+    }).lean();
+
+    if (!posts.length) {
+      return res.status(200).json({
+        count: 0,
+        posts: [],
+        message: "Không có bài đăng nào cho lớp này.",
+      });
+    }
+
+    const postIds = posts.map((p) => p._id);
+
+    const postFiles = await PostFile.find({
+      active: true,
+      postId: { $in: postIds },
+    })
+      .populate({
+        path: "postId",
+        select: "classId teacherId title content createdBy createdAt updatedAt",
+        populate: [
+          { path: "classId", select: "classCode className age" },
+          { path: "teacherId", select: "staffCode fullName email" },
+        ],
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const groupedPosts = Object.values(
+      postFiles.reduce((acc, file) => {
+        const post = file.postId;
+        if (!post) return acc; 
+
+        const postId = post._id.toString();
+
+        if (!acc[postId]) {
+          acc[postId] = {
+            postId,
+            title: post.title,
+            content: post.content,
+            createdBy: post.createdBy,
+            teacher: post.teacherId,
+            class: post.classId,
+            createdAt: post.createdAt,
+            updatedAt: post.updatedAt,
+            files: [],
+          };
+        }
+
+        acc[postId].files.push({
+          _id: file._id,
+          fileUrl: file.fileUrl,
+          fileType: file.fileType,
+          fileSize: file.fileSize,
+          cloudinaryPublicId: file.cloudinaryPublicId,
+          createdAt: file.createdAt,
+          updatedAt: file.updatedAt,
+        });
+
+        return acc;
+      }, {})
+    );
+
+    return res.status(200).json({
+      count: groupedPosts.length,
+      studentId,
+      class: {
+        _id: currentClass._id,
+        classCode: currentClass.classCode,
+        className: currentClass.className,
+        age: currentClass.age,
+        teachers: currentClass.teachers,
+        room: currentClass.room,
+      },
+      posts: groupedPosts,
+    });
+  } catch (error) {
+    console.error("❌ Lỗi getAllPostFileByStudent:", error);
+    return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      message: "Lỗi server khi lấy danh sách file của học sinh.",
+      error: error.message,
+    });
+  }
+};
+
 exports.getByIdPostController = async (req, res) => {
   try {
 

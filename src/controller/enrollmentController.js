@@ -245,7 +245,7 @@ exports.approvedEnrollController = async (req, res) => {
             isEnroll: true
         }).session(session);
 
-        console.log("receiptData",receiptData);
+        console.log("receiptData", receiptData);
         if (!receiptData) {
             await session.abortTransaction();
             session.endSession();
@@ -287,7 +287,7 @@ exports.approvedEnrollController = async (req, res) => {
                     isPreview: true,
                     active: true,
                 })
-                
+
                 userDad = await User.create({
                     email: enrollment.fatherEmail,
                     password: "12345678",
@@ -388,31 +388,49 @@ exports.approvedEnrollController = async (req, res) => {
 exports.paymentEnrollmentController = async (req, res) => {
     try {
         const dataEnroll = await Enrollment.findById(req.params.id);
+        if (!dataEnroll) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy hồ sơ nhập học" });
+        }
+
         const dataTuition = await Tuition.findOne({
             state: "Chưa thanh toán",
             enrollementId: dataEnroll._id
         });
+        if (!dataTuition) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy học phí cần thanh toán" });
+        }
+
         let balance = await Balance.findOne();
         if (!balance) balance = await Balance.create({ currentBalance: 0 });
+
         const newBalance = balance.currentBalance + dataTuition.totalAmount;
+
+        balance.currentBalance = newBalance;
+        await balance.save();
+
         await TransactionHistory.create({
             type: "Tiền thu",
             amount: dataTuition.totalAmount,
-            balanceBefore: balance.currentBalance,
+            balanceBefore: balance.currentBalance - dataTuition.totalAmount,
             balanceAfter: newBalance,
             source: `Phụ huynh thanh toán nhập học ${dataEnroll.enrollmentCode}`,
-            transactionCode: orderCode.toString(),
+            transactionCode: Date.now(),
             note: "Thanh toán học phí tiền mặt",
         });
-        dataTuition.state = "Đã thanh toán"
-        dataTuition.save();
-        dataEnroll.state = "Chờ BGH phê duyệt"
-        dataEnroll.save();
+
+        dataTuition.state = "Đã thanh toán";
+        await dataTuition.save();
+
+        dataEnroll.state = "Chờ BGH phê duyệt";
+        await dataEnroll.save();
+
+        return res.status(HTTP_STATUS.OK).json({ message: "Thanh toán thành công" });
     } catch (error) {
-        console.log("Error paymentEnrollmentController", error);
+        console.error("Error paymentEnrollmentController", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
     }
-}
+};
+
 
 exports.getByIdController = async (req, res) => {
     try {
@@ -667,11 +685,11 @@ exports.approvedEnrollAllController = async (req, res) => {
                                 <p>Tài khoản phụ huynh mới được tạo:</p>
                                 <ul>
                                     ${fatherCreated
-                                        ? `<li>Email: ${fatherEmail} | Mật khẩu: 12345678</li>`
-                                        : `<li>Email: ${fatherEmail}</li>`}
+                                    ? `<li>Email: ${fatherEmail} | Mật khẩu: 12345678</li>`
+                                    : `<li>Email: ${fatherEmail}</li>`}
                                     ${motherCreated
-                                        ? `<li>Email: ${motherEmail} | Mật khẩu: 12345678</li>`
-                                        : `<li>Email: ${motherEmail}</li>`}
+                                    ? `<li>Email: ${motherEmail} | Mật khẩu: 12345678</li>`
+                                    : `<li>Email: ${motherEmail}</li>`}
                                 </ul>
                             `;
                         } else {

@@ -68,6 +68,7 @@ router.post(
 
 router.post(
     "/payment-enroll/:id",
+    verifyToken,
     authorizeAction("approve"),
     paymentEnrollmentController
 )

@@ -10,6 +10,7 @@ const { uploadBuffer } = require("../helpers/uploadImageHelper")
 const { getGFS } = require("../configs/gridfs");
 const i18n = require("../middlewares/i18n.middelware");
 const Revenue = require("../models/revenueModel");
+const TransactionHistory = require("../models/transactionHistoryModel");
 const Enrollment = require("../models/enrollmentModel");
 const Balance = require("../models/balanceModel");
 const Student = require("../models/studentModel");

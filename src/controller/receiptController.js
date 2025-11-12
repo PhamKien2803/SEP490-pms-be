@@ -97,6 +97,7 @@ exports.getByIdController = async (req, res) => {
             month: data.month,
             totalAmount: data.totalAmount,
             state: data.state,
+            isEnroll: data.isEnroll,
             revenueList: data.revenueList.map(item => ({
                 revenue: item.revenue._id,
                 revenueName: item.revenue.revenueName,

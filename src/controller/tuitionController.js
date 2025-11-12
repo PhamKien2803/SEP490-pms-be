@@ -188,6 +188,7 @@ exports.getDetailTuitionController = async (req, res) => {
                 receiptName: tuition.receipt?.receiptName,
                 createdBy: tuition.createdBy,
                 createdAt: tuition.createdAt,
+                enrollementId: tuition?.enrollementId,
                 revenueList: [...tuitionRevenueList, ...serviceRevenueList]
             };
         });
@@ -212,35 +213,58 @@ exports.getDetailTuitionController = async (req, res) => {
 
 exports.createTuitionPayment = async (req, res) => {
     try {
-        const { parentId, totalAmount } = req.body;
-
-        const parent = await Parent.findById(parentId);
-        if (!parent) {
-            return res.status(HTTP_STATUS.BAD_REQUEST).json({
-                success: false,
-                message: "Không tìm thấy phụ huynh",
-            });
-        }
-        const studentIds = parent.students;
+        const { parentId, totalAmount, enrollementId } = req.body;
+        let paymentData;
+        let tuitions;
         const transactionCode = Date.now();
-        const tuitions = await Tuition.find({
-            studentId: { $in: studentIds },
-            state: "Chưa thanh toán",
-        });
-
-        if (tuitions.length === 0) {
-            return res.status(HTTP_STATUS.NOT_FOUND).json({
-                message: "Không có học phí nào cần thanh toán",
+        if (enrollementId) {
+            const enrollmentData = await Enrollment.findById(enrollementId);
+            console.log("[Bthieu] ~ enrollmentData:", enrollmentData);
+            
+            tuitions = await Tuition.find({
+                enrollementId: enrollementId,
+                state: "Chưa thanh toán",
             });
-        }
+            console.log("")
+            if (tuitions.length === 0) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({
+                    message: "Không có học phí nào cần thanh toán",
+                });
+            }
+            paymentData = {
+                orderCode: transactionCode,
+                amount: totalAmount,
+                description: `HOCPHI${enrollmentData.enrollmentCode}`,
+                cancelUrl: process.env.PAYOS_CANCEL_URL,
+                returnUrl: process.env.PAYOS_RETURN_URL,
+            }; 
+        } else {
+            const parent = await Parent.findById(parentId);
+            if (!parent) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                    success: false,
+                    message: "Không tìm thấy phụ huynh",
+                });
+            }
+            const studentIds = parent.students;
+            tuitions = await Tuition.find({
+                studentId: { $in: studentIds },
+                state: "Chưa thanh toán",
+            });
 
-        const paymentData = {
-            orderCode: transactionCode,
-            amount: totalAmount,
-            description: `HOCPHI${parent.parentCode}`,
-            cancelUrl: process.env.PAYOS_CANCEL_URL,
-            returnUrl: process.env.PAYOS_RETURN_URL,
-        };
+            if (tuitions.length === 0) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({
+                    message: "Không có học phí nào cần thanh toán",
+                });
+            }
+            paymentData = {
+                orderCode: transactionCode,
+                amount: totalAmount,
+                description: `HOCPHI${parent.parentCode}`,
+                cancelUrl: process.env.PAYOS_CANCEL_URL,
+                returnUrl: process.env.PAYOS_RETURN_URL,
+            };
+        }
 
         const paymentLinkResponse = await payos.paymentRequests.create(paymentData);
 

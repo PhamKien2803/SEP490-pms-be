@@ -101,6 +101,11 @@ exports.registerEnrollController = async (req, res) => {
                 Parent.findOne({ active: true, IDCard: motherIdCard }),
             ]);
 
+            const [dataCheckEmailDad, dataCheckEmailMom] = await Promise.all([
+                User.findOne({ active: true, email: fatherEmail }),
+                User.findOne({ active: true, email: motherEmail }),
+            ])
+
             if (!dataCheckDad)
                 return res
                     .status(HTTP_STATUS.BAD_REQUEST)
@@ -110,6 +115,17 @@ exports.registerEnrollController = async (req, res) => {
                     .status(HTTP_STATUS.BAD_REQUEST)
                     .json({ message: "Không tìm thấy dữ liệu của mẹ" });
 
+            if (!dataCheckEmailDad) {
+                return res
+                    .status(HTTP_STATUS.BAD_REQUEST)
+                    .json({ message: "Email của cha không hợp lệ" });
+            }
+
+            if (!dataCheckEmailMom) {
+                return res
+                    .status(HTTP_STATUS.BAD_REQUEST)
+                    .json({ message: "Email của mẹ không hợp lệ" });
+            }
             newData = {
                 ...newData,
                 fatherName: dataCheckDad.fullName,
@@ -585,7 +601,10 @@ exports.approvedEnrollAllController = async (req, res) => {
                             studentName, studentDob, studentGender, studentIdCard,
                             studentNation, studentReligion, address, birthCertId, healthCertId,
                             fatherName, fatherGender, fatherPhoneNumber, fatherEmail, fatherIdCard, fatherJob,
-                            motherName, motherGender, motherPhoneNumber, motherEmail, motherIdCard, motherJob
+                            motherName, motherGender, motherPhoneNumber, motherEmail, motherIdCard, motherJob, 
+                            imageStudent
+
+
                         } = data;
 
                         /** --- Tạo học sinh mới --- **/
@@ -599,6 +618,7 @@ exports.approvedEnrollAllController = async (req, res) => {
                             nation: studentNation,
                             religion: studentReligion,
                             active: true,
+                            imageStudent: imageStudent,
                             address,
                             createdBy: "Hệ thống",
                             updatedBy: "Hệ thống",

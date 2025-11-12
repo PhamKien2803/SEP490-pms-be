@@ -45,6 +45,7 @@ exports.getListController = async (req, res) => {
         const data = await Tuition.find(queryString)
             .populate('studentId')
             .populate('schoolYear')
+            .populate('enrollementId')
             .skip(offset)
             .limit(limit);
 
@@ -66,14 +67,14 @@ exports.getListController = async (req, res) => {
             tuitionName: item.tuitionName,
             totalAmount: item.totalAmount,
             month: item.month,
-            schoolYear: item.schoolYear.schoolYear,
-            studentName: item.studentId.fullName,
+            schoolYear: item.schoolYear?.schoolYear,
+            studentName: item.studentId?.fullName || item.enrollementId?.studentName || null,
             state: item.state,
             createdBy: item.createdBy,
             updatedBy: item.updatedBy,
             createdAt: item.createdAt,
             updatedAt: item.updatedAt,
-        }))
+        }));
 
         const totalAmount = object.reduce((sum, item) => sum + item.totalAmount, 0);
 

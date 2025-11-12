@@ -68,6 +68,13 @@ exports.createStaffController = async (req, res) => {
       }
     }
 
+    const checkDataMail = await User.findOne({
+      active: { $eq: true },
+      email: email
+    })
+    if (checkDataMail) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Email không hợp lệ" });
+    }
     const staffSaved = await Staff.create([newData], { session });
 
     const userSaved = await User.create(

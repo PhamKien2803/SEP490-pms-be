@@ -1,6 +1,7 @@
 const express = require("express");
 const { getClassAndStudentByTeacherController, getByIdStudentController } = require("../controller/staffController");
 const { authorizeAction, verifyToken } = require("../middlewares/auth.middleware");
+const { getFileById } = require("../controller/fileController");
 const router = express.Router();
 
 router.get("/getClassByTeacher/:id",
@@ -14,5 +15,11 @@ router.get("/getByIdStudent/:id",
     authorizeAction("view"),
     getByIdStudentController
 )
+
+router.get("/pdf/:id",
+    verifyToken,
+    authorizeAction("export"),
+    getFileById
+);
 
 module.exports = router;

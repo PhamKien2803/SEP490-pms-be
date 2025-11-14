@@ -879,7 +879,8 @@ exports.getClassBySchoolYearController = async (req, res) => {
       active: { $eq: true }
     }, {
       classCode: 1,
-      className: 1
+      className: 1,
+      age: 1
     }).lean();
 
     return res.status(HTTP_STATUS.OK).json(dataClass);
@@ -943,9 +944,7 @@ exports.getScheduleByClassAndMonth = async (req, res) => {
     const schedules = await findSchedule(classId, numericMonth);
 
     if (schedules.length === 0) {
-      return res.status(404).json({
-        message: "Không tìm thấy lịch học theo lớp học và tháng đã chỉ định!"
-      });
+      return res.status(200).json([]);
     }
 
     return res.status(200).json(schedules);

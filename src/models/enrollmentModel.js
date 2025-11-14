@@ -58,14 +58,19 @@ const EnrollmentSchema = new mongoose.Schema(
     },
     motherJob: { type: String },
     reason: { type: String },
+    schoolYear: { type: mongoose.Schema.Types.ObjectId, ref: "SchoolYear", required: true },
+    imageStudent: { type: String },
+    statePayment: {
+      type: String,
+      enum: ["Chuyển khoản", "Tiền mặt"]
+    },
     state: {
       type: String,
-      enum: ["Chờ BGH phê duyệt", "Chờ xử lý", "Hoàn thành", "Chưa đủ điều kiện nhập học", "Xử lý lỗi", "Chờ xử lý tự động"],
+      enum: ["Chờ BGH phê duyệt", "Chờ xử lý", "Hoàn thành", "Chưa đủ điều kiện nhập học", "Chờ thanh toán", "Đã thanh toán"],
       default: "Chờ xử lý"
     },
     active: { type: String },
     approvedBy: { type: String },
-
   },
   { timestamps: true, versionKey: false }
 );

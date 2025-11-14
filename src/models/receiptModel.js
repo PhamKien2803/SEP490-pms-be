@@ -11,11 +11,12 @@ const ReceiptModel = new mongoose.Schema(
             }
         ],
         schoolYear: { type: mongoose.Schema.Types.ObjectId, ref: "SchoolYear", required: true },
-        month: { type: Number, required: true },
+        month: { type: Number },
         totalAmount: { type: Number, required: true },
         createdBy: { type: String },
         updatedBy: { type: String },
         active: { type: Boolean, default: true },
+        isEnroll: { type: Boolean, default: false },
         state: {
             type: String,
             enum: ["Chưa xác nhận", "Đã xác nhận"],

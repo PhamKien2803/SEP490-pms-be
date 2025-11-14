@@ -46,7 +46,10 @@ const guardianRoute = require("./routes/guardianRoute.js");
 const timetable = require("./routes/timetableRoute.js");
 const payment = require("./routes/paymentRoute.js");
 const balance = require("./routes/balanceRoute.js");
+// const postFileRoute = require("./routes/postFileRoute.js");
+const postRoute = require("./routes/postRoute.js");
 const document = require("./routes/documentRoute.js");
+const postDBRoute = require("./routes/postDBRoute.js");
 require("./helpers/emailWorkQueue.js");
 
 // Khai báo dotenv
@@ -95,6 +98,7 @@ app.use("/api/pms/dashboard-medicals", medicalDashboardRoute);
 app.use("/api/pms/dashboard-schedules", schedulesDBRoute);
 app.use("/api/pms/dashboard-feedbacks", feedbackDBRoute);
 app.use("/api/pms/dashboard-attendances", attendanceDBRoute);
+app.use("/api/pms/dashboard-posts", postDBRoute);
 app.use("/api/pms/dashboard-class", classDBRoute);
 app.use("/api/pms/services", services);
 app.use("/api/pms/guardians", guardianRoute);
@@ -106,6 +110,8 @@ app.use("/api/pms/tuition-manage", tuitionManage);
 app.use("/api/pms/tuitions", tuitions);
 app.use("/api/pms/payments", payment);
 app.use("/api/pms/balances", balance);
+// app.use("/api/pms/post-files", postFileRoute);
+app.use("/api/pms/posts", postRoute);
 app.use("/api/pms/documents", document);
 
 

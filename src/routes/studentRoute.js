@@ -3,7 +3,7 @@ const router = express.Router();
 const User = require("../models/userModel");
 const Student = require("../models/studentModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
-const studentController = require("../controller/studentController");
+const { getByIdController } = require("../controller/studentController");
 const { createGeneric, deletedSoftGeneric, findAllGeneric, updateGeneric } = require("../controller/useController");
 
 router.get("/list",
@@ -29,5 +29,11 @@ router.post("/delete/:id",
     authorizeAction("delete"),
     deletedSoftGeneric(Student)
 );
+
+router.get("/getById/:id",
+    verifyToken,
+    authorizeAction("view"),
+    getByIdController
+)
 
 module.exports = router;

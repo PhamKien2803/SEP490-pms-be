@@ -214,7 +214,7 @@ exports.getByIdController = async (req, res) => {
       })
       .populate({
         path: "students.student",
-        select: "studentCode fullName gender classGroup dob address"
+        select: "studentCode fullName gender classGroup dob address imageStudent"
       })
       .populate({
         path: "students.guardian",

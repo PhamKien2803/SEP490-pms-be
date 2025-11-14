@@ -23,6 +23,7 @@ const StudentSchema = new mongoose.Schema(
         healthCertId: { type: mongoose.Schema.Types.ObjectId, },
         graduated: { type: Boolean },
         graduatedAt: { type: Date },
+        imageStudent: { type: String },
         active: { type: Boolean },
         createdBy: { type: String },
         updatedBy: { type: String },

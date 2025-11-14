@@ -25,21 +25,21 @@ const SchoolYearSchema = new mongoose.Schema(
   { timestamps: true, versionKey: false }
 );
 
-SchoolYearSchema.pre("validate", function (next) {
-  const startDate = new Date(this.startDate);
-  const endDate = new Date(this.endDate);
-  const enrollmentStart = new Date(this.enrollmentStartDate);
-  const enrollmentEnd = new Date(this.enrollmentEndDate);
+// SchoolYearSchema.pre("validate", function (next) {
+//   const startDate = new Date(this.startDate);
+//   const endDate = new Date(this.endDate);
+//   const enrollmentStart = new Date(this.enrollmentStartDate);
+//   const enrollmentEnd = new Date(this.enrollmentEndDate);
 
-  if (enrollmentStart < startDate || enrollmentEnd > endDate) {
-    return next(
-      new Error(
-        "Thời gian tuyển sinh phải nằm trong khoảng thời gian của năm học"
-      )
-    );
-  }
+//   if (enrollmentStart < startDate || enrollmentEnd > endDate) {
+//     return next(
+//       new Error(
+//         "Thời gian tuyển sinh phải nằm trong khoảng thời gian của năm học"
+//       )
+//     );
+//   }
 
-  next();
-});
+//   next();
+// });
 
 module.exports = mongoose.model("SchoolYear", SchoolYearSchema);

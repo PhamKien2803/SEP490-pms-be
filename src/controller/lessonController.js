@@ -547,8 +547,14 @@ exports.getTimeTableByTeacherController = async (req, res) => {
             })
             .lean();
 
-            
-          const newObject = {
+        if (!scheduleData) {
+            return res.status(HTTP_STATUS.OK).json({
+                message: "Không tìm thấy lịch học",
+                data: []
+            })
+        }
+
+        const newObject = {
             _id: scheduleData._id,
             classId: scheduleData.class._id,
             classCode: scheduleData.class.classCode,
@@ -570,9 +576,6 @@ exports.getTimeTableByTeacherController = async (req, res) => {
                     tittle: act.tittle,
                 }))
             }))
-        }    
-        if (!scheduleData) {
-            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy thời khóa biểu" });
         }
         return res.status(HTTP_STATUS.OK).json(newObject);
     } catch (error) {

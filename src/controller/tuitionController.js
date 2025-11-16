@@ -409,19 +409,44 @@ exports.getHistoryFeeController = async (req, res) => {
                 .json("Không tìm thấy phụ huynh");
         }
 
-        const students = dataParent.students;
+        const parentIdCard = dataParent.IDCard;
+        if (!parentIdCard) {
+            return res.status(400).json("Phụ huynh chưa có IDCard");
+        }
+
+        const enrollments = await Enrollment.find({
+            $or: [
+                { fatherIdCard: parentIdCard },
+                { motherIdCard: parentIdCard }
+            ]
+        }).lean();
+
+        // 💡 Chuẩn bị list ID
+        let studentIds = [];
+        let enrollmentIds = [];
+
+        if (enrollments.length > 0) {
+            enrollmentIds = enrollments.map(e => e._id.toString());
+        } else {
+            // 🔥 fallback logic cũ
+            studentIds = dataParent.students.map(s => s.toString());
+        }
 
         const dataSchoolYear = await SchoolYear.findOne({
-            schoolYear: schoolYear,
-            state: "Đang hoạt động"
-        })
+            schoolYear,
+            state: "Đang hoạt động",
+        });
         if (!dataSchoolYear) {
             return res
                 .status(HTTP_STATUS.BAD_REQUEST)
                 .json("Không tìm thấy thông tin năm học");
         }
+
         const dataTuition = await Tuition.find({
-            studentId: { $in: students },
+            $or: [
+                { studentId: { $in: studentIds } },
+                { enrollementId: { $in: enrollmentIds } }
+            ],
             schoolYear: dataSchoolYear._id
         })
             .populate({
@@ -433,10 +458,11 @@ exports.getHistoryFeeController = async (req, res) => {
             })
             .populate("schoolYear")
             .populate("studentId")
+            .populate("enrollementId")
             .lean();
 
         const dataService = await Service.find({
-            student: { $in: students },
+            student: { $in: studentIds },
             active: true,
         })
             .populate("revenue")
@@ -453,7 +479,7 @@ exports.getHistoryFeeController = async (req, res) => {
                 })) || [];
 
             const studentServices = dataService.filter(
-                (sv) => sv.student.toString() === item.studentId.toString()
+                (sv) => sv.student.toString() === item.studentId?.toString()
             );
 
             const serviceRevenueList = studentServices.map((sv) => ({
@@ -473,8 +499,12 @@ exports.getHistoryFeeController = async (req, res) => {
                     item.totalAmount +
                     serviceRevenueList.reduce((sum, s) => sum + s.amount, 0),
                 state: item.state,
-                studentId: item.studentId?._id,
-                studentName: item.studentId?.fullName,
+
+                studentId: item.studentId?._id || item.enrollementId?.studentId,
+                studentName:
+                    item.studentId?.fullName ||
+                    item.enrollementId?.studentName,
+
                 schoolYear: item.schoolYear?.schoolYear,
                 receiptCode: item.receipt?.receiptCode,
                 receiptName: item.receipt?.receiptName,
@@ -485,16 +515,19 @@ exports.getHistoryFeeController = async (req, res) => {
         });
 
         const totalAmount = result.reduce((sum, s) => sum + s.totalAmount, 0);
+
         return res.status(HTTP_STATUS.OK).json({
             message: "Lấy lịch sử học phí thành công",
             data: result,
-            totalAmount: totalAmount
+            totalAmount,
         });
+
     } catch (error) {
-        console.error(err);
+        console.error(error);
         return res.status(500).json({ success: false, message: "Lỗi server" });
     }
-}
+};
+
 
 exports.getBalanceDetailController = async (req, res) => {
     try {
@@ -515,4 +548,3 @@ exports.getBalanceDetailController = async (req, res) => {
         return res.status(HTTP_STATUS.SERVER_ERROR).json({ success: false, error });
     }
 };
-

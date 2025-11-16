@@ -3,7 +3,7 @@ const router = express.Router();
 const Room = require("../models/roomModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
-const { getByIdRoomController } = require("../controller/roomController");
+const { getByIdRoomController, getRoomByTeacher } = require("../controller/roomController");
 
 router.get(
     "/list",
@@ -37,6 +37,12 @@ router.get("/getById/:id",
     verifyToken,
     authorizeAction("view"),
     getByIdRoomController
+);
+
+router.get("/getByTeacher/:id",
+    verifyToken,
+    authorizeAction("view"),
+    getRoomByTeacher
 );
 
 module.exports = router;

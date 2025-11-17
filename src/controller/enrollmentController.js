@@ -26,7 +26,7 @@ const { emailQueue } = require('../configs/queue');
 
 
 
-const getAge = (dob) => {
+const getAge = async (dob) => {
     if (!dob) return null;
     const birth = new Date(dob);
     const today = new Date();
@@ -85,8 +85,10 @@ exports.registerEnrollController = async (req, res) => {
         }
 
         if (motherDob && fatherDob) {
-            const motherAge = getAge(motherDob);
-            const fatherAge = getAge(fatherDob);
+            const motherAge = await getAge(motherDob);
+            console.log("[Bthieu] ~ motherAge:", motherAge)
+            const fatherAge = await getAge(fatherDob);
+            console.log("[Bthieu] ~ fatherAge:", fatherAge)
             if (motherAge !== null && motherAge < 18) {
                 return res.status(HTTP_STATUS.BAD_REQUEST).json({
                     message: "Tuổi của mẹ phải lớn hơn hoặc bằng 18."

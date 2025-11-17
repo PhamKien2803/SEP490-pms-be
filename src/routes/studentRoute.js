@@ -6,6 +6,10 @@ const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware
 const { getByIdController, createStudentEnroll } = require("../controller/studentController");
 const { uploadImageController } = require("../controller/enrollmentController")
 const { createGeneric, deletedSoftGeneric, findAllGeneric, updateGeneric } = require("../controller/useController");
+const { uploadFile, getFileById } = require("../controller/fileController");
+const multer = require('multer');
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 router.get("/list",
     verifyToken,

@@ -24,6 +24,21 @@ const SMTP = require('../helpers/stmpHelper');
 const IMAP = require('../helpers/iMapHelper');
 const { emailQueue } = require('../configs/queue');
 
+
+
+const getAge = (dob) => {
+    if (!dob) return null;
+    const birth = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+        age--;
+    }
+    return age;
+};
+
 exports.registerEnrollController = async (req, res) => {
     try {
         const {
@@ -35,22 +50,55 @@ exports.registerEnrollController = async (req, res) => {
             fatherPhoneNumber,
             motherPhoneNumber,
             isCheck,
+            motherDob,
+            fatherDob
         } = req.body;
 
         const date = new Date();
         const year = date.getFullYear();
         const nextYear = year + 1;
+
         const queryString = {
             active: { $eq: true },
             state: "Đang hoạt động",
             schoolYear: `${year}-${nextYear}`
         }
+
         const dataSchoolYear = await SchoolYear.findOne(queryString);
+
         if (!dataSchoolYear) {
-            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Nhà trường chưa có kế hoạch tuyển sinh" });
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                message: "Nhà trường chưa có kế hoạch tuyển sinh"
+            });
         }
-        const enrollmentStartDate = new Date(dataSchoolYear.enrollmentStartDate).toLocaleDateString("vi-VN");
-        const enrollmentEndDate = new Date(dataSchoolYear.enrollmentEndDate).toLocaleDateString("vi-VN");
+
+        const enrollmentStart = new Date(dataSchoolYear.enrollmentStartDate);
+        const enrollmentEnd = new Date(dataSchoolYear.enrollmentEndDate);
+
+        const enrollmentStartDate = enrollmentStart.toLocaleDateString("vi-VN");
+        const enrollmentEndDate = enrollmentEnd.toLocaleDateString("vi-VN");
+
+        if (date < enrollmentStart || date > enrollmentEnd) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                message: `Nhà trường đã kết thúc tuyển sinh (thời gian: ${enrollmentStartDate} - ${enrollmentEndDate})`
+            });
+        }
+
+        if (motherDob && fatherDob) {
+            const motherAge = getAge(motherDob);
+            const fatherAge = getAge(fatherDob);
+            if (motherAge !== null && motherAge < 18) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                    message: "Tuổi của mẹ phải lớn hơn hoặc bằng 18."
+                });
+            }
+
+            if (fatherAge !== null && fatherAge < 18) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                    message: "Tuổi của bố phải lớn hơn hoặc bằng 18."
+                });
+            }
+        }
 
         const validateDuplicates = (values) => {
             const filtered = values.filter(Boolean);
@@ -253,7 +301,6 @@ exports.approvedEnrollController = async (req, res) => {
         });
 
         const dataSave = await enrollment.save({ session });
-        console.log("[Bthieu] ~ dataSave:", dataSave);
         const statePayment = dataSave.statePayment
         // Tìm khoản thu nhập học
         const receiptData = await Receipt.findOne({
@@ -262,7 +309,6 @@ exports.approvedEnrollController = async (req, res) => {
             isEnroll: true
         }).session(session);
 
-        console.log("receiptData", receiptData);
         if (!receiptData) {
             await session.abortTransaction();
             session.endSession();
@@ -287,10 +333,8 @@ exports.approvedEnrollController = async (req, res) => {
         if (statePayment === "Chuyển khoản") {
             const role = await Role.findOne({ roleName: "Parent Portal" }).session(session);
 
-            console.log("1111111111");
             // Dad
             let dad = await Parent.findOne({ active: true, IDCard: dataSave.fatherIdCard }).session(session);
-            console.log("[Bthieu] ~ dad:", dad);
             if (!dad) {
                 const seqDad = await processSequenceCode(Parent);
                 dad = await Parent.create({
@@ -300,6 +344,7 @@ exports.approvedEnrollController = async (req, res) => {
                     email: dataSave.fatherEmail,
                     gender: dataSave.fatherGender,
                     IDCard: dataSave.fatherIdCard,
+                    dob: dataSave.fatherDob,
                     job: dataSave.fatherJob,
                     isPreview: true,
                     active: true,
@@ -320,7 +365,6 @@ exports.approvedEnrollController = async (req, res) => {
 
             // Mom
             let mom = await Parent.findOne({ active: true, IDCard: dataSave.motherIdCard }).session(session);
-            console.log("[Bthieu] ~ mom:", mom);
             if (!mom) {
                 const seqMom = await processSequenceCode(Parent);
                 mom = await Parent.create({
@@ -330,6 +374,7 @@ exports.approvedEnrollController = async (req, res) => {
                     email: dataSave.motherEmail,
                     gender: dataSave.motherGender,
                     IDCard: dataSave.motherIdCard,
+                    dob: dataSave.motherDob,
                     job: dataSave.motherJob,
                     isPreview: true,
                     active: true,
@@ -448,7 +493,6 @@ exports.paymentEnrollmentController = async (req, res) => {
     }
 };
 
-
 exports.getByIdController = async (req, res) => {
     try {
         const gfs = getGFS();
@@ -565,11 +609,6 @@ const processSequenceCode = async (Model) => {
     return sequenceCode;
 }
 
-
-
-//add học sinh vào và xóa quyền role đi
-
-
 exports.approvedEnrollAllController = async (req, res) => {
     try {
         const pending = await Enrollment.find({ state: "Chờ BGH phê duyệt" });
@@ -601,7 +640,7 @@ exports.approvedEnrollAllController = async (req, res) => {
                             studentName, studentDob, studentGender, studentIdCard,
                             studentNation, studentReligion, address, birthCertId, healthCertId,
                             fatherName, fatherGender, fatherPhoneNumber, fatherEmail, fatherIdCard, fatherJob,
-                            motherName, motherGender, motherPhoneNumber, motherEmail, motherIdCard, motherJob, 
+                            motherName, motherGender, motherPhoneNumber, motherEmail, motherIdCard, motherJob,
                             imageStudent
 
 
@@ -752,7 +791,6 @@ exports.approvedEnrollAllController = async (req, res) => {
         });
     }
 };
-
 
 exports.uploadImageController = async (req, res) => {
     try {

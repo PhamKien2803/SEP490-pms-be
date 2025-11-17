@@ -41,9 +41,10 @@ const ParentSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Student"
         }],
+        dob: { type: String },
         address: { type: String },
         job: { type: String },
-        isPreview: {type: Boolean, default: false},
+        isPreview: { type: Boolean, default: false },
         createdBy: { type: String },
         updatedBy: { type: String },
         active: { type: Boolean, default: true }

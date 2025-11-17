@@ -7,6 +7,7 @@ const connectDB = require("./configs/database");
 const cookieParser = require("cookie-parser");
 const { connectGridFS } = require("./configs/gridfs");
 // Khai báo routes
+require(".//helpers/botEnrollmentCheck.js");
 const student = require("./routes/studentRoute");
 const parent = require("./routes/parentRoute");
 const auth = require("./routes/authRoute");

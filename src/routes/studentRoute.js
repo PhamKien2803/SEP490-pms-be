@@ -3,7 +3,8 @@ const router = express.Router();
 const User = require("../models/userModel");
 const Student = require("../models/studentModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
-const { getByIdController } = require("../controller/studentController");
+const { getByIdController, createStudentEnroll } = require("../controller/studentController");
+const { uploadImageController } = require("../controller/enrollmentController")
 const { createGeneric, deletedSoftGeneric, findAllGeneric, updateGeneric } = require("../controller/useController");
 
 router.get("/list",
@@ -15,7 +16,7 @@ router.get("/list",
 router.post("/create",
     verifyToken,
     authorizeAction("create"),
-    createGeneric(Student)
+    createStudentEnroll
 );
 
 router.put("/update/:id",
@@ -34,6 +35,12 @@ router.get("/getById/:id",
     verifyToken,
     authorizeAction("view"),
     getByIdController
+)
+
+router.post(
+    "/uploadImage",
+    upload.single('image'),
+    uploadImageController
 )
 
 module.exports = router;

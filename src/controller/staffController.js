@@ -10,6 +10,7 @@ const User = require("../models/userModel");
 const Class = require("../models/classModel");
 const Student = require("../models/studentModel");
 const SchoolYear = require("../models/schoolYearModel");
+const Role = require('../models/roleModel');
 const { sequencePattern } = require('../helpers/useHelpers');
 const { SEQUENCE_CODE } = require('../constants/useConstants');
 const SMTP = require('../helpers/stmpHelper');
@@ -77,12 +78,17 @@ exports.createStaffController = async (req, res) => {
     }
     const staffSaved = await Staff.create([newData], { session });
 
+    const dataRole = await Role.findOne({
+      active: {$eq: true},
+      roleName: "Giáo Viên"
+    })
     const userSaved = await User.create(
       [
         {
           email,
           password: "12345678",
           staff: staffSaved[0]._id,
+          roleList: [dataRole._id],
           createBy,
           active: true,
         },

@@ -2,13 +2,21 @@ const express = require("express");
 const router = express.Router();
 const Parent = require("../models/parentModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
-const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
+const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric, getByIdGeneric } = require('../controller/useController');
+const { getByIdParentController } = require("../controller/studentController");
 
 router.get(
     "/list",
     verifyToken,
     authorizeAction("view"),
     findAllGeneric(Parent)
+);
+
+router.get(
+    "/getById/:id",
+    verifyToken,
+    authorizeAction("view"),
+    getByIdParentController
 );
 
 router.post(

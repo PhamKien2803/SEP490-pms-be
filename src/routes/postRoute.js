@@ -4,10 +4,12 @@ const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const Post = require("../models/postModel");
+const PostFile = require("../models/postFileModel");
 const { deletedSoftGeneric, findAllGeneric, updateGeneric, createGeneric } = require("../controller/useController");
 const { getByIdPostController, getPostByClass } = require("../controller/postFileController");
 const upload = multer({ dest: "uploads/" });
 const { getAllPostFileByTeacher, getClassByTeacher } = require("../controller/postFileController");
+const fs = require("fs");
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,

@@ -18,6 +18,7 @@ const IMAP = require('../helpers/iMapHelper');
 const { getGFS } = require("../configs/gridfs");
 const { HTTP_STATUS, RESPONSE_MESSAGE, USER_ROLES, VALIDATION_CONSTANTS } = require('../constants/useConstants');
 const Guardian = require("../models/guardianModel");
+const bcrypt = require("bcryptjs");
 
 exports.createStaffController = async (req, res) => {
   const session = await Staff.startSession();
@@ -326,3 +327,101 @@ exports.getByIdStudentController = async (req, res) => {
   }
 };
 
+exports.getInforTeacher = async (req, res) => {
+  try {
+    const { staffId } = req.params;
+
+    if (!staffId) {
+      return res.status(400).json({ message: "Missing staffId" });
+    }
+
+    const staff = await Staff.findById(staffId);
+
+    if (!staff) {
+      return res.status(404).json({ message: "Teacher not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: staff,
+    });
+  } catch (error) {
+    console.error("❌ getInforTeacher Error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+exports.changePasswordTeacher = async (req, res) => {
+  try {
+    const { staffId } = req.params;
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({
+        message: "Mật khẩu mới hoặc mật khẩu cũ không hợp lệ!",
+      });
+    }
+
+    const user = await User.findOne({ staff: staffId });
+
+    if (!user) {
+      return res.status(404).json({ message: "Không tìm thấy người dùng!" });
+    }
+
+    // Kiểm tra mật khẩu cũ
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Mật khẩu cũ không hợp lệ!" });
+    }
+
+    // Cập nhật mật khẩu mới
+    user.password = newPassword;
+    await user.save(); // sẽ tự hash thanks to pre("save")
+
+    return res.status(200).json({
+      success: true,
+      message: "Đổi mật khẩu thành công!",
+    });
+  } catch (error) {
+    console.error("❌ changePasswordTeacher Error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+exports.updateInforTeacher = async (req, res) => {
+  try {
+    const { staffId } = req.params;
+
+    if (!staffId) {
+      return res.status(400).json({ message: "Missing staffId" });
+    }
+
+    const updateData = req.body;
+
+    const updatedStaff = await Staff.findByIdAndUpdate(
+      staffId,
+      updateData,
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!updatedStaff) {
+      return res.status(404).json({ message: "Teacher not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Teacher information updated successfully",
+      data: updatedStaff,
+    });
+  } catch (error) {
+    console.error("❌ updateInforTeacher Error:", error);
+
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Invalid data",
+    });
+  }
+};

@@ -5,6 +5,7 @@ const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
 const { getListRoleController } = require("../controller/roleController");
 const { getListUser } = require("../controller/authController");
+const { changePasswordTeacher, getInforTeacher, updateInforTeacher } = require("../controller/staffController");
 
 router.get(
     "/list",
@@ -39,6 +40,24 @@ router.put(
     verifyToken,
     authorizeAction("update"),
     updateGeneric(User)
+);
+
+router.get("/getInforTeacher/:staffId",
+    verifyToken,
+    authorizeAction("view"),
+    getInforTeacher
+);
+
+router.put("/changePasswordTeacher/:staffId",
+    verifyToken,
+    authorizeAction("update"),
+    changePasswordTeacher
+);
+
+router.put("/updateInforTeacher/:staffId",
+    verifyToken,
+    authorizeAction("update"),
+    updateInforTeacher
 );
 
 module.exports = router;

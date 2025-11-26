@@ -75,7 +75,8 @@
     "holidayEndDate": "Thời gian kết thúc",
     "revenueCode": "Mã khoản thu",
     "revenueName": "Tên khoản thu",
-    "amount": "Số tiền"
+    "amount": "Số tiền",
+    "roleName": "Tên vai trò"
   },
   "messages": {
     "alreadyExists": "{{field}} đã tồn tại",

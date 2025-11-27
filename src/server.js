@@ -51,6 +51,7 @@ const balance = require("./routes/balanceRoute.js");
 const postRoute = require("./routes/postRoute.js");
 const document = require("./routes/documentRoute.js");
 const postDBRoute = require("./routes/postDBRoute.js");
+const parentInfoRoute = require("./routes/parentInfoRoute.js");
 require("./helpers/emailWorkQueue.js");
 
 // Khai báo dotenv
@@ -114,6 +115,7 @@ app.use("/api/pms/balances", balance);
 // app.use("/api/pms/post-files", postFileRoute);
 app.use("/api/pms/posts", postRoute);
 app.use("/api/pms/documents", document);
+app.use("/api/pms/parents-profile", parentInfoRoute);
 
 
 // route test

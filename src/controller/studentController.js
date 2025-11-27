@@ -59,11 +59,13 @@ exports.getStudentByParentController = async (req, res) => {
                 fullName: parent.fullName,
                 phoneNumber: parent.phoneNumber,
                 email: parent.email,
+                job: parent.job,
+                idCard: parent.IDCard
             },
             students: parent.students || [],
         });
     } catch (error) {
-        console.error("❌ Lỗi khi lấy học sinh theo phụ huynh:", error);
+        console.error("Lỗi khi lấy học sinh theo phụ huynh:", error);
         res.status(500).json({
             success: false,
             message: "Lỗi máy chủ",

@@ -203,8 +203,6 @@ const assignStudentsAndTeachersToClass = (classes, studentsByAge, teachersAvaila
     return classList;
 };
 
-
-
 exports.asyncClassController = async (req, res) => {
     try {
         const dataSchoolYear = await SchoolYear.findOne({ active: true, state: "Đang hoạt động" });
@@ -298,7 +296,6 @@ exports.getAvailableClassStudentController = async (req, res) => {
     }
 };
 
-
 exports.getAvailableClassTeacherController = async (req, res) => {
     try {
         const { classAge } = req.query;
@@ -338,7 +335,6 @@ exports.getAvailableClassTeacherController = async (req, res) => {
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
     }
 };
-
 
 exports.changeClassStudentController = async (req, res) => {
     try {
@@ -443,55 +439,129 @@ exports.changeClassTeacherController = async (req, res) => {
 };
 
 exports.getClassByStudentAndSchoolYear = async (req, res) => {
-  try {
-    const { studentId, schoolYearId } = req.query;
+    try {
+        const { studentId, schoolYearId } = req.query;
 
-    if (!studentId || !schoolYearId) {
-      return res.status(400).json({
-        success: false,
-        message: "Cần có thông tin của học sinh và năm học để tìm kiếm",
-      });
+        if (!studentId || !schoolYearId) {
+            return res.status(400).json({
+                success: false,
+                message: "Cần có thông tin của học sinh và năm học để tìm kiếm",
+            });
+        }
+
+        const classFound = await Class.findOne({
+            schoolYear: schoolYearId,
+            students: { $in: [studentId] },
+            active: true,
+        })
+            .populate({
+                path: "students",
+                select: "studentCode fullName gender",
+            })
+            .populate({
+                path: "teachers",
+                select: "teacherCode fullName phoneNumber",
+            })
+            .populate({
+                path: "schoolYear",
+                select: "schoolyearCode schoolYear",
+            })
+            .populate({
+                path: "room",
+                select: "roomCode roomName",
+            });
+
+        if (!classFound) {
+            return res.status(404).json({
+                success: false,
+                message: "Không tìm thấy lớp cho học sinh trong năm học này",
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            class: classFound,
+        });
+    } catch (error) {
+        console.error("❌ Lỗi getClassByStudentAndSchoolYear:", error);
+        res.status(500).json({
+            success: false,
+            message: "Lỗi máy chủ",
+            error: error.message,
+        });
     }
+};
 
-    const classFound = await Class.findOne({
-      schoolYear: schoolYearId,
-      students: { $in: [studentId] },
-      active: true,
-    })
-      .populate({
-        path: "students",
-        select: "studentCode fullName gender",
-      })
-      .populate({
-        path: "teachers",
-        select: "teacherCode fullName phoneNumber",
-      })
-      .populate({
-        path: "schoolYear",
-        select: "schoolyearCode schoolYear",
-      })
-      .populate({
-        path: "room",
-        select: "roomCode roomName",
-      });
+exports.getClassCountBySchoolYear = async (req, res) => {
+    try {
+        const total = await Staff.countDocuments({ isTeacher: true });
 
-    if (!classFound) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy lớp cho học sinh trong năm học này",
-      });
+        const result = await Class.aggregate([
+            {
+                $group: {
+                    _id: "$schoolYear",
+                    totalClasses: { $sum: 1 },
+                    teachers: { $push: "$teachers" },
+                    students: { $push: "$students" }
+                },
+            },
+
+            // Lấy thông tin SchoolYear
+            {
+                $lookup: {
+                    from: "schoolyears",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "schoolYearInfo",
+                },
+            },
+            { $unwind: "$schoolYearInfo" },
+
+            // Gộp teacher và student, loại trùng
+            {
+                $addFields: {
+                    teachers: {
+                        $reduce: {
+                            input: "$teachers",
+                            initialValue: [],
+                            in: { $setUnion: ["$$value", "$$this"] }
+                        }
+                    },
+                    students: {
+                        $reduce: {
+                            input: "$students",
+                            initialValue: [],
+                            in: { $setUnion: ["$$value", "$$this"] }
+                        }
+                    }
+                }
+            },
+
+            {
+                $project: {
+                    _id: 0,
+                    schoolYearId: "$_id",
+                    totalClasses: 1,
+                    totalStudents: { $size: "$students" },   // 👈 Thêm dòng này
+                    schoolYear: {
+                        _id: "$schoolYearInfo._id",
+                        schoolyearCode: "$schoolYearInfo.schoolyearCode",
+                        schoolYear: "$schoolYearInfo.schoolYear",
+                        startDate: "$schoolYearInfo.startDate",
+                        endDate: "$schoolYearInfo.endDate",
+                        state: "$schoolYearInfo.state",
+                        isPublished: "$schoolYearInfo.isPublished",
+                        active: "$schoolYearInfo.active",
+                    }
+                },
+            },
+
+            { $sort: { "schoolYear.startDate": 1 } }
+        ]);
+
+        res.status(200).json({ success: true, totalTeachers: total, data: result });
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({ success: false, message: "Lỗi server!" });
     }
-
-    res.status(200).json({
-      success: true,
-      class: classFound,
-    });
-  } catch (error) {
-    console.error("❌ Lỗi getClassByStudentAndSchoolYear:", error);
-    res.status(500).json({
-      success: false,
-      message: "Lỗi máy chủ",
-      error: error.message,
-    });
-  }
 };

@@ -6,8 +6,11 @@ const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = req
 const { getAllClassController, getByIdClassController, getAvailableStudentController,
     getAvailableTeacherController, getAvailableRoomController, asyncClassController,
     getAvailableClassStudentController, getAvailableClassTeacherController,
-    changeClassStudentController, changeClassTeacherController
+    changeClassStudentController, changeClassTeacherController,
+    getClassCountBySchoolYear,
+    totalTeacher
 } = require("../controller/classController");
+const { getInforTeacher, changePasswordTeacher, updateInforTeacher } = require("../controller/staffController");
 
 router.get("/list",
     verifyToken,
@@ -87,5 +90,10 @@ router.post("/teacherChangeClass",
     changeClassTeacherController
 )
 
+router.get("/classStatistics",
+    verifyToken,
+    authorizeAction("view"),
+    getClassCountBySchoolYear
+)
 
 module.exports = router;

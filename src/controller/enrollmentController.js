@@ -75,8 +75,15 @@ exports.registerEnrollController = async (req, res) => {
         const enrollmentStart = new Date(dataSchoolYear.enrollmentStartDate);
         const enrollmentEnd = new Date(dataSchoolYear.enrollmentEndDate);
 
-        const enrollmentStartDate = enrollmentStart.toLocaleDateString("vi-VN");
-        const enrollmentEndDate = enrollmentEnd.toLocaleDateString("vi-VN");
+        const enrollmentStartDate = enrollmentStart.toLocaleDateString("vi-VN", {
+            timeZone: "Asia/Ho_Chi_Minh"
+        });
+        console.log("[Bthieu] ~ enrollmentStartDate:", enrollmentStartDate)
+        const enrollmentEndDate = enrollmentEnd.toLocaleDateString("vi-VN", {
+            timeZone: "Asia/Ho_Chi_Minh"
+        });
+        console.log("[Bthieu] ~ enrollmentEndDate:", enrollmentEndDate)
+
 
         if (date < enrollmentStart || date > enrollmentEnd) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({

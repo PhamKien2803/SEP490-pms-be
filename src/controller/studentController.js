@@ -143,25 +143,6 @@ exports.createStudentEnroll = async (req, res) => {
         }
 
         const dataSchoolYear = await SchoolYear.findOne(queryString);
-
-        if (!dataSchoolYear) {
-            return res.status(HTTP_STATUS.BAD_REQUEST).json({
-                message: "Nhà trường chưa có kế hoạch tuyển sinh"
-            });
-        }
-
-        const enrollmentStart = new Date(dataSchoolYear.enrollmentStartDate);
-        const enrollmentEnd = new Date(dataSchoolYear.enrollmentEndDate);
-
-        const enrollmentStartDate = enrollmentStart.toLocaleDateString("vi-VN");
-        const enrollmentEndDate = enrollmentEnd.toLocaleDateString("vi-VN");
-
-        if (date < enrollmentStart || date > enrollmentEnd) {
-            return res.status(HTTP_STATUS.BAD_REQUEST).json({
-                message: `Nhà trường đã kết thúc tuyển sinh (thời gian: ${enrollmentStartDate} - ${enrollmentEndDate})`
-            });
-        }
-
         if (motherDob && fatherDob) {
             const motherAge = getAge(motherDob);
             const fatherAge = getAge(fatherDob);

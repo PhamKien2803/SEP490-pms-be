@@ -180,6 +180,7 @@ exports.confirmReceiptController = async (req, res) => {
             });
 
             for (const item of results) {
+                if(!dadEmail || !momEmail) continue;
                 const { dadEmail, momEmail, studentName, month } = item;
                 setImmediate(async () => {
                     try {

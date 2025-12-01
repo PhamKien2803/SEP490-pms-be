@@ -19,7 +19,14 @@ exports.getAllClassController = async (req, res) => {
 
         const dataSchoolYear = await SchoolYear.findOne({ schoolYear: year });
         if (!dataSchoolYear) {
-            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy dữ liệu năm học" });
+          return res.status(HTTP_STATUS.OK).json({
+            data: [],
+            page: {
+              totalCount: 0,
+              limit,
+                page,
+            },
+          });
         }
         let queryString = {
             active: { $eq: true },
@@ -30,7 +37,18 @@ exports.getAllClassController = async (req, res) => {
         const data = await Class.find(queryString).populate("schoolYear room")
             .skip(offset)
             .limit(limit);
+        console.log("[Bthieu] ~ data:", data);
 
+        if (!data || data.length === 0) {
+            return res.status(HTTP_STATUS.OK).json({
+                data: [],
+                page: {
+                    totalCount: 0,
+                    limit,
+                    page,
+                },
+            });
+        }
         const newObject = data.map(item => ({
             "_id": item._id,
             "classCode": item.classCode,
@@ -41,11 +59,6 @@ exports.getAllClassController = async (req, res) => {
             "room": item.room?.roomName,
             "schoolYear": item.schoolYear.schoolYear
         }))
-        if (!data || data.length === 0) {
-            return res
-                .status(HTTP_STATUS.BAD_REQUEST)
-                .json("Không tìm thấy dữ liệu");
-        }
 
         return res.status(HTTP_STATUS.OK).json({
             data: newObject,

@@ -73,6 +73,16 @@ exports.registerEnrollController = async (req, res) => {
             });
         }
 
+        const countEnrollment = await Enrollment.countDocuments({
+            schoolYear: dataSchoolYear._id,
+        });
+        
+        if (countEnrollment >= dataSchoolYear.numberTarget) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                message: "Số lượng hồ sơ tuyển sinh đã đạt giới hạn"
+            });
+}
+
         const enrollmentStart = new Date(dataSchoolYear.enrollmentStartDate);
         const enrollmentEnd = new Date(dataSchoolYear.enrollmentEndDate);
 

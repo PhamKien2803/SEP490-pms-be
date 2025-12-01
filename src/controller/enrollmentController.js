@@ -229,7 +229,7 @@ exports.registerEnrollController = async (req, res) => {
             const messages = missingFields.map((field) =>
                 i18n.t("messages.required", { field: i18n.t(`fields.${field}`) })
             );
-            return res.status(HTTP_STATUS.BAD_REQUEST).json(messages.join(", "));
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({messages: messages.join(", ")});
         }
 
 

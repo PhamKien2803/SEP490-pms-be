@@ -155,6 +155,95 @@ exports.createSchoolYearController = async (req, res) => {
     }
 }
 
+exports.updateSchoolYearController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const data = await SchoolYear.findById(id);
+    if (!data) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json(RESPONSE_MESSAGE.NOT_FOUND);
+    }
+
+    Object.assign(data, req.body);
+
+    const {
+      startDate,
+      endDate,
+      enrollmentStartDate,
+      enrollmentEndDate,
+      serviceStartTime,
+      serviceEndTime,
+    } = req.body;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const enrollStart = new Date(enrollmentStartDate);
+    const enrollEnd = new Date(enrollmentEndDate);
+    const serviceStart = new Date(serviceStartTime);
+    const serviceEnd = new Date(serviceEndTime);
+
+    const startYearNumber = start.getFullYear();
+    const endYearNumber = end.getFullYear();
+    const currentYearNumber = new Date().getFullYear();
+
+    if (endYearNumber !== startYearNumber + 1) {
+      return res.status(400).json({
+        message: "Thời gian bắt đầu và thời gian kết thúc không hợp lệ",
+      });
+    }
+
+    if (startYearNumber < currentYearNumber - 1) {
+      return res.status(400).json({
+        message: "Thời gian bắt đầu không hợp lệ",
+      });
+    }
+
+    if (enrollStart < start || enrollEnd > end) {
+      return res.status(400).json({
+        message: "Thời gian tuyển sinh phải nằm trong khoảng năm học",
+      });
+    }
+
+    if (serviceStart < start || serviceEnd > end) {
+      return res.status(400).json({
+        message: "Thời gian đăng kí dịch vụ phải nằm trong khoảng năm học",
+      });
+    }
+
+    const uniqueFields = Object.keys(SchoolYear.schema.paths).filter(
+      key => SchoolYear.schema.paths[key].options.unique
+    );
+
+    for (const field of uniqueFields) {
+      const exists = await SchoolYear.findOne({
+        [field]: data[field],
+        _id: { $ne: id },
+      });
+
+      if (exists) {
+        const fieldLabel = i18n.t(`fields.${field}`);
+        const message = i18n.t("messages.alreadyExists", { field: fieldLabel });
+        return res.status(400).json({ message });
+      }
+    }
+
+    await data.save();
+
+    return res.status(HTTP_STATUS.UPDATED).json(RESPONSE_MESSAGE.UPDATED);
+
+  } catch (error) {
+    console.log("error updateSchoolYearController", error);
+
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map(e => e.message);
+      return res.status(400).json({ message: messages.join(", ") });
+    }
+
+    return res.status(HTTP_STATUS.SERVER_ERROR).json({ message: error.message });
+  }
+};
+
+
 exports.getByIdController = async (req, res) => {
     try {
         const dataSchoolYear = await SchoolYear.findById(req.params.id);

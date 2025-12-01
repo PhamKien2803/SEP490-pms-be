@@ -12,12 +12,12 @@ const connectGridFS = async () => {
 
         conn.once("open", () => {
             gfs = new mongoose.mongo.GridFSBucket(conn.db, { bucketName: "pdfs" });
-            console.log("✅ GridFS connected successfully");
+            console.log("GridFS connected successfully");
         });
 
         return { conn, gfs };
     } catch (err) {
-        console.error("❌ GridFS connection error:", err.message);
+        console.error("GridFS connection error:", err.message);
         process.exit(1);
     }
 };

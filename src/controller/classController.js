@@ -496,7 +496,7 @@ exports.getClassByStudentAndSchoolYear = async (req, res) => {
             class: classFound,
         });
     } catch (error) {
-        console.error("❌ Lỗi getClassByStudentAndSchoolYear:", error);
+        console.error("Lỗi getClassByStudentAndSchoolYear:", error);
         res.status(500).json({
             success: false,
             message: "Lỗi máy chủ",

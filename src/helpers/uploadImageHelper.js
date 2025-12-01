@@ -16,7 +16,7 @@ class CLOUDINARY_HELPER {
         const base64 = buffer.toString('base64');
         const dataUri = `data:${contentType};base64,${base64}`;
 
-        const publicId = IMAGE_CONFIG.filename;
+        const publicId = IMAGE_CONFIG.filename + '_' + Date.now();
 
         try {
             const result = await cloudinary.uploader.upload(dataUri, {

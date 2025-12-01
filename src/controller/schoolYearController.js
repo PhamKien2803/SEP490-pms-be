@@ -30,7 +30,7 @@ exports.createSchoolYearController = async (req, res) => {
         const currentYearNumber = new Date().getFullYear();
 
         if (endYearNumber !== startYearNumber + 1) {
-            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Khung thời gian năm học không hợp lệ" });
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Thời gian bắt đầu và thời gian kết thúc phải cách nhau 1 năm (VD: 2024-2025)." });
         }
 
         if (startYearNumber < currentYearNumber - 1) {
@@ -39,7 +39,7 @@ exports.createSchoolYearController = async (req, res) => {
 
         if (enrollmentStartDate < startDate || enrollmentEndDate > endDate) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({
-                message: "Thời gian tuyển sinh phải nằm trong khoảng năm học",
+                message: "Khung thời gian tuyển sinh phải nằm trong khung thời gian năm học",
             });
         }
 
@@ -52,7 +52,7 @@ exports.createSchoolYearController = async (req, res) => {
 
         if (serviceStartTime < startDate || serviceEndTime > endDate) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({
-                message: "Thời gian đăng kí dịch vụ phải nằm trong khoảng năm học",
+                message: "Khung thời gian dịch vụ phải nằm trong khung thời gian năm học",
             });
         }
 
@@ -347,7 +347,7 @@ exports.publishServiceController = async (req, res) => {
                         htmlContent,
                         ``,
                         () => {
-                            console.log(`✅ Mail gửi thành công đến email : ${email}`);
+                            console.log(`Mail gửi thành công đến email : ${email}`);
                         }
                     );
                 }
@@ -472,7 +472,7 @@ exports.endSchoolYearController = async (req, res) => {
                             }
                         ],
                         () => {
-                            console.log(`✅ Mail gửi thành công đến email : ${parentData[0].email}`);
+                            console.log(`Mail gửi thành công đến email : ${parentData[0].email}`);
                         }
                     );
                 }

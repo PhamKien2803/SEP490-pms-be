@@ -89,7 +89,7 @@ exports.getAttendanceByClassAndSchoolYear = async (req, res) => {
 
     return res.status(HTTP_STATUS.OK).json(attendanceRecords);
   } catch (error) {
-    console.error("❌ Error in getAttendanceByClassAndSchoolYear:", error);
+    console.error("Error in getAttendanceByClassAndSchoolYear:", error);
     return res.status(HTTP_STATUS.SERVER_ERROR).json({
       message: "Lỗi server xảy ra khi lấy bản ghi điểm danh.",
       error: error.message,
@@ -324,12 +324,12 @@ exports.updateAttendanceController = async (req, res) => {
               html,
               "",
               () => {
-                console.log(`✅ Đã gửi email đến phụ huynh ${parent.fullName}`);
+                console.log(`Đã gửi email đến phụ huynh ${parent.fullName}`);
               }
             );
           }
         } catch (mailErr) {
-          console.error("❌ Lỗi khi gửi mail thông báo vắng mặt:", mailErr);
+          console.error("Lỗi khi gửi mail thông báo vắng mặt:", mailErr);
         }
       });
     }
@@ -339,7 +339,7 @@ exports.updateAttendanceController = async (req, res) => {
       data: attendance,
     });
   } catch (error) {
-    console.error("❌ Lỗi updateAttendanceController:", error);
+    console.error("Lỗi updateAttendanceController:", error);
 
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map((e) => e.message);
@@ -426,7 +426,7 @@ exports.getAttendanceByStudentAndDate = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ Lỗi getAttendanceByStudentAndDate:", error);
+    console.error("Lỗi getAttendanceByStudentAndDate:", error);
     res.status(500).json({
       success: false,
       message: "Lỗi máy chủ",

@@ -310,7 +310,7 @@ exports.sendRequestLessonController = async (req, res) => {
                     htmlContent
                 );
 
-                console.log("✅ Đã gửi mail thành công");
+                console.log("Đã gửi mail thành công");
             } catch (mailErr) {
                 console.error("Lỗi khi gửi mail:", mailErr);
             }
@@ -365,7 +365,7 @@ exports.rejectRequestLessonController = async (req, res) => {
                     htmlContent
                 );
 
-                console.log("✅ Đã gửi mail thành công");
+                console.log("Đã gửi mail thành công");
             } catch (mailErr) {
                 console.error("Lỗi khi gửi mail:", mailErr);
             }
@@ -454,7 +454,7 @@ exports.confirmRequestLessonController = async (req, res) => {
                     htmlContent
                 );
 
-                console.log("✅ Đã gửi mail thành công");
+                console.log("Đã gửi mail thành công");
             } catch (mailErr) {
                 console.error("Lỗi khi gửi mail:", mailErr);
             }

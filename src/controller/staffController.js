@@ -119,7 +119,7 @@ exports.createStaffController = async (req, res) => {
         htmlConfirm,
         '',
         () => {
-          console.log(`✅ Mail gửi thành công đến email : ${email}`);
+          console.log(`Mail gửi thành công đến email : ${email}`);
         }
       );
 
@@ -319,7 +319,7 @@ exports.getByIdStudentController = async (req, res) => {
 
     return res.status(HTTP_STATUS.OK).json(studentData);
   } catch (error) {
-    console.error("❌ Error getByIdStudent:", error);
+    console.error("Error getByIdStudent:", error);
     return res.status(HTTP_STATUS.SERVER_ERROR).json({
       message: "Lỗi khi lấy thông tin học sinh.",
       error: error.message,
@@ -346,7 +346,7 @@ exports.getInforTeacher = async (req, res) => {
       data: staff,
     });
   } catch (error) {
-    console.error("❌ getInforTeacher Error:", error);
+    console.error("getInforTeacher Error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -383,7 +383,7 @@ exports.changePasswordTeacher = async (req, res) => {
       message: "Đổi mật khẩu thành công!",
     });
   } catch (error) {
-    console.error("❌ changePasswordTeacher Error:", error);
+    console.error("changePasswordTeacher Error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -417,7 +417,7 @@ exports.updateInforTeacher = async (req, res) => {
       data: updatedStaff,
     });
   } catch (error) {
-    console.error("❌ updateInforTeacher Error:", error);
+    console.error("updateInforTeacher Error:", error);
 
     return res.status(400).json({
       success: false,

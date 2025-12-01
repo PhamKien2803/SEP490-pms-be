@@ -201,9 +201,9 @@ exports.confirmReceiptController = async (req, res) => {
                             htmlContent
                         );
 
-                        console.log("✅ Đã gửi mail thành công");
+                        console.log("Đã gửi mail thành công");
                     } catch (mailErr) {
-                        console.error("❌ Lỗi khi gửi mail:", mailErr);
+                        console.error("Lỗi khi gửi mail:", mailErr);
                     }
                 });
             }

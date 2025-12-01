@@ -8,8 +8,8 @@ const { createClient } = require('redis');
     }
   });
 
-  client.on('error', err => console.error('❌ Redis lỗi:', err));
-  client.on('ready', () => console.log('✅ Redis sẵn sàng'));
+  client.on('error', err => console.error('Redis lỗi:', err));
+  client.on('ready', () => console.log('Redis sẵn sàng'));
 
   await client.connect();
   const info = await client.info('server');

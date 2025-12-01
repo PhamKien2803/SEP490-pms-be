@@ -660,8 +660,8 @@ exports.approvedEnrollAllController = async (req, res) => {
                         const {
                             studentName, studentDob, studentGender, studentIdCard,
                             studentNation, studentReligion, address, birthCertId, healthCertId,
-                            fatherName, fatherGender, fatherPhoneNumber, fatherEmail, fatherIdCard, fatherJob,
-                            motherName, motherGender, motherPhoneNumber, motherEmail, motherIdCard, motherJob,
+                            fatherName, fatherGender, fatherPhoneNumber, fatherEmail, fatherIdCard, fatherJob, fatherDob,
+                            motherName, motherGender, motherPhoneNumber, motherEmail, motherIdCard, motherJob, motherDob,
                             imageStudent
 
 
@@ -695,6 +695,7 @@ exports.approvedEnrollAllController = async (req, res) => {
                                 phone: fatherPhoneNumber,
                                 email: fatherEmail,
                                 idCard: fatherIdCard,
+                                dob: fatherDob,
                                 job: fatherJob
                             },
                             {
@@ -703,6 +704,7 @@ exports.approvedEnrollAllController = async (req, res) => {
                                 gender: motherGender,
                                 phone: motherPhoneNumber,
                                 email: motherEmail,
+                                dob: motherDob,
                                 idCard: motherIdCard,
                                 job: motherJob
                             }
@@ -725,6 +727,7 @@ exports.approvedEnrollAllController = async (req, res) => {
                                     phoneNumber: p.phone,
                                     email: p.email,
                                     IDCard: p.idCard,
+                                    dob: p.dob,
                                     job: p.job,
                                     active: true,
                                     students: [newStudent._id]

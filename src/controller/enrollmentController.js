@@ -548,7 +548,7 @@ exports.getByIdController = async (req, res) => {
             let students = parent.students || [];
             const tuitionFilter = {
                 enrollementId: data._id,
-                state: "Chờ thanh toán"
+                state: "Chưa thanh toán"
             };
             const tuitions = await Tuition.find(tuitionFilter)
                 .populate({
@@ -608,12 +608,10 @@ exports.getByIdController = async (req, res) => {
                     revenueList: [...tuitionRevenueList, ...serviceRevenueList]
                 };
             });
-            console.log("🚀 HieuDD ×͜× ~ result1:", result1)
 
             totalAmount = result1.reduce((sum, r) => {
                 return sum + r.totalAmount;
             }, 0);
-            console.log("🚀 HieuDD ×͜× ~ totalAmount:", totalAmount)
         }
 
         const result = {

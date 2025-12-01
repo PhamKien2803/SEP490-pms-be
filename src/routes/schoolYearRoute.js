@@ -3,7 +3,8 @@ const router = express.Router();
 const ShoolYear = require("../models/schoolYearModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { createGeneric, deletedSoftGeneric, findAllGeneric, updateGeneric } = require("../controller/useController");
-const { getByIdController, confirmSchoolYearController, createSchoolYearController, endSchoolYearController, getStudentGraduatedController, getListEventController, publishServiceController } = require("../controller/schoolYearController");
+const { getByIdController, confirmSchoolYearController, createSchoolYearController, endSchoolYearController, 
+    getStudentGraduatedController, getListEventController, publishServiceController, updateSchoolYearController } = require("../controller/schoolYearController");
 
 router.get("/list",
     verifyToken,
@@ -20,7 +21,8 @@ router.post("/create",
 router.put("/update/:id",
     verifyToken,
     authorizeAction("update"),
-    updateGeneric(ShoolYear)
+    // updateGeneric(ShoolYear)
+    updateSchoolYearController
 );
 
 router.post("/delete/:id",

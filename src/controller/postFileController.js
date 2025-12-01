@@ -218,7 +218,7 @@ exports.getAllPostFileByStudent = async (req, res) => {
       posts: groupedPosts,
     });
   } catch (error) {
-    console.error("❌ Lỗi getAllPostFileByStudent:", error);
+    console.error("Lỗi getAllPostFileByStudent:", error);
     return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       message: "Lỗi server khi lấy danh sách file của học sinh.",
       error: error.message,

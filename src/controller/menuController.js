@@ -155,7 +155,7 @@ exports.createMenu = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ Error createMenu:", error);
+    console.error("Error createMenu:", error);
     res.status(500).json({
       message: "Lỗi server",
       error: error.message,
@@ -283,7 +283,7 @@ exports.updateMenu = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ Error updateMenu:", error);
+    console.error("Error updateMenu:", error);
     res.status(500).json({
       message: "Lỗi server",
       error: error.message,
@@ -448,7 +448,7 @@ exports.getMenuByAgeGroupAndDate = async (req, res) => {
 
     return res.status(200).json(menu);
   } catch (error) {
-    console.error("❌ Lỗi khi lấy menu:", error);
+    console.error("Lỗi khi lấy menu:", error);
     return res.status(500).json({
       message: "Đã xảy ra lỗi khi lấy dữ liệu menu",
       error: error.message,

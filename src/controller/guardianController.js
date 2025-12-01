@@ -68,7 +68,7 @@ exports.createGuardian = async (req, res) => {
       data: guardian,
     });
   } catch (error) {
-    console.error("❌ Lỗi khi tạo người giám hộ:", error);
+    console.error("Lỗi khi tạo người giám hộ:", error);
     return res.status(HTTP_STATUS.SERVER_ERROR).json({
       message: "Lỗi server.",
       error: error.message,
@@ -125,7 +125,7 @@ exports.updateGuardian = async (req, res) => {
       data: guardian,
     });
   } catch (error) {
-    console.error("❌ Lỗi khi cập nhật người giám hộ:", error);
+    console.error("Lỗi khi cập nhật người giám hộ:", error);
     return res.status(HTTP_STATUS.SERVER_ERROR).json({
       message: "Lỗi server.",
       error: error.message,
@@ -151,7 +151,7 @@ exports.getGuardianById = async (req, res) => {
       data: guardian,
     });
   } catch (error) {
-    console.error("❌ Lỗi khi lấy người giám hộ theo ID:", error);
+    console.error("Lỗi khi lấy người giám hộ theo ID:", error);
     return res.status(HTTP_STATUS.SERVER_ERROR).json({
       message: "Lỗi server.",
       error: error.message,
@@ -183,7 +183,7 @@ exports.getGuardiansByStudentId = async (req, res) => {
       data: guardians,
     });
   } catch (error) {
-    console.error("❌ Lỗi khi lấy danh sách người giám hộ:", error);
+    console.error("Lỗi khi lấy danh sách người giám hộ:", error);
     return res.status(HTTP_STATUS.SERVER_ERROR).json({
       message: "Lỗi server.",
       error: error.message,
@@ -215,7 +215,7 @@ exports.getGuardiansByParentId = async (req, res) => {
       data: guardians,
     });
   } catch (error) {
-    console.error("❌ Lỗi khi lấy danh sách người giám hộ:", error);
+    console.error("Lỗi khi lấy danh sách người giám hộ:", error);
     return res.status(HTTP_STATUS.SERVER_ERROR).json({
       message: "Lỗi server.",
       error: error.message,
@@ -241,7 +241,7 @@ exports.deleteGuardian = async (req, res) => {
       message: "Hủy kích hoạt người giám hộ thành công.",
     });
   } catch (error) {
-    console.error("❌ Lỗi khi xóa người giám hộ:", error);
+    console.error("Lỗi khi xóa người giám hộ:", error);
     return res.status(HTTP_STATUS.SERVER_ERROR).json({
       message: "Lỗi server.",
       error: error.message,

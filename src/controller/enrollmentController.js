@@ -19,6 +19,7 @@ const SchoolYear = require("../models/schoolYearModel");
 const User = require("../models/userModel");
 const Role = require('../models/roleModel');
 const Tuition = require('../models/tuitionModel');
+const Service = require('../models/serviceModel');
 const Receipt = require('../models/receiptModel')
 const SMTP = require('../helpers/stmpHelper');
 const IMAP = require('../helpers/iMapHelper');
@@ -265,9 +266,9 @@ exports.registerEnrollController = async (req, res) => {
                     htmlContent
                 );
 
-                console.log("✅ Đã gửi mail thành công");
+                console.log("Đã gửi mail thành công");
             } catch (mailErr) {
-                console.error("❌ Lỗi khi gửi mail:", mailErr);
+                console.error("Lỗi khi gửi mail:", mailErr);
             }
         });
     } catch (error) {
@@ -428,8 +429,8 @@ exports.approvedEnrollController = async (req, res) => {
                     htmlContent,
                     '',
                     (err, info) => {
-                        if (err) console.error("❌ Lỗi khi gửi mail:", err);
-                        else console.log("✅ Đã gửi mail thành công");
+                        if (err) console.error("Lỗi khi gửi mail:", err);
+                        else console.log("Đã gửi mail thành công");
                     }
                 );
             });
@@ -446,7 +447,7 @@ exports.approvedEnrollController = async (req, res) => {
 
 
     } catch (error) {
-        console.error("❌ Error approvedEnrollController:", error);
+        console.error("Error approvedEnrollController:", error);
         await session.abortTransaction();
         session.endSession();
         return res.status(HTTP_STATUS.SERVER_ERROR).json({
@@ -508,7 +509,8 @@ exports.getByIdController = async (req, res) => {
         if (!gfs) {
             return res.status(500).json({ message: "GridFS chưa kết nối" });
         }
-
+        let result1 = [];
+        let totalAmount = 0;
         const data = await Enrollment.findById(req.params.id).lean();
         if (!data) {
             return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -529,11 +531,88 @@ exports.getByIdController = async (req, res) => {
             healthCertFiles = healthFiles.length > 0 ? healthFiles[0] : null;
         }
 
+        if (data.state == "Chờ thanh toán") {
+            const parent = await Parent.find({ IDCard: data.fatherIdCard }).lean();
+            let students = parent.students || [];
+            const tuitionFilter = {
+                enrollementId: data._id,
+                state: "Chờ thanh toán"
+            };
+            const tuitions = await Tuition.find(tuitionFilter)
+                .populate({
+                    path: "receipt",
+                    populate: {
+                        path: "revenueList.revenue",
+                        model: "Revenue",
+                    },
+                })
+                .populate("schoolYear")
+                .populate("studentId")
+                .lean();
+
+            // Lấy dữ liệu dịch vụ
+            const services = await Service.find({
+                student: { $in: students },
+                active: true,
+            })
+                .populate("revenue")
+                .lean();
+
+            // Map dữ liệu học phí + dịch vụ
+            result1 = tuitions.map(tuition => {
+                const tuitionRevenueList = tuition.receipt?.revenueList?.map(r => ({
+                    revenueId: r.revenue?._id,
+                    revenueCode: r.revenue?.revenueCode,
+                    revenueName: r.revenue?.revenueName,
+                    amount: r.amount,
+                    source: "Tuition"
+                })) || [];
+
+                const serviceRevenueList = services
+                    .filter(s => s.student.toString() === tuition.studentId?._id.toString())
+                    .map(s => ({
+                        revenueId: s.revenue?._id,
+                        revenueCode: s.revenue?.revenueCode,
+                        revenueName: s.revenue?.revenueName,
+                        amount: s.totalAmount,
+                        qty: s.qty,
+                        source: "Service"
+                    }));
+
+                return {
+                    tuitionId: tuition._id,
+                    tuitionName: tuition.tuitionName,
+                    month: tuition.month,
+                    totalAmount: tuition.totalAmount + serviceRevenueList.reduce((sum, s) => sum + s.amount, 0),
+                    state: tuition.state,
+                    studentId: tuition.studentId?._id,
+                    studentName: tuition.studentId?.fullName,
+                    schoolYear: tuition.schoolYear?.schoolYear,
+                    receiptCode: tuition.receipt?.receiptCode,
+                    receiptName: tuition.receipt?.receiptName,
+                    createdBy: tuition.createdBy,
+                    createdAt: tuition.createdAt,
+                    enrollementId: tuition?.enrollementId,
+                    revenueList: [...tuitionRevenueList, ...serviceRevenueList]
+                };
+            });
+            console.log("🚀 HieuDD ×͜× ~ result1:", result1)
+
+            totalAmount = result1.reduce((sum, r) => {
+                return sum + r.totalAmount;
+            }, 0);
+            console.log("🚀 HieuDD ×͜× ~ totalAmount:", totalAmount)
+        }
+
         const result = {
             ...data,
             birthCertFiles,
             healthCertFiles,
+            tuitionDetails: result1,
+            totalAmountDue: totalAmount
         };
+
+
 
         return res.status(HTTP_STATUS.OK).json(result);
     } catch (error) {
@@ -580,10 +659,10 @@ exports.rejectEnrollController = async (req, res) => {
                 '',
                 (err, info) => {
                     if (err) {
-                        console.error("❌ Lỗi khi gửi mail:", err);
+                        console.error("Lỗi khi gửi mail:", err);
                         return;
                     }
-                    console.log(`✅ Đã gửi mail thành công`);
+                    console.log(`Đã gửi mail thành công`);
                 }
             );
         });
@@ -774,10 +853,10 @@ exports.approvedEnrollAllController = async (req, res) => {
                                 "THÔNG BÁO TRÚNG TUYỂN NHẬP HỌC",
                                 htmlContent,
                                 "",
-                                () => console.log(`✅ Mail gửi thành công đến: ${fatherEmail} (cc: ${motherEmail})`)
+                                () => console.log(`Mail gửi thành công đến: ${fatherEmail} (cc: ${motherEmail})`)
                             );
                         } catch (err) {
-                            console.error(`❌ Lỗi gửi mail cho ${fatherEmail}:`, err);
+                            console.error(`Lỗi gửi mail cho ${fatherEmail}:`, err);
                         }
 
                         data.state = "Hoàn thành";
@@ -793,7 +872,7 @@ exports.approvedEnrollAllController = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("❌ error approvedEnrollAllController:", error);
+        console.error("error approvedEnrollAllController:", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json({
             message: "Lỗi máy chủ khi phê duyệt phiếu nhập học",
             error: error.message,

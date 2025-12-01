@@ -23,7 +23,7 @@ exports.getInforParent = async (req, res) => {
       data: parent,
     });
   } catch (error) {
-    console.error("❌ Error getInforParent:", error);
+    console.error("Error getInforParent:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -57,7 +57,7 @@ exports.changePasswordParent = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ Error changePasswordParent:", error);
+    console.error("Error changePasswordParent:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -90,7 +90,7 @@ exports.updateParent = async (req, res) => {
       data: updatedParent,
     });
   } catch (error) {
-    console.error("❌ Error updateParent:", error);
+    console.error("Error updateParent:", error);
 
     return res.status(400).json({
       success: false,

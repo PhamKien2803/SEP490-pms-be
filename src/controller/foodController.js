@@ -124,7 +124,7 @@ exports.genAICaculateFoodNutritionById = async (req, res) => {
         }
       }
     } else {
-      console.error("❌ Kết quả từ AI không hợp lệ hoặc rỗng.");
+      console.error("Kết quả từ AI không hợp lệ hoặc rỗng.");
       return res.status(500).json({ message: "Kết quả từ AI không hợp lệ." });
     }
 

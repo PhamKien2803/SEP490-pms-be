@@ -76,7 +76,7 @@ exports.registerEnrollController = async (req, res) => {
         const countEnrollment = await Enrollment.countDocuments({
             schoolYear: dataSchoolYear._id,
         });
-        
+
         if (countEnrollment >= dataSchoolYear.numberTarget) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({
                 message: "Số lượng hồ sơ tuyển sinh đã đạt giới hạn"
@@ -527,6 +527,8 @@ exports.getByIdController = async (req, res) => {
                 message: "Không tìm thấy phiếu nhập học",
             });
         }
+        const tuition = await Tuition.findOne({ enrollementId: data._id, state: "Chưa thanh toán" });
+        console.log("[Bthieu] ~ tuition:", tuition);
 
         let birthCertFiles = null;
         let healthCertFiles = null;

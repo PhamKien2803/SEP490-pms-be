@@ -75,6 +75,7 @@ exports.registerEnrollController = async (req, res) => {
 
         const countEnrollment = await Enrollment.countDocuments({
             schoolYear: dataSchoolYear._id,
+            state: { $ne: "Chưa đủ điều kiện nhập học" }
         });
 
         if (countEnrollment >= dataSchoolYear.numberTarget) {

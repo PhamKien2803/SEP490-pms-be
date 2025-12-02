@@ -79,23 +79,43 @@ exports.createStaffController = async (req, res) => {
     }
     const staffSaved = await Staff.create([newData], { session });
 
-    const dataRole = await Role.findOne({
-      active: {$eq: true},
-      roleName: "Giáo Viên"
-    })
-    const userSaved = await User.create(
-      [
-        {
-          email,
-          password: "12345678",
-          staff: staffSaved[0]._id,
-          roleList: [dataRole._id],
-          createBy,
-          active: true,
-        },
-      ],
-      { session }
-    );
+
+    let userSaved;
+    if (staffSaved[0].isTeacher) {
+      const dataRole = await Role.findOne({
+        active: { $eq: true },
+        roleName: "Giáo Viên"
+      })
+      if (!dataRole) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Vai trò giáo viên không tồn tại" });
+      }
+      userSaved = await User.create(
+        [
+          {
+            email,
+            password: "12345678",
+            staff: staffSaved[0]._id,
+            roleList: [dataRole._id],
+            createBy,
+            active: true,
+          },
+        ],
+        { session }
+      );
+    } else {
+      userSaved = await User.create(
+        [
+          {
+            email,
+            password: "12345678",
+            staff: staffSaved[0]._id,
+            createBy,
+            active: true,
+          },
+        ],
+        { session }
+      );
+    }
 
     await session.commitTransaction();
     session.endSession();

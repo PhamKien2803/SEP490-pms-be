@@ -41,6 +41,8 @@ const roomSchema = new mongoose.Schema(
     },
     roomType: {
       type: String,
+      required: [true, "Loại phòng là bắt buộc."],
+      trim: true,
     },
     capacity: {
       type: Number,

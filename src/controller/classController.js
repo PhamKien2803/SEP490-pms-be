@@ -7,6 +7,7 @@ const Student = require("../models/studentModel");
 const Room = require("../models/roomModel");
 const _ = require('lodash')
 const i18n = require("../middlewares/i18n.middelware");
+const dayjs = require('dayjs');
 
 exports.getAllClassController = async (req, res) => {
     try {
@@ -89,30 +90,43 @@ exports.getByIdClassController = async (req, res) => {
 
 exports.getAvailableStudentController = async (req, res) => {
     try {
+        const { age } = req.query;
+        if(!age){
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Vui lòng chọn độ tuổi của lớp học" });
+        }
+
         const dataSchoolYear = await SchoolYear.findOne({ active: true, state: "Đang hoạt động" });
-        let queryString = {
-            active: { $eq: true },
-            schoolYear: dataSchoolYear._id,
-        };
-        const dataClass = await Class.find(queryString).lean();
+
+        const dataClass = await Class.find({ 
+            active: true, 
+            schoolYear: dataSchoolYear._id 
+        }).lean();
 
         const studentArr = dataClass.map(item => item.students);
         const studentList = studentArr.flat();
-        queryString = {
-            active: { $eq: true },
+
+        const currentYear = dayjs().year();
+        const maxDob = dayjs().year(currentYear - Number(age)).endOf('year').toDate();
+        const minDob = dayjs().year(currentYear - Number(age)).startOf('year').toDate();
+
+        const studentAvailable = await Student.find({
+            active: true,
             graduated: { $ne: true },
-            _id: { $nin: studentList }
-        }
-        const studentAvailable = await Student.find(queryString);
-        if (!studentAvailable) {
-            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy giáo viên phù hợp" });
-        }
+            _id: { $nin: studentList },
+            dob: { $gte: minDob, $lte: maxDob } 
+        });
+        console.log("[Bthieu] ~ studentAvailable:", studentAvailable);
+
+        // if (!studentAvailable || studentAvailable.length === 0) {
+        //     return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy học sinh phù hợp" });
+        // }
+
         return res.status(HTTP_STATUS.OK).json(studentAvailable);
     } catch (error) {
         console.log("Error getAvailableStudentController", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
     }
-}
+};
 
 exports.getAvailableTeacherController = async (req, res) => {
     try {

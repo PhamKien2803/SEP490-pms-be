@@ -579,3 +579,191 @@ exports.getListEventController = async (req, res) => {
     }
 }
 
+exports.createEventController = async (req, res) => {
+
+    try {
+        const modelName = Event.modelName.toLowerCase();
+        const sequence = await sequencePattern(Event.modelName);
+
+        const lastRecord = await Event.find({
+            [`${modelName}Code`]: { $regex: `^${sequence}` }
+        })
+            .sort({ [`${modelName}Code`]: -1 })
+            .limit(1);
+
+        let sequenceCode;
+        if (lastRecord.length === 0) {
+            sequenceCode = `${sequence}001`;
+        } else {
+            const lastCode = lastRecord[0][`${modelName}Code`];
+            const lastNumber = parseInt(lastCode.slice(-3));
+            const nextNumber = (lastNumber + 1).toString().padStart(3, "0");
+            sequenceCode = `${sequence}${nextNumber}`;
+        }
+
+        const dataSchoolYear = await SchoolYear.findOne({
+            active: { $eq: true },
+            state: "Đang hoạt động"
+        });
+        if (!dataSchoolYear) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Chưa có năm học đang hoạt động" });
+        }
+
+        const newData = {
+            active: true,
+            [`${modelName}Code`]: sequenceCode,
+            ...req.body
+        };
+        console.log("[Bthieu] ~ newData:", newData);
+
+
+        if (newData.holidayStartDate && newData.holidayEndDate) {
+            const start = new Date(newData.holidayStartDate);
+            const end = new Date(newData.holidayEndDate);
+
+            const schoolStart = new Date(dataSchoolYear.startDate);
+            const schoolEnd = new Date(dataSchoolYear.endDate);
+
+            if (start < schoolStart || end > schoolEnd) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                    message: `Khoảng thời gian sự kiện phải nằm trong thời gian năm học`
+                });
+            }
+            const overlappingEvent = await Event.findOne({
+                active: true,
+                $or: [
+                    {
+                        holidayStartDate: { $lte: newData.holidayEndDate },
+                        holidayEndDate: { $gte: newData.holidayStartDate }
+                    }
+                ]
+            });
+
+            if (overlappingEvent) {
+                return res.status(400).json({
+                    message: "Khoảng thời gian sự kiện bị trùng với một sự kiện khác"
+                });
+            }
+        }
+        const uniqueFields = Object.keys(Event.schema.paths).filter(
+            (key) => Event.schema.paths[key].options.unique
+        );
+
+        const requiredFields = Object.keys(Event.schema.paths).filter(
+            (key) => Event.schema.paths[key].options.required
+        );
+
+        const missingFields = requiredFields.filter(
+            (field) => newData[field] === undefined || newData[field] === ""
+        );
+
+        if (missingFields.length > 0) {
+            const messages = missingFields.map((field) => {
+                const fieldLabel = i18n.t(`fields.${field}`);
+                return i18n.t("messages.required", { field: fieldLabel });
+            });
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: messages.join(", ") });
+        }
+
+        for (const field of uniqueFields) {
+            if (!newData[field]) continue;
+
+            const exists = await Event.findOne({ [field]: newData[field] });
+            if (exists) {
+                const fieldLabel = i18n.t(`fields.${field}`);
+                const message = i18n.t("messages.alreadyExists", { field: fieldLabel });
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({ message });
+            }
+        }
+
+        const created = await Event.create(newData);
+        return res.status(HTTP_STATUS.CREATED).json(created);
+
+    } catch (error) {
+        console.log("error createGeneric", error);
+
+        if (error.name === "ValidationError") {
+            const messages = Object.values(error.errors).map((e) => e.message);
+            return res.status(400).json({ message: messages.join(", ") });
+        }
+
+        return res.status(500).json({ message: error.message });
+    }
+
+}
+
+exports.updateEventController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const data = await Event.findById(id);
+    if (!data) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json(RESPONSE_MESSAGE.NOT_FOUND);
+    }
+
+    Object.assign(data, req.body);
+
+    const uniqueFields = Object.keys(Event.schema.paths).filter(
+      key => Event.schema.paths[key].options.unique
+    );
+
+    for (const field of uniqueFields) {
+      const exists = await Event.findOne({ [field]: data[field], _id: { $ne: id } });
+      if (exists) {
+        const fieldLabel = i18n.t(`fields.${field}`);
+        const message = i18n.t("messages.alreadyExists", { field: fieldLabel });
+        return res.status(400).json({ message });
+      }
+    }
+
+    const dataSchoolYear = await SchoolYear.findOne({
+      active: true,
+      state: "Đang hoạt động"
+    });
+    if (!dataSchoolYear) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Chưa có năm học đang hoạt động" });
+    }
+
+    if (data.holidayStartDate && data.holidayEndDate) {
+      const start = new Date(data.holidayStartDate);
+      const end = new Date(data.holidayEndDate);
+      const schoolStart = new Date(dataSchoolYear.startDate);
+      const schoolEnd = new Date(dataSchoolYear.endDate);
+
+      if (start < schoolStart || end > schoolEnd) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          message: `Khoảng thời gian sự kiện phải nằm trong thời gian năm học`
+        });
+      }
+
+      const overlappingEvent = await Event.findOne({
+        _id: { $ne: id },
+        active: true,
+        $or: [
+          {
+            holidayStartDate: { $lte: end },
+            holidayEndDate: { $gte: start }
+          }
+        ]
+      });
+
+      if (overlappingEvent) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          message: `Khoảng thời gian sự kiện bị trùng với thời gian sự kiện khác`
+        });
+      }
+    }
+
+    await data.save();
+
+    return res.status(HTTP_STATUS.UPDATED).json(RESPONSE_MESSAGE.UPDATED);
+  } catch (error) {
+    console.log("error updateEventController", error);
+
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map(e => e.message);
+      return res.status(400).json({ message: messages.join(", ") });
+    }
+    res.status(HTTP_STATUS.SERVER_ERROR).json({ message: error.message });
+  }
+};

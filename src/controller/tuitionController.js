@@ -220,7 +220,6 @@ exports.createTuitionPayment = async (req, res) => {
         const transactionCode = Date.now();
         if (enrollementId) {
             const enrollmentData = await Enrollment.findById(enrollementId);
-            console.log("[Bthieu] ~ enrollmentData:", enrollmentData);
             
             tuitions = await Tuition.find({
                 enrollementId: enrollementId,

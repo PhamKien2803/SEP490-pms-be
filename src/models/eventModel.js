@@ -1,10 +1,11 @@
 const mongoose = require("mongoose");
 const SchoolYear = require("./schoolYearModel");
+const { trim } = require("lodash");
 
 const EventSchema = new mongoose.Schema(
   {
     eventCode: { type: String, required: true, unique: true },
-    eventName: { type: String, required: true },
+    eventName: { type: String, required:[true,  "Tên sự kiện bắt buộc nhập"], unique: true, trim: true },
     holidayStartDate: { type: Date },
     holidayEndDate: { type: Date },
     schoolYear: { type: mongoose.Schema.Types.ObjectId, ref: "SchoolYear" },

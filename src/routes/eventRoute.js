@@ -3,7 +3,7 @@ const router = express.Router();
 const Event = require("../models/eventModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric, getByIdGeneric } = require('../controller/useController');
-const { getListEventController } = require("../controller/schoolYearController");
+const { getListEventController, createEventController, updateEventController } = require("../controller/schoolYearController");
 
 router.get(
     "/list",
@@ -16,7 +16,7 @@ router.post(
     "/create",
     verifyToken,
     authorizeAction("create"),
-    createGeneric(Event)
+    createEventController
 );
 
 router.post(
@@ -30,7 +30,7 @@ router.put(
     "/update/:id",
     verifyToken,
     authorizeAction("update"),
-    updateGeneric(Event)
+    updateEventController
 );
 
 router.get(

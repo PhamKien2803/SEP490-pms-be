@@ -25,8 +25,11 @@ exports.createStaffController = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { email, createBy } = req.body;
+    const { email, createBy, address } = req.body;
     const modelName = Staff.modelName.toLowerCase();
+    if (address) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Địa chỉ thường trú là bắt buộc" });
+    }
 
     const sequence = await sequencePattern(Staff.modelName);
     const lastRecord = await Staff.find({
@@ -69,7 +72,7 @@ exports.createStaffController = async (req, res) => {
         return res.status(400).json({ message });
       }
     }
-
+  
     const checkDataMail = await User.findOne({
       active: { $eq: true },
       email: email
@@ -145,13 +148,26 @@ exports.createStaffController = async (req, res) => {
 
     });
   } catch (error) {
+
+    if (error.name === "ValidationError") {
+      const firstErrorKey = Object.keys(error.errors)[0];
+      const message = error.errors[firstErrorKey].message;
+
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message });
+    }
+
+    if (error.code === 11000) {
+      const duplicatedField = Object.keys(error.keyValue)[0];
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        message: `${duplicatedField} đã tồn tại trong hệ thống`
+      });
+    }
+
     await session.abortTransaction();
     session.endSession();
 
-    console.error("Error createStaffController", error);
-    return res
-      .status(HTTP_STATUS.SERVER_ERROR)
-      .json({ message: "Lỗi server", error });
+    console.error("Error createStaffController:", error);
+    return res.status(HTTP_STATUS.SERVER_ERROR).json({ message: "Lỗi server", error });
   }
 };
 

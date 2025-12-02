@@ -72,7 +72,7 @@ const StaffSchema = new mongoose.Schema(
       }
     },
 
-    address: { type: String, trim: true },
+    address: { type: String, required: true, trim: true },
     nation: { type: String, trim: true },
     religion: { type: String, trim: true },
     isTeacher: { type: Boolean, default: false },

@@ -18,7 +18,6 @@
     "studentIdCard": "CMND/CCCD",
     "studentNation": "Quốc tịch",
     "studentReligion": "Tôn giáo",
-    "address": "Địa chỉ",
     "fatherName": "Tên bố",
     "fatherPhoneNumber": "Số điện thoại",
     "fatherEmail": "Email",
@@ -76,7 +75,8 @@
     "revenueCode": "Mã khoản thu",
     "revenueName": "Tên khoản thu",
     "amount": "Số tiền",
-    "roleName": "Tên vai trò"
+    "roleName": "Tên vai trò",
+    "address": "Địa chỉ"
   },
   "messages": {
     "alreadyExists": "{{field}} đã tồn tại",

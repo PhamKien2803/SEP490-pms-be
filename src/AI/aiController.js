@@ -17,7 +17,7 @@ const ai = new GoogleGenAI({
  * @param {Object} data - { school_classes, preschool_schedule }
  * @returns {Promise<Object>} - Kết quả trả về từ GenAI
  */
-module.exports.generateFoodWithChatGPT = async (data) => {
+module.exports.generateFoodWithGemini = async (data) => {
     const promptPath = path.join(__dirname, "food_prompt.md");
     const promptTemplate = fs.readFileSync(promptPath, "utf8");
 
@@ -37,7 +37,7 @@ ${inputJson}
             },
         ],
         config: {
-            responseMimeType: "application/json", 
+            responseMimeType: "application/json",
         },
     });
 

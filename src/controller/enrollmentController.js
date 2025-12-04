@@ -90,11 +90,9 @@ exports.registerEnrollController = async (req, res) => {
         const enrollmentStartDate = enrollmentStart.toLocaleDateString("vi-VN", {
             timeZone: "Asia/Ho_Chi_Minh"
         });
-        console.log("[Bthieu] ~ enrollmentStartDate:", enrollmentStartDate)
         const enrollmentEndDate = enrollmentEnd.toLocaleDateString("vi-VN", {
             timeZone: "Asia/Ho_Chi_Minh"
         });
-        console.log("[Bthieu] ~ enrollmentEndDate:", enrollmentEndDate)
 
 
         if (date < enrollmentStart || date > enrollmentEnd) {
@@ -105,9 +103,7 @@ exports.registerEnrollController = async (req, res) => {
 
         if (motherDob && fatherDob) {
             const motherAge = await getAge(motherDob);
-            console.log("[Bthieu] ~ motherAge:", motherAge)
             const fatherAge = await getAge(fatherDob);
-            console.log("[Bthieu] ~ fatherAge:", fatherAge)
             if (motherAge !== null && motherAge < 18) {
                 return res.status(HTTP_STATUS.BAD_REQUEST).json({
                     message: "Tuổi của mẹ phải lớn hơn hoặc bằng 18."
@@ -529,7 +525,6 @@ exports.getByIdController = async (req, res) => {
             });
         }
         const tuition = await Tuition.findOne({ enrollementId: data._id, state: "Chưa thanh toán" });
-        console.log("[Bthieu] ~ tuition:", tuition);
 
         let birthCertFiles = null;
         let healthCertFiles = null;

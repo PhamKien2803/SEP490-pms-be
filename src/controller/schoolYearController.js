@@ -614,7 +614,6 @@ exports.createEventController = async (req, res) => {
             [`${modelName}Code`]: sequenceCode,
             ...req.body
         };
-        console.log("[Bthieu] ~ newData:", newData);
 
 
         if (newData.holidayStartDate && newData.holidayEndDate) {

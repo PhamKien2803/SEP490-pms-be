@@ -277,7 +277,6 @@ exports.sendRequestLessonController = async (req, res) => {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Không tìm thấy lớp học" });
         }
         const teacherId = dataClass.teachers;
-        console.log("[Bthieu] ~ teacherId:", teacherId);
         const dataStaff = await Staff.find({
             _id: { $in: teacherId }
         });

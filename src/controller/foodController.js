@@ -1,6 +1,6 @@
 
 const Food = require('../models/foodModel');
-const { generateFoodWithChatGPT } = require("../AI/aiController");
+const { generateFoodWithGemini } = require("../AI/aiController");
 
 exports.getFoodsWithZeroTotalCalo = async () => {
   try {
@@ -20,7 +20,7 @@ exports.genAICaculateFoodNutrition = async (req, res) => {
       return res.status(200).json({ message: "Không có menu nào cần tính calo." });
     }
 
-    let genAIResult = await generateFoodWithChatGPT(foodsToProcess);
+    let genAIResult = await generateFoodWithGemini(foodsToProcess);
     if (typeof genAIResult === 'string') {
       let cleanText = genAIResult.trim();
       if (cleanText.startsWith("```json")) {
@@ -85,7 +85,7 @@ exports.genAICaculateFoodNutritionById = async (req, res) => {
       return res.status(200).json({ message: "Không có food nào cần tính calo." });
     }
 
-    let genAIResult = await generateFoodWithChatGPT(foodsToProcess);
+    let genAIResult = await generateFoodWithGemini(foodsToProcess);
 
     if (typeof genAIResult === 'string') {
       let cleanText = genAIResult.trim();

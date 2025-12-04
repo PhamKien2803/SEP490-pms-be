@@ -21,7 +21,6 @@ const TopicSchema = new mongoose.Schema(
         activitiEvent: [
             {
                 activity: { type: mongoose.Schema.Types.ObjectId, ref: "Activity" },
-                sessionsPerWeek: { type: Number, default: 1 },
             }
         ],
 

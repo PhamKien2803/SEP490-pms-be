@@ -14,7 +14,6 @@ exports.getAttendanceByClassAndDate = async (req, res) => {
   try {
     const { classId, date } = req.params;
     const attendanceRecord1 = await Attendance.findOne({ class: classId, date: new Date(date) })
-    console.log("🚀 ~ attendanceRecord1:", attendanceRecord1)
     const attendanceRecord = await Attendance.findOne({ class: classId, date: new Date(date) })
       .populate({
         path: "class",

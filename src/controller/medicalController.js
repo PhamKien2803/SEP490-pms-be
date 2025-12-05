@@ -209,8 +209,8 @@ exports.getAllMedicalByStudent = async (req, res) => {
 
     if (!records || records.length === 0) {
       return res
-        .status(HTTP_STATUS.BAD_REQUEST)
-        .json("Không tìm thấy dữ liệu");
+        .status(HTTP_STATUS.OK)
+        .json("Hiện chưa có hồ sơ sức khỏe cho học sinh này");
     }
 
     for (const record of records) {

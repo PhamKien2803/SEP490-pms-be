@@ -343,8 +343,8 @@ exports.getFeedbackByStudentAndDate = async (req, res) => {
       .lean();
 
     if (!feedback) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        message: "Không tìm thấy feedback cho học sinh trong ngày này",
+      return res.status(HTTP_STATUS.OK).json({
+        message: "Hiện chưa có feedback cho học sinh trong ngày này",
       });
     }
 

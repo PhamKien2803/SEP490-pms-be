@@ -76,7 +76,10 @@
     "revenueName": "Tên khoản thu",
     "amount": "Số tiền",
     "roleName": "Tên vai trò",
-    "address": "Địa chỉ"
+    "address": "Địa chỉ",
+    "activityName": "Tên hoạt động",
+    "month": "Chủ đề tháng",
+    "topic": "Chủ đề"
   },
   "messages": {
     "alreadyExists": "{{field}} đã tồn tại",

@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const ActivitySchema = new mongoose.Schema(
     {
         activityCode: { type: String, required: true },
-        activityName: { type: String, required: true },
+        activityName: { type: String, required: true, unique: true },
         age: { type: String },
         type: { type: String, enum: ["Cố định", "Bình thường", "Sự kiện"], required: true },
         category: {

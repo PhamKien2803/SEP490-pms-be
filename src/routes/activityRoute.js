@@ -3,7 +3,7 @@ const router = express.Router();
 const Activity = require("../models/activityModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
-const { createActivityController, getByIdController } = require('../controller/activityController')
+const { createActivityController, getByIdController, updateActivityController } = require('../controller/activityController')
 
 router.get(
     "/list",
@@ -30,7 +30,8 @@ router.put(
     "/update/:id",
     verifyToken,
     authorizeAction("update"),
-    updateGeneric(Activity)
+    // updateGeneric(Activity)
+    updateActivityController
 );
 
 router.get(

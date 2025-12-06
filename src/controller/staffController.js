@@ -72,7 +72,7 @@ exports.createStaffController = async (req, res) => {
         return res.status(400).json({ message });
       }
     }
-  
+
     const checkDataMail = await User.findOne({
       active: { $eq: true },
       email: email
@@ -256,23 +256,25 @@ exports.getClassAndStudentByTeacherController = async (req, res) => {
 
     const now = new Date();
     const localMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startOfDay = new Date(localMidnight.getTime() + 7 * 60 * 60 * 1000);
-    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
+    const startOfDay = new Date(localMidnight.getTime() + 24 * 60 * 60 * 1000);
+    // const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
+    console.log(localMidnight, startOfDay);
 
     const studentIds = classes.flatMap(c => c.students?.map(s => s._id) || []);
 
     const guardians = await Guardian.find({
       studentId: { $in: studentIds },
-      pickUpDate: { $gte: startOfDay, $lte: endOfDay },
+      pickUpDate: { $gte: localMidnight, $lte: startOfDay },
       active: true,
     })
       .populate("parentId", "fullName phoneNumber")
       .lean();
-
+    console.log(guardians);
     const guardianMap = guardians.reduce((acc, g) => {
       acc[g.studentId.toString()] = g;
       return acc;
     }, {});
+    console.log(guardianMap);
 
     await Promise.all(
       classes.map(async classItem => {

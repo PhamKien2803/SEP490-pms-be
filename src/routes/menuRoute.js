@@ -1,10 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
-const { getMenuByDateFromTo, createMenu, updateMenu, getMenuById, 
-    approveMenuById, rejectMenuById, 
+const { getMenuByDateFromTo, createMenu, updateMenu, getMenuById,
+    approveMenuById, rejectMenuById,
     getMenuByQuery,
-    getMenuByAgeGroupAndWeekNumber} = require("../controller/menuController");
+    getMenuByAgeGroupAndWeekNumber, 
+    pendingById} = require("../controller/menuController");
 const Menu = require("../models/menuModel");
 const { deletedSoftGeneric } = require("../controller/useController");
 
@@ -63,5 +64,10 @@ router.get("/list/",
     getMenuByQuery
 );
 
+router.post("/pending-menu/:id",
+    verifyToken,
+    authorizeAction("approve"),
+    pendingById
+);
 
 module.exports = router;

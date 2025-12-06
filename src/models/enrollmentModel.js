@@ -37,7 +37,7 @@ const EnrollmentSchema = new mongoose.Schema(
       match: [/^\d{12}$/, "Số CCCD của cha phải gồm đúng 12 chữ số"]
     },
     fatherDob: {
-      type: String,
+      type: Date,
     },
     fatherJob: { type: String },
 
@@ -60,7 +60,7 @@ const EnrollmentSchema = new mongoose.Schema(
       match: [/^\d{12}$/, "Số CCCD của mẹ phải gồm đúng 12 chữ số"]
     },
     motherDob: {
-      type: String,
+      type: Date,
     },
     motherJob: { type: String },
     reason: { type: String },

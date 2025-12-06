@@ -291,6 +291,30 @@ exports.updateMenu = async (req, res) => {
   }
 };
 
+exports.pendingById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    if (!reason) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Lý do là bắt buộc" });
+    }
+    const menu = await Menu.findById(id);
+
+    if (!menu) {
+      return res.status(404).json({ message: "Không tìm thấy thực đơn." });
+    }
+
+    menu.reason = reason;
+    menu.state = "Chờ xử lý";
+    await menu.save();
+    res.status(200).json({ message: "Chuyển trạng thái chờ xử lý thành công.", menu });
+  }
+  catch (error) {
+    console.error("Error Pending MenuById:", error);
+    res.status(500).json({ message: "Lỗi server", error: error.message });
+  }
+};
+
 exports.deleteMenuById = async (req, res) => {
   try {
     const { id } = req.params;

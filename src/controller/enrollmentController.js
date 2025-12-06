@@ -167,8 +167,8 @@ exports.registerEnrollController = async (req, res) => {
             ]);
 
             const [dataCheckEmailDad, dataCheckEmailMom] = await Promise.all([
-                User.findOne({ active: true, email: fatherEmail }),
-                User.findOne({ active: true, email: motherEmail }),
+                User.findOne({ active: true, email: dataCheckDad.email }),
+                User.findOne({ active: true, email: dataCheckMom.email }),
             ])
 
             if (!dataCheckDad)
@@ -201,6 +201,8 @@ exports.registerEnrollController = async (req, res) => {
                 motherPhoneNumber: dataCheckMom.phoneNumber,
                 motherEmail: dataCheckMom.email,
                 motherJob: dataCheckMom.job,
+                motherDob: dataCheckMom.dob,
+                fatherDob: dataCheckDad.dob,
             };
         }
 
@@ -235,9 +237,14 @@ exports.registerEnrollController = async (req, res) => {
             if (!newData[field]) continue;
             const exists = await Enrollment.exists({ [field]: newData[field] });
             if (exists) {
-                return res.status(HTTP_STATUS.BAD_REQUEST).json(i18n.t("messages.alreadyExists", {
-                    field: i18n.t(`fields.${field}`),
-                }),);
+                return res.status(HTTP_STATUS.BAD_REQUEST).json(
+                    {
+                        message:
+                            i18n.t("messages.alreadyExists", {
+                                field: i18n.t(`fields.${field}`),
+                            }),
+                    }
+                );
             }
         }
 
@@ -410,7 +417,8 @@ exports.approvedEnrollController = async (req, res) => {
                 userMom = await User.findOne({ parent: mom._id }).session(session);
             }
             setImmediate(async () => {
-                const htmlContent = `
+                try {
+                    const htmlContent = `
                 <h2>Thông báo Hồ sơ Tuyển Sinh</h2>
                 <p>Xin chào Quý phụ huynh của học sinh <strong>${dataSave.studentName}</strong>,</p>
                 <p>Nhà trường đã tiếp nhận hồ sơ tuyển sinh của học sinh. Hiện trạng hồ sơ <strong>đã tiếp nhận giấy tờ</strong>.</p>
@@ -428,18 +436,21 @@ exports.approvedEnrollController = async (req, res) => {
                 <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
             `;
 
-                const mail = new SMTP(SMTP_CONFIG);
-                mail.send(
-                    dataSave.fatherEmail,
-                    dataSave.motherEmail,
-                    'THÔNG BÁO XÉT TUYỂN HỒ SƠ TUYỂN SINH',
-                    htmlContent,
-                    '',
-                    (err, info) => {
-                        if (err) console.error("Lỗi khi gửi mail:", err);
-                        else console.log("Đã gửi mail thành công");
-                    }
-                );
+                    const mail = new SMTP(SMTP_CONFIG);
+                    mail.send(
+                        dataSave.fatherEmail,
+                        dataSave.motherEmail,
+                        'THÔNG BÁO XÉT TUYỂN HỒ SƠ TUYỂN SINH',
+                        htmlContent,
+                        '',
+                        (err, info) => {
+                            if (err) console.error("Lỗi khi gửi mail:", err);
+                            else console.log("Đã gửi mail thành công");
+                        }
+                    );
+                } catch (err) {
+                    console.error("Lỗi khi gửi mail:", err);
+                }
             });
         }
 
@@ -644,33 +655,37 @@ exports.rejectEnrollController = async (req, res) => {
         res.status(HTTP_STATUS.OK).json({ message: "Từ chối đơn nhập học thành công" });
 
         setImmediate(async () => {
-            const htmlContent = `
-    <h2>Thông báo Kết Quả Tuyển Sinh</h2>
-    <p>Xin chào Quý phụ huynh của học sinh <strong>${data.studentName}</strong>,</p>
-    <p>Nhà trường trân trọng cảm ơn Quý phụ huynh đã quan tâm và gửi hồ sơ tuyển sinh cho học sinh.</p>
-    <p>Sau khi xem xét hồ sơ và kết quả tuyển sinh, rất tiếc chúng tôi xin thông báo rằng hồ sơ của học sinh <strong>không đủ điều kiện nhập học</strong>.</p>
-        <p>Với lý do là <strong>${reason}</strong>.</p>
-    <p>Nhà trường mong Quý phụ huynh và học sinh sẽ tiếp tục cố gắng, và hy vọng sẽ có cơ hội đồng hành cùng Quý vị trong những năm học tới.</p>
-    <br>
-    <p>Trân trọng,</p>
-    <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
-`;
+            try {
+                const htmlContent = `
+                    <h2>Thông báo Kết Quả Tuyển Sinh</h2>
+                    <p>Xin chào Quý phụ huynh của học sinh <strong>${data.studentName}</strong>,</p>
+                    <p>Nhà trường trân trọng cảm ơn Quý phụ huynh đã quan tâm và gửi hồ sơ tuyển sinh cho học sinh.</p>
+                    <p>Sau khi xem xét hồ sơ và kết quả tuyển sinh, rất tiếc chúng tôi xin thông báo rằng hồ sơ của học sinh <strong>không đủ điều kiện nhập học</strong>.</p>
+                        <p>Với lý do là <strong>${reason}</strong>.</p>
+                    <p>Nhà trường mong Quý phụ huynh và học sinh sẽ tiếp tục cố gắng, và hy vọng sẽ có cơ hội đồng hành cùng Quý vị trong những năm học tới.</p>
+                    <br>
+                    <p>Trân trọng,</p>
+                    <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>`;
 
-            const mail = new SMTP(SMTP_CONFIG);
-            mail.send(
-                data.fatherEmail,
-                data.motherEmail,
-                'THÔNG BÁO XÉT TUYỂN HỒ SƠ TUYỂN SINH',
-                htmlContent,
-                '',
-                (err, info) => {
-                    if (err) {
-                        console.error("Lỗi khi gửi mail:", err);
-                        return;
+                const mail = new SMTP(SMTP_CONFIG);
+                mail.send(
+                    data.fatherEmail,
+                    data.motherEmail,
+                    'THÔNG BÁO XÉT TUYỂN HỒ SƠ TUYỂN SINH',
+                    htmlContent,
+                    '',
+                    (err, info) => {
+                        if (err) {
+                            console.error("Lỗi khi gửi mail:", err);
+                            return;
+                        }
+                        console.log(`Đã gửi mail thành công`);
                     }
-                    console.log(`Đã gửi mail thành công`);
-                }
-            );
+                );
+            } catch (err) {
+                console.error("Lỗi khi gửi mail:", err);
+            }
+
         });
     } catch (error) {
         console.error("error getByIdController:", error);

@@ -319,38 +319,42 @@ exports.publishServiceController = async (req, res) => {
         res.status(HTTP_STATUS.OK).json("Đã mở đăng kí dịch vụ thành công");
 
         setImmediate(async () => {
-            if (dataCheck.serviceStartTime && data.serviceEndTime) {
-                const dataParent = await Parent.find({ active: true }).lean();
-                const emails = dataParent.map(parent => parent.email);
-                const userData = await User.find({
-                    active: { $eq: true },
-                    email: { $in: emails }
-                });
-                const roleData = await Role.findOne({ roleName: "Đăng kí đồng phục" });
-                await User.updateMany(
-                    { _id: { $in: userData.map(user => user._id) } },
-                    { $addToSet: { roleList: roleData._id } }
-                );
-                for (const email of emails) {
-                    const htmlContent = `
+            try {
+                if (dataCheck.serviceStartTime && data.serviceEndTime) {
+                    const dataParent = await Parent.find({ active: true }).lean();
+                    const emails = dataParent.map(parent => parent.email);
+                    const userData = await User.find({
+                        active: { $eq: true },
+                        email: { $in: emails }
+                    });
+                    const roleData = await Role.findOne({ roleName: "Đăng kí đồng phục" });
+                    await User.updateMany(
+                        { _id: { $in: userData.map(user => user._id) } },
+                        { $addToSet: { roleList: roleData._id } }
+                    );
+                    for (const email of emails) {
+                        const htmlContent = `
                 <h2>Thông báo Hồ sơ Tuyển Sinh</h2>
                 <p>Xin chào Quý phụ huynh</strong>,</p>
                 <p>Năm học <strong>${data.schoolYear}</strong> đã bắt đầu. Quý phụ huynh vui lòng đăng ký dịch vụ cho con em mình trong khoảng thời gian từ <strong>${data.serviceStartTime}</strong> đến <strong>${data.serviceEndTime}</strong>.</p>
                 <p>Tại chức năng đăng kí dịch vụ của nhà trường</strong>,</p>
                 <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
             `;
-                    const mail = new SMTP(SMTP_CONFIG);
-                    await mail.send(
-                        email,
-                        ``,
-                        'THÔNG BÁO ĐĂNG KÍ DỊCH VỤ',
-                        htmlContent,
-                        ``,
-                        () => {
-                            console.log(`Mail gửi thành công đến email : ${email}`);
-                        }
-                    );
+                        const mail = new SMTP(SMTP_CONFIG);
+                        await mail.send(
+                            email,
+                            ``,
+                            'THÔNG BÁO ĐĂNG KÍ DỊCH VỤ',
+                            htmlContent,
+                            ``,
+                            () => {
+                                console.log(`Mail gửi thành công đến email : ${email}`);
+                            }
+                        );
+                    }
                 }
+            } catch (error) {
+                console.log("Error publishServiceController - setImmediate", error);
             }
         })
     } catch (error) {
@@ -423,60 +427,65 @@ exports.endSchoolYearController = async (req, res) => {
         res.status(HTTP_STATUS.OK).json({ message: "Tất cả học sinh đã được tốt nghiệp" });
 
         setImmediate(async () => {
-            for (const student of allStudents) {
-                const parentData = await Parent.find({ students: student }).lean();
-                const emails = parentData.map(parent => parent.email);
-                const userData = await User.find({
-                    active: { $eq: true },
-                    email: { $in: emails }
-                });
-
-                await User.updateMany(
-                    { _id: { $in: userData.map(user => user._id) } },
-                    { $set: { active: false } }
-                );
-
-                const studentData = await Student.findById(student).lean();
-                if (parentData.length > 0) {
-                    if (!emailQueue) {
-                        console.error('Email Queue chưa khởi tạo');
-                        continue;
-                    }
-
-                    const htmlTemplate = await renderTemplate({
-                        studentName: studentData.fullName,
-                        dob: studentData.dob ? new Date(studentData.dob).toLocaleDateString('vi-VN') : '',
-                        schoolYear: dataSchoolYear.schoolYear,
-                        graduationDate: new Date().toLocaleDateString('vi-VN'),
+            try {
+                for (const student of allStudents) {
+                    const parentData = await Parent.find({ students: student }).lean();
+                    const emails = parentData.map(parent => parent.email);
+                    const userData = await User.find({
+                        active: { $eq: true },
+                        email: { $in: emails }
                     });
 
-                    const pdfBase64 = await htmlToPDFBase64(htmlTemplate);
+                    await User.updateMany(
+                        { _id: { $in: userData.map(user => user._id) } },
+                        { $set: { active: false } }
+                    );
 
-                    const htmlContent = `
+                    const studentData = await Student.findById(student).lean();
+                    if (parentData.length > 0) {
+                        if (!emailQueue) {
+                            console.error('Email Queue chưa khởi tạo');
+                            continue;
+                        }
+
+                        const htmlTemplate = await renderTemplate({
+                            studentName: studentData.fullName,
+                            dob: studentData.dob ? new Date(studentData.dob).toLocaleDateString('vi-VN') : '',
+                            schoolYear: dataSchoolYear.schoolYear,
+                            graduationDate: new Date().toLocaleDateString('vi-VN'),
+                        });
+
+                        const pdfBase64 = await htmlToPDFBase64(htmlTemplate);
+
+                        const htmlContent = `
                 <h2>Thông báo Hồ sơ Tuyển Sinh</h2>
                 <p>Xin chào Quý phụ huynh của học sinh <strong>${studentData.fullName}</strong>,</p>
                 <p>Học sinh <strong>${studentData.fullName}</strong> với mã <strong>${studentData.studentCode}</strong> đã <strong>hoàn thành chương trình học năm học ${dataSchoolYear.schoolYear}</strong>.</p>
                 <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
             `;
-                    const mail = new SMTP(SMTP_CONFIG);
-                    await mail.send(
-                        parentData[0].email,
-                        parentData[1].email,
-                        'THÔNG BÁO TỐT NGHIỆP',
-                        htmlContent,
-                        [
-                            {
-                                filename: `GiayXacNhanTotNghiep_${studentData.studentCode}.pdf`,
-                                content: Buffer.from(pdfBase64, 'base64'),
-                                contentType: 'application/pdf'
+                        const mail = new SMTP(SMTP_CONFIG);
+                        await mail.send(
+                            parentData[0].email,
+                            parentData[1].email,
+                            'THÔNG BÁO TỐT NGHIỆP',
+                            htmlContent,
+                            [
+                                {
+                                    filename: `GiayXacNhanTotNghiep_${studentData.studentCode}.pdf`,
+                                    content: Buffer.from(pdfBase64, 'base64'),
+                                    contentType: 'application/pdf'
+                                }
+                            ],
+                            () => {
+                                console.log(`Mail gửi thành công đến email : ${parentData[0].email}`);
                             }
-                        ],
-                        () => {
-                            console.log(`Mail gửi thành công đến email : ${parentData[0].email}`);
-                        }
-                    );
+                        );
+                    }
                 }
+            }catch(error){
+                console.log("Error endSchoolYearController - setImmediate", error);
             }
+         
         })
 
     } catch (error) {

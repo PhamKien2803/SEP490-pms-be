@@ -74,8 +74,8 @@ const MenuSchema = new mongoose.Schema(
 
     state: {
       type: String,
-      enum: ["Chờ xử lý", "Đã duyệt", "Từ chối"],
-      default: "Chờ xử lý",
+      enum: ["Chờ xử lý", "Đã duyệt", "Từ chối", "Dự thảo"],
+      default: "Dự thảo",
     },
 
     active: { type: Boolean, default: true },

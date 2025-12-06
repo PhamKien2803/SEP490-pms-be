@@ -335,7 +335,7 @@ exports.rejectMenuById = async (req, res) => {
     }
 
     menu.reason = reason;
-    menu.state = "Từ chối";
+    menu.state = "Dự thảo";
     await menu.save();
     res.status(200).json({ message: "Từ chối thực đơn thành công.", menu });
   }

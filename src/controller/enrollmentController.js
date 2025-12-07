@@ -59,13 +59,12 @@ exports.registerEnrollController = async (req, res) => {
         const year = date.getFullYear();
         const nextYear = year + 1;
 
-        const queryString = {
-            active: { $eq: true },
+        // Lấy năm học hiện tại
+        const dataSchoolYear = await SchoolYear.findOne({
+            active: true,
             state: "Đang hoạt động",
             schoolYear: `${year}-${nextYear}`
-        }
-
-        const dataSchoolYear = await SchoolYear.findOne(queryString);
+        });
 
         if (!dataSchoolYear) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -73,6 +72,7 @@ exports.registerEnrollController = async (req, res) => {
             });
         }
 
+        // Kiểm tra số lượng hồ sơ
         const countEnrollment = await Enrollment.countDocuments({
             schoolYear: dataSchoolYear._id,
             state: { $ne: "Chưa đủ điều kiện nhập học" }
@@ -82,18 +82,13 @@ exports.registerEnrollController = async (req, res) => {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({
                 message: "Số lượng hồ sơ tuyển sinh đã đạt giới hạn"
             });
-}
+        }
 
+        // Kiểm tra thời gian tuyển sinh
         const enrollmentStart = new Date(dataSchoolYear.enrollmentStartDate);
         const enrollmentEnd = new Date(dataSchoolYear.enrollmentEndDate);
-
-        const enrollmentStartDate = enrollmentStart.toLocaleDateString("vi-VN", {
-            timeZone: "Asia/Ho_Chi_Minh"
-        });
-        const enrollmentEndDate = enrollmentEnd.toLocaleDateString("vi-VN", {
-            timeZone: "Asia/Ho_Chi_Minh"
-        });
-
+        const enrollmentStartDate = enrollmentStart.toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
+        const enrollmentEndDate = enrollmentEnd.toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
 
         if (date < enrollmentStart || date > enrollmentEnd) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -101,6 +96,7 @@ exports.registerEnrollController = async (req, res) => {
             });
         }
 
+        // Kiểm tra tuổi cha/mẹ
         if (motherDob && fatherDob) {
             const motherAge = await getAge(motherDob);
             const fatherAge = await getAge(fatherDob);
@@ -109,7 +105,6 @@ exports.registerEnrollController = async (req, res) => {
                     message: "Tuổi của mẹ phải lớn hơn hoặc bằng 18."
                 });
             }
-
             if (fatherAge !== null && fatherAge < 18) {
                 return res.status(HTTP_STATUS.BAD_REQUEST).json({
                     message: "Tuổi của bố phải lớn hơn hoặc bằng 18."
@@ -117,40 +112,57 @@ exports.registerEnrollController = async (req, res) => {
             }
         }
 
+        // Hàm kiểm tra trùng giá trị
         const validateDuplicates = (values) => {
             const filtered = values.filter(Boolean);
             return new Set(filtered).size !== filtered.length;
         };
 
+        // Kiểm tra CMND/CCCD trùng nhau
         if (validateDuplicates([studentIdCard, fatherIdCard, motherIdCard])) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Số CMND/CCCD của học sinh, cha và mẹ không được trùng nhau." });
         }
 
+        // Kiểm tra thông tin cha mẹ khi không check dữ liệu sẵn có
         if (!isCheck) {
+            // Email trùng nhau giữa cha/mẹ
             if (validateDuplicates([fatherEmail, motherEmail])) {
                 return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Email của cha và mẹ không được trùng nhau." });
             }
 
+            // SĐT trùng nhau giữa cha/mẹ
             if (validateDuplicates([fatherPhoneNumber, motherPhoneNumber])) {
                 return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Số điện thoại của cha và mẹ không được trùng nhau." });
             }
+
+            // Kiểm tra email đã tồn tại trong User
+            const [checkDadEmail, checkMomEmail] = await Promise.all([
+                User.findOne({ active: true, email: fatherEmail }),
+                User.findOne({ active: true, email: motherEmail })
+            ]);
+
+            if (checkDadEmail) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Email của cha đã tồn tại" });
+            }
+
+            if (checkMomEmail) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Email của mẹ đã tồn tại" });
+            }
         }
 
+        // Tạo mã hồ sơ theo sequence
         const modelName = Enrollment.modelName.toLowerCase();
         const sequence = await sequencePattern(Enrollment.modelName);
         const lastRecord = await Enrollment.findOne({
             [`${modelName}Code`]: { $regex: `^${sequence}` },
-        })
-            .sort({ [`${modelName}Code`]: -1 })
-            .lean();
+        }).sort({ [`${modelName}Code`]: -1 }).lean();
 
         const nextNumber = lastRecord
-            ? (parseInt(lastRecord[`${modelName}Code`].slice(-3)) + 1)
-                .toString()
-                .padStart(3, "0")
+            ? (parseInt(lastRecord[`${modelName}Code`].slice(-3)) + 1).toString().padStart(3, "0")
             : "001";
         const sequenceCode = `${sequence}${nextNumber}`;
 
+        // Khởi tạo dữ liệu mới
         let newData = {
             active: true,
             [`${modelName}Code`]: sequenceCode,
@@ -160,37 +172,24 @@ exports.registerEnrollController = async (req, res) => {
             ...req.body,
         };
 
+        // Kiểm tra dữ liệu cha mẹ đã có sẵn
         if (isCheck === true) {
             const [dataCheckDad, dataCheckMom] = await Promise.all([
                 Parent.findOne({ active: true, IDCard: fatherIdCard }),
                 Parent.findOne({ active: true, IDCard: motherIdCard }),
             ]);
 
+            if (!dataCheckDad) return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Không tìm thấy dữ liệu của cha" });
+            if (!dataCheckMom) return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Không tìm thấy dữ liệu của mẹ" });
+
             const [dataCheckEmailDad, dataCheckEmailMom] = await Promise.all([
                 User.findOne({ active: true, email: dataCheckDad.email }),
                 User.findOne({ active: true, email: dataCheckMom.email }),
-            ])
+            ]);
 
-            if (!dataCheckDad)
-                return res
-                    .status(HTTP_STATUS.BAD_REQUEST)
-                    .json({ message: "Không tìm thấy dữ liệu của cha" });
-            if (!dataCheckMom)
-                return res
-                    .status(HTTP_STATUS.BAD_REQUEST)
-                    .json({ message: "Không tìm thấy dữ liệu của mẹ" });
+            if (!dataCheckEmailDad) return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Email của cha không hợp lệ" });
+            if (!dataCheckEmailMom) return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Email của mẹ không hợp lệ" });
 
-            if (!dataCheckEmailDad) {
-                return res
-                    .status(HTTP_STATUS.BAD_REQUEST)
-                    .json({ message: "Email của cha không hợp lệ" });
-            }
-
-            if (!dataCheckEmailMom) {
-                return res
-                    .status(HTTP_STATUS.BAD_REQUEST)
-                    .json({ message: "Email của mẹ không hợp lệ" });
-            }
             newData = {
                 ...newData,
                 fatherName: dataCheckDad.fullName,
@@ -206,85 +205,63 @@ exports.registerEnrollController = async (req, res) => {
             };
         }
 
+        // Kiểm tra các trường required
         const schemaPaths = Enrollment.schema.paths;
-        const uniqueFields = Object.keys(schemaPaths).filter(
-            (key) => schemaPaths[key].options.unique
-        );
+        const uniqueFields = Object.keys(schemaPaths).filter(key => schemaPaths[key].options.unique);
+        const requiredFields = isCheck
+            ? ["studentIdCard", "fatherIdCard", "motherIdCard"]
+            : Object.keys(schemaPaths).filter(key => schemaPaths[key].options.required);
 
-        let requiredFields;
-
-        if (isCheck) {
-            requiredFields = ["studentIdCard", "fatherIdCard", "motherIdCard"];
-        } else {
-            requiredFields = Object.keys(schemaPaths).filter(
-                (key) => schemaPaths[key].options.required
-            );
-        }
-
-        const missingFields = requiredFields.filter(
-            (field) => !newData[field]?.toString().trim()
-        );
-
+        const missingFields = requiredFields.filter(field => !newData[field]?.toString().trim());
         if (missingFields.length > 0) {
-            const messages = missingFields.map((field) =>
-                i18n.t("messages.required", { field: i18n.t(`fields.${field}`) })
-            );
-            return res.status(HTTP_STATUS.BAD_REQUEST).json({messages: messages.join(", ")});
+            const messages = missingFields.map(field => i18n.t("messages.required", { field: i18n.t(`fields.${field}`) }));
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ messages: messages.join(", ") });
         }
 
-
+        // Kiểm tra trùng unique fields
         for (const field of uniqueFields) {
             if (!newData[field]) continue;
             const exists = await Enrollment.exists({ [field]: newData[field] });
             if (exists) {
-                return res.status(HTTP_STATUS.BAD_REQUEST).json(
-                    {
-                        message:
-                            i18n.t("messages.alreadyExists", {
-                                field: i18n.t(`fields.${field}`),
-                            }),
-                    }
-                );
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                    message: i18n.t("messages.alreadyExists", { field: i18n.t(`fields.${field}`) })
+                });
             }
         }
 
+        // Tạo hồ sơ
         const created = await Enrollment.create(newData);
         res.status(HTTP_STATUS.CREATED).json(created);
 
+        // Gửi mail thông báo
         setImmediate(async () => {
             try {
                 const htmlContent = `
-          <h2>Thông báo Hồ sơ Tuyển Sinh</h2>
-          <p>Xin chào Quý phụ huynh của học sinh <strong>${created.studentName}</strong>,</p>
-          <p>Nhà trường đã tiếp nhận hồ sơ tuyển sinh của học sinh. Hiện trạng hồ sơ đang <strong>đang xử lý</strong>.</p>
-          <p>Quý phụ huynh vui lòng đến trường từ ngày <strong>${enrollmentStartDate}</strong> đến ngày <strong>${enrollmentEndDate}</strong> để nộp giấy tờ cần thiết với mã đăng kí <strong>${created.enrollmentCode}</strong>.</p>
-          <p>Giấy tờ cần mang bao gồm: </p>
-          <p>+ Giấy khai sinh</p>
-          <p>+ Giấy khám sức khỏe</p>
-          <p>+ Hình ảnh chụp của bé</p>
-          <p>Ngoài ra, Quý phụ huynh có thể gửi thông tin giấy tờ đến email của trường theo cấu trúc: </p>
-          <p>Subject: HỒ SƠ NHẬP HỌC ${created.enrollmentCode}</p>
-          <p>+ Giaykhaisinh.pdf</p>
-          <p>+ Giaykhamsuckhoe.pdf</p>
-          <p>+ Ảnh học sinh </p>
-          
-          <p>Trân trọng,</p>
-          <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
-        `;
+                    <h2>Thông báo Hồ sơ Tuyển Sinh</h2>
+                    <p>Xin chào Quý phụ huynh của học sinh <strong>${created.studentName}</strong>,</p>
+                    <p>Nhà trường đã tiếp nhận hồ sơ tuyển sinh của học sinh. Hiện trạng hồ sơ đang <strong>đang xử lý</strong>.</p>
+                    <p>Quý phụ huynh vui lòng đến trường từ ngày <strong>${enrollmentStartDate}</strong> đến ngày <strong>${enrollmentEndDate}</strong> để nộp giấy tờ cần thiết với mã đăng kí <strong>${created.enrollmentCode}</strong>.</p>
+                    <p>Giấy tờ cần mang bao gồm: </p>
+                    <p>+ Giấy khai sinh</p>
+                    <p>+ Giấy khám sức khỏe</p>
+                    <p>+ Hình ảnh chụp của bé</p>
+                    <p>Ngoài ra, Quý phụ huynh có thể gửi thông tin giấy tờ đến email của trường theo cấu trúc: </p>
+                    <p>Subject: HỒ SƠ NHẬP HỌC ${created.enrollmentCode}</p>
+                    <p>+ Giaykhaisinh.pdf</p>
+                    <p>+ Giaykhamsuckhoe.pdf</p>
+                    <p>+ Ảnh học sinh </p>
+                    <p>Trân trọng,</p>
+                    <p><strong>Ban Giám Hiệu Nhà Trường</strong></p>
+                `;
 
                 const mail = new SMTP(SMTP_CONFIG);
-                await mail.send(
-                    created.fatherEmail,
-                    created.motherEmail,
-                    "THÔNG BÁO TIẾP NHẬN HỒ SƠ TUYỂN SINH",
-                    htmlContent
-                );
-
+                await mail.send(created.fatherEmail, created.motherEmail, "THÔNG BÁO TIẾP NHẬN HỒ SƠ TUYỂN SINH", htmlContent);
                 console.log("Đã gửi mail thành công");
             } catch (mailErr) {
                 console.error("Lỗi khi gửi mail:", mailErr);
             }
         });
+
     } catch (error) {
         console.error("Error registerEnrollController:", error);
         const status = error.status || HTTP_STATUS.SERVER_ERROR;
@@ -292,6 +269,7 @@ exports.registerEnrollController = async (req, res) => {
         return res.status(status).json({ message });
     }
 };
+
 
 // nếu mà chuyển khoản tạo mới tài khoản add cho quyền parent portal 
 // tạo mới tuition theo tháng hiện tại, và theo enrollementId
@@ -843,7 +821,7 @@ exports.approvedEnrollAllController = async (req, res) => {
                                 const parentUser = await User.findOne({ parent: parent._id });
                                 if (parentUser) {
                                     parentUser.isPreview = false,
-                                    parentUser.roleList = [roleParent._id];
+                                        parentUser.roleList = [roleParent._id];
                                     await parentUser.save();
                                 }
                             }

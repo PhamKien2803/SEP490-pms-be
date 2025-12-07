@@ -9,6 +9,7 @@ const UserSchema = new mongoose.Schema(
         active: { type: Boolean, default: true },
         staff: { type: mongoose.Types.ObjectId, ref: "Staff" },
         parent: { type: mongoose.Types.ObjectId, ref: "Parent" },
+        isPreview: { type: Boolean },
         createdBy: { type: String },
         updatedBy: { type: String },
     },

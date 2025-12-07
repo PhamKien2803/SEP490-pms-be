@@ -379,6 +379,7 @@ exports.approvedEnrollController = async (req, res) => {
                     password: "12345678",
                     roleList: [role._id],
                     active: true,
+                    isPreview: true,
                     parent: dad._id
                 });
                 console.log("add dad")
@@ -409,6 +410,7 @@ exports.approvedEnrollController = async (req, res) => {
                     password: "12345678",
                     roleList: [role._id],
                     active: true,
+                    isPreview: true,
                     parent: mom._id
                 });
 
@@ -840,6 +842,7 @@ exports.approvedEnrollAllController = async (req, res) => {
                                 // reset quyền về phụ huynh
                                 const parentUser = await User.findOne({ parent: parent._id });
                                 if (parentUser) {
+                                    parentUser.isPreview = false,
                                     parentUser.roleList = [roleParent._id];
                                     await parentUser.save();
                                 }

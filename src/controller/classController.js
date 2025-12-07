@@ -2,6 +2,7 @@ const { Model } = require("mongoose");
 const { HTTP_STATUS, RESPONSE_MESSAGE, USER_ROLES, VALIDATION_CONSTANTS, MAXIMIMUM_CLASS } = require('../constants/useConstants');
 const Class = require('../models/classModel');
 const Staff = require('../models/staffModel');
+const User = require('../models/userModel')
 const SchoolYear = require('../models/schoolYearModel');
 const Student = require("../models/studentModel");
 const Room = require("../models/roomModel");
@@ -20,14 +21,14 @@ exports.getAllClassController = async (req, res) => {
 
         const dataSchoolYear = await SchoolYear.findOne({ schoolYear: year });
         if (!dataSchoolYear) {
-          return res.status(HTTP_STATUS.OK).json({
-            data: [],
-            page: {
-              totalCount: 0,
-              limit,
-                page,
-            },
-          });
+            return res.status(HTTP_STATUS.OK).json({
+                data: [],
+                page: {
+                    totalCount: 0,
+                    limit,
+                    page,
+                },
+            });
         }
         let queryString = {
             active: { $eq: true },
@@ -91,15 +92,15 @@ exports.getByIdClassController = async (req, res) => {
 exports.getAvailableStudentController = async (req, res) => {
     try {
         const { age } = req.query;
-        if(!age){
+        if (!age) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Vui lòng chọn độ tuổi của lớp học" });
         }
 
         const dataSchoolYear = await SchoolYear.findOne({ active: true, state: "Đang hoạt động" });
 
-        const dataClass = await Class.find({ 
-            active: true, 
-            schoolYear: dataSchoolYear._id 
+        const dataClass = await Class.find({
+            active: true,
+            schoolYear: dataSchoolYear._id
         }).lean();
 
         const studentArr = dataClass.map(item => item.students);
@@ -113,7 +114,7 @@ exports.getAvailableStudentController = async (req, res) => {
             active: true,
             graduated: { $ne: true },
             _id: { $nin: studentList },
-            dob: { $gte: minDob, $lte: maxDob } 
+            dob: { $gte: minDob, $lte: maxDob }
         });
         console.log("[Bthieu] ~ studentAvailable:", studentAvailable);
 
@@ -586,7 +587,11 @@ exports.getClassCountBySchoolYear = async (req, res) => {
             { $sort: { "schoolYear.startDate": 1 } }
         ]);
 
-        res.status(200).json({ success: true, totalTeachers: total, data: result });
+        const staffCount = await User.countDocuments({ staff: { $exists: true, $ne: null } });
+        const parentCount = await User.countDocuments({ parent: { $exists: true, $ne: null } });
+
+
+        res.status(200).json({ success: true, totalTeachers: total, data: result, staffCount, parentCount });
     } catch (error) {
         console.error("Error:", error);
         res.status(500).json({ success: false, message: "Lỗi server!" });

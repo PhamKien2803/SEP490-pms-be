@@ -5,7 +5,7 @@ const Function = require('../models/functionModel');
 const Module = require("../models/moduleModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { createGeneric, deletedSoftGeneric, findAllGeneric, updateGeneric } = require("../controller/useController");
-const { getListController, getDetailController, getListModuleController, getListFunctionController } = require("../controller/roleController");
+const { getListController, getDetailController, getListModuleController, getListFunctionController, deleteRole } = require("../controller/roleController");
 
 
 router.get("/list",
@@ -35,7 +35,7 @@ router.put("/update/:id",
 router.post("/delete/:id",
     verifyToken,
     authorizeAction("delete"),
-    deletedSoftGeneric(Role)
+    deleteRole
 );
 
 router.get("/listFunction",

@@ -189,3 +189,4 @@ exports.deleteUserById = async (req, res) => {
         res.status(HTTP_STATUS.SERVER_ERROR).json({ message: err.message });
     }
 }
+

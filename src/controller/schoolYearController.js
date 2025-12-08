@@ -717,7 +717,6 @@ exports.updateEventController = async (req, res) => {
 
     for (const field of uniqueFields) {
       const exists = await Event.findOne({ [field]: data[field], _id: { $ne: id }, active: true, schoolYear: data.schoolYear });
-      console.log("[Bthieu] ~ exists:", exists);
       if (exists) {
         const fieldLabel = i18n.t(`fields.${field}`);
         const message = i18n.t("messages.alreadyExists", { field: fieldLabel });

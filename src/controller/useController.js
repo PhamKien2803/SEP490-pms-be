@@ -152,7 +152,7 @@ const updateGeneric = (Model) => async (req, res) => {
     );
 
     for (const field of uniqueFields) {
-      const exists = await Model.findOne({ [field]: data[field], _id: { $ne: id } });
+      const exists = await Model.findOne({ [field]: data[field], _id: { $ne: id }, active: true });
       if (exists) {
         const fieldLabel = i18n.t(`fields.${field}`);
         const message = i18n.t("messages.alreadyExists", { field: fieldLabel });

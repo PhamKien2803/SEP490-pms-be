@@ -111,3 +111,20 @@ exports.getListRoleController = async(req, res) => {
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
     }
 }
+
+exports.deleteRole = async (req, res) => {
+    try {
+    const data = await Role.findById(req.params.id);
+    if (!data) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json(RESPONSE_MESSAGE.NOT_FOUND);
+    }
+    if(data.roleName === "Quản trị hệ thống"){
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Không thể xóa vai trò Quản trị viên hệ thống." });
+    }
+    data.active = false;
+    await data.save();
+    return res.status(HTTP_STATUS.OK).json(RESPONSE_MESSAGE.DELETED);
+  } catch (err) {
+    res.status(HTTP_STATUS.SERVER_ERROR).json({ message: err.message });
+  }
+}

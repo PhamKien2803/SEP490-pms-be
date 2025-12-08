@@ -4,7 +4,7 @@ const User = require("../models/userModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { findAllGeneric, createGeneric, deletedSoftGeneric, updateGeneric } = require('../controller/useController');
 const { getListRoleController } = require("../controller/roleController");
-const { getListUser } = require("../controller/authController");
+const { getListUser, deleteUserById } = require("../controller/authController");
 const { changePasswordTeacher, getInforTeacher, updateInforTeacher } = require("../controller/staffController");
 
 router.get(
@@ -32,7 +32,7 @@ router.post(
     "/delete/:id",
     verifyToken,
     authorizeAction("delete"),
-    deletedSoftGeneric(User)
+    deleteUserById
 );
 
 router.put(

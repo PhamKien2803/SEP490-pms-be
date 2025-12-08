@@ -170,3 +170,22 @@ exports.getListUser = async (req, res) => {
     }
 };
 
+exports.deleteUserById = async (req, res) => {
+    try {
+        const data = await UserModel.findById(req.params.id);
+        if (!data) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json(RESPONSE_MESSAGE.NOT_FOUND);
+        }
+        if (data.isAdmin) {
+            const dataCheckCount = await UserModel.countDocuments({ isAdmin: true, active: { $eq: true } });
+            if (dataCheckCount <= 1) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Hệ thống cần ít nhất một tài khoản quản trị hoạt động." });
+            }
+        }
+        data.active = false;
+        await data.save();
+        return res.status(HTTP_STATUS.OK).json(RESPONSE_MESSAGE.DELETED);
+    } catch (err) {
+        res.status(HTTP_STATUS.SERVER_ERROR).json({ message: err.message });
+    }
+}

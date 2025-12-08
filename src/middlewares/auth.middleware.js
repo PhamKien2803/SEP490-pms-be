@@ -20,7 +20,8 @@ exports.verifyToken = async (req, res, next) => {
     if (!user) return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Người dùng không tồn tại." });
 
     const queryString = {
-      _id: { $in: decoded.roles }
+      _id: { $in: decoded.roles },
+      active: { $eq: true }
     }
 
     const permissionListAll = await Role.find(queryString)

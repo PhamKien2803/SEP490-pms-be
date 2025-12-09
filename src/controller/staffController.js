@@ -26,8 +26,9 @@ exports.createStaffController = async (req, res) => {
 
   try {
     const { email, createBy, address } = req.body;
+    console.log("[Bthieu] ~ req:", req.body);
     const modelName = Staff.modelName.toLowerCase();
-    if (address) {
+    if (!address) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Địa chỉ thường trú là bắt buộc" });
     }
 

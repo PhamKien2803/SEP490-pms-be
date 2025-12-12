@@ -305,7 +305,6 @@ exports.handlePayOSWebhook = async (req, res) => {
 
         const tuitions = await Tuition.find({ orderCode: Number(orderCode) });
         if (!tuitions || tuitions.length === 0) {
-            console.log(`[Webhook] Không tìm thấy phiếu thu với orderCode: ${orderCode}`);
             return res.json({ success: true });
         }
 

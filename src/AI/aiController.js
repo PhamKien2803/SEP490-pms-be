@@ -43,7 +43,6 @@ ${inputJson}
 
     // Lấy phần text trả về từ Gemini
     const text = response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    console.log("🚀 ~ text:", text)
     try {
         return JSON.parse(text);
     } catch {

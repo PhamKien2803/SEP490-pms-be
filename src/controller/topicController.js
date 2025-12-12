@@ -87,7 +87,6 @@ exports.getListController = async (req, res) => {
             active: { $eq: true },
             schoolYear: schoolYear
         })
-        console.log("[Bthieu] ~ dataSchoolYear:", dataSchoolYear);
 
         limit = parseInt(limit) || 30;
         page = parseInt(page) || 1;

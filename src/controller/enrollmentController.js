@@ -360,7 +360,6 @@ exports.approvedEnrollController = async (req, res) => {
                     isPreview: true,
                     parent: dad._id
                 });
-                console.log("add dad")
 
             } else {
                 userDad = await User.findOne({ parent: dad._id }).session(session);
@@ -392,7 +391,6 @@ exports.approvedEnrollController = async (req, res) => {
                     parent: mom._id
                 });
 
-                console.log("add mom")
             } else {
                 userMom = await User.findOne({ parent: mom._id }).session(session);
             }

@@ -41,7 +41,6 @@ exports.getListController = async (req, res) => {
         })
             .skip(offset)
             .limit(limit);
-        console.log("[Bthieu] ~ data:", data);
 
         if (!data || data.length === 0) {
             return res.status(HTTP_STATUS.OK).json({

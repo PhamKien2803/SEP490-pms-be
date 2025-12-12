@@ -38,7 +38,6 @@ exports.getAllClassController = async (req, res) => {
         const data = await Class.find(queryString).populate("schoolYear room")
             .skip(offset)
             .limit(limit);
-        console.log("[Bthieu] ~ data:", data);
 
         if (!data || data.length === 0) {
             return res.status(HTTP_STATUS.OK).json({
@@ -115,7 +114,6 @@ exports.getAvailableStudentController = async (req, res) => {
             _id: { $nin: studentList },
             dob: { $gte: minDob, $lte: maxDob } 
         });
-        console.log("[Bthieu] ~ studentAvailable:", studentAvailable);
 
         // if (!studentAvailable || studentAvailable.length === 0) {
         //     return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy học sinh phù hợp" });

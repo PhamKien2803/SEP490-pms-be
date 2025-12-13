@@ -6,8 +6,17 @@ const morgan = require("morgan");
 const connectDB = require("./configs/database");
 const cookieParser = require("cookie-parser");
 const { connectGridFS } = require("./configs/gridfs");
-// Khai báo routes
-require(".//helpers/botEnrollmentCheck.js");
+
+// Load env
+dotenv.config();
+
+// Helpers – KHÔNG chạy khi test
+if (process.env.NODE_ENV !== "test") {
+    require("./helpers/botEnrollmentCheck.js");
+    require("./helpers/emailWorkQueue.js");
+}
+
+// Routes
 const student = require("./routes/studentRoute");
 const parent = require("./routes/parentRoute");
 const auth = require("./routes/authRoute");
@@ -17,61 +26,58 @@ const user = require("./routes/userRoute");
 const staffs = require("./routes/staffRoute");
 const enrollments = require("./routes/enrollmentRoute");
 const menu = require("./routes/menuRoute");
-const food = require("./routes/foodRoute.js");
-const schoolYear = require("./routes/schoolYearRoute.js");
-const classes = require("./routes/classRoute.js");
-const room = require("./routes/roomRoute.js");
-const activity = require("./routes/activityRoute.js");
-const event = require("./routes/eventRoute.js");
-const medical = require("./routes/medicalRoute.js");
-const topic = require("./routes/topicRoute.js");
-const teacher = require("./routes/teacherRoute.js");
-const schedule = require("./routes/scheduleRoute.js");
-const attendance = require("./routes/attendanceRoute.js");
-const feedback = require("./routes/feedbackRoute.js");
-const dashboardParent = require("./routes/dashboardParentRoute.js");
-const lesson = require("./routes/lessonRoute.js");
-const revenues = require("./routes/revenueRoute.js");
-const services = require("./routes/serviceRoute.js");
-const tuitionManage = require("./routes/tuitionManageRoute.js");
-const tuitions = require("./routes/tuitionRoute.js")
-const manageServices = require("./routes/manageServices.js");
-const receipts = require("./routes/receiptRoute.js");
-const classDBRoute = require("./routes/classDBRoute.js");
-const attendanceDBRoute = require("./routes/attendanceDBRoute.js");
-const schedulesDBRoute = require("./routes/schedulesDBRoute.js");
-const menuDashboardRoute = require("./routes/menuDashboardRoute.js");
-const feedbackDBRoute = require("./routes/feedbackDBRoute.js");
-const medicalDashboardRoute = require("./routes/medicalDashboardRoute.js");
-const guardianRoute = require("./routes/guardianRoute.js");
-const timetable = require("./routes/timetableRoute.js");
-const payment = require("./routes/paymentRoute.js");
-const balance = require("./routes/balanceRoute.js");
-// const postFileRoute = require("./routes/postFileRoute.js");
-const postRoute = require("./routes/postRoute.js");
-const document = require("./routes/documentRoute.js");
-const postDBRoute = require("./routes/postDBRoute.js");
-const parentInfoRoute = require("./routes/parentInfoRoute.js");
-require("./helpers/emailWorkQueue.js");
+const food = require("./routes/foodRoute");
+const schoolYear = require("./routes/schoolYearRoute");
+const classes = require("./routes/classRoute");
+const room = require("./routes/roomRoute");
+const activity = require("./routes/activityRoute");
+const event = require("./routes/eventRoute");
+const medical = require("./routes/medicalRoute");
+const topic = require("./routes/topicRoute");
+const teacher = require("./routes/teacherRoute");
+const schedule = require("./routes/scheduleRoute");
+const attendance = require("./routes/attendanceRoute");
+const feedback = require("./routes/feedbackRoute");
+const dashboardParent = require("./routes/dashboardParentRoute");
+const lesson = require("./routes/lessonRoute");
+const revenues = require("./routes/revenueRoute");
+const services = require("./routes/serviceRoute");
+const tuitionManage = require("./routes/tuitionManageRoute");
+const tuitions = require("./routes/tuitionRoute");
+const manageServices = require("./routes/manageServices");
+const receipts = require("./routes/receiptRoute");
+const classDBRoute = require("./routes/classDBRoute");
+const attendanceDBRoute = require("./routes/attendanceDBRoute");
+const schedulesDBRoute = require("./routes/schedulesDBRoute");
+const menuDashboardRoute = require("./routes/menuDashboardRoute");
+const feedbackDBRoute = require("./routes/feedbackDBRoute");
+const medicalDashboardRoute = require("./routes/medicalDashboardRoute");
+const guardianRoute = require("./routes/guardianRoute");
+const timetable = require("./routes/timetableRoute");
+const payment = require("./routes/paymentRoute");
+const balance = require("./routes/balanceRoute");
+const postRoute = require("./routes/postRoute");
+const document = require("./routes/documentRoute");
+const postDBRoute = require("./routes/postDBRoute");
+const parentInfoRoute = require("./routes/parentInfoRoute");
 
-// Khai báo dotenv
-dotenv.config();
-
-// Khai báo app
+// Init app
 const app = express();
 
 // Middleware
-app.use(cors({ origin: "http://localhost:5173", credentials: true, }));
+app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(morgan("dev"));
 app.use(cookieParser());
 
-// Connect to MongoDB
-connectDB();
-connectGridFS();
+// Connect DB – KHÔNG connect khi test
+if (process.env.NODE_ENV !== "test") {
+    connectDB();
+    connectGridFS();
+}
 
-// Sử dụng đường dẫn
+// Routes
 app.use("/api/pms/students", student);
 app.use("/api/pms/parents", parent);
 app.use("/api/pms/auth", auth);
@@ -84,7 +90,7 @@ app.use("/api/pms/enrollments", enrollments);
 app.use("/api/pms/menus", menu);
 app.use("/api/pms/schoolYears", schoolYear);
 app.use("/api/pms/foods", food);
-app.use("/api/pms/classes", classes)
+app.use("/api/pms/classes", classes);
 app.use("/api/pms/rooms", room);
 app.use("/api/pms/curriculums", activity);
 app.use("/api/pms/events", event);
@@ -112,20 +118,22 @@ app.use("/api/pms/tuition-manage", tuitionManage);
 app.use("/api/pms/tuitions", tuitions);
 app.use("/api/pms/payments", payment);
 app.use("/api/pms/balances", balance);
-// app.use("/api/pms/post-files", postFileRoute);
 app.use("/api/pms/posts", postRoute);
 app.use("/api/pms/documents", document);
 app.use("/api/pms/parents-profile", parentInfoRoute);
 
-
-// route test
+// Health check
 app.get("/", (req, res) => {
     res.send("👋 Welcome to the Blue Dolphin Management API");
 });
 
+// Start server – KHÔNG chạy khi test
+if (process.env.NODE_ENV !== "test") {
+    const PORT = process.env.PORT || 9999;
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT}`);
+    });
+}
 
-// Start server
-const PORT = process.env.PORT || 9999;
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on port 9999`);
-});
+// Export app cho Supertest
+module.exports = app;

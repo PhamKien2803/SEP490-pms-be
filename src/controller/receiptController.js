@@ -110,7 +110,6 @@ exports.getByIdController = async (req, res) => {
     }
 }
 
-
 //Khi tích chọn isEnroll thì sẽ bỏ năm và state lưu receiptName là Học phí nhập học
 exports.confirmReceiptController = async (req, res) => {
     try {

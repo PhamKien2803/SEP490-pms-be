@@ -5,6 +5,8 @@
   "scripts": {
     "build": "echo \"Nothing to build. Just vibes.\"",
     "test": "jest --runInBand",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "dev": "nodemon src/server.js",
     "start:worker": "nodemon src/helpers/emailWorkQueue.js",
     "start-dev": "concurrently \"npm run dev\" \"npm run start:worker\"",

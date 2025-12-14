@@ -6,14 +6,72 @@ const Balance = require("../models/balanceModel");
 const TransactionHistory = require("../models/transactionHistoryModel");
 const { sequencePattern } = require('../helpers/useHelpers');
 
+// exports.getListController = async (req, res) => {
+//     try {
+//         let { limit, page, schoolYear } = req.query;
+
+//         limit = parseInt(limit) || 30;
+//         page = parseInt(page) || 1;
+
+//         const offset = (page - 1) * limit;
+//         if (!schoolYear) {
+//             return res.status(HTTP_STATUS.OK).json({
+//                 data: [],
+//                 page: {
+//                     totalCount: 0,
+//                     limit,
+//                     page,
+//                 }
+//             })
+//         }
+//         const schoolYearData = await SchoolYear.findOne({
+//             schoolYear: schoolYear,
+//             state: "Đang hoạt động"
+//         })
+//         const queryString = {
+//             active: { $eq: true },
+//             schoolYear: schoolYearData._id
+//         };
+
+//         const totalCount = await Document.countDocuments(queryString);
+
+//         const data = await Document.find(queryString)
+//             .skip(offset)
+//             .limit(limit);
+
+//         if (!data || data.length === 0) {
+//             return res.status(HTTP_STATUS.OK).json({
+//                 data: [],
+//                 page: {
+//                     totalCount,
+//                     limit,
+//                     page,
+//                 },
+//             })
+//         }
+
+//         return res.status(HTTP_STATUS.OK).json({
+//             data,
+//             page: {
+//                 totalCount,
+//                 limit,
+//                 page,
+//             },
+//         });
+//     } catch (error) {
+//         console.log("Error getListController", error);
+//         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+//     }
+// }
+
 exports.getListController = async (req, res) => {
     try {
         let { limit, page, schoolYear } = req.query;
 
         limit = parseInt(limit) || 30;
         page = parseInt(page) || 1;
-
         const offset = (page - 1) * limit;
+
         if (!schoolYear) {
             return res.status(HTTP_STATUS.OK).json({
                 data: [],
@@ -21,16 +79,29 @@ exports.getListController = async (req, res) => {
                     totalCount: 0,
                     limit,
                     page,
-                }
-            })
+                },
+            });
         }
+
         const schoolYearData = await SchoolYear.findOne({
             schoolYear: schoolYear,
-            state: "Đang hoạt động"
-        })
+            active: true,
+        });
+
+        if (!schoolYearData) {
+            return res.status(HTTP_STATUS.OK).json({
+                data: [],
+                page: {
+                    totalCount: 0,
+                    limit,
+                    page,
+                },
+            });
+        }
+
         const queryString = {
-            active: { $eq: true },
-            schoolYear: schoolYearData._id
+            active: true,
+            schoolYear: schoolYearData._id,
         };
 
         const totalCount = await Document.countDocuments(queryString);
@@ -39,19 +110,8 @@ exports.getListController = async (req, res) => {
             .skip(offset)
             .limit(limit);
 
-        if (!data || data.length === 0) {
-            return res.status(HTTP_STATUS.OK).json({
-                data: [],
-                page: {
-                    totalCount,
-                    limit,
-                    page,
-                },
-            })
-        }
-
         return res.status(HTTP_STATUS.OK).json({
-            data,
+            data: data || [],
             page: {
                 totalCount,
                 limit,
@@ -59,10 +119,13 @@ exports.getListController = async (req, res) => {
             },
         });
     } catch (error) {
-        console.log("Error getListController", error);
-        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+        console.error("Error getListController", error);
+        return res.status(HTTP_STATUS.SERVER_ERROR).json({
+            message: "Internal server error",
+        });
     }
-}
+};
+
 
 exports.createController = async (req, res) => {
     try {

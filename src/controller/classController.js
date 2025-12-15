@@ -595,3 +595,19 @@ exports.getClassCountBySchoolYear = async (req, res) => {
         res.status(500).json({ success: false, message: "Lỗi server!" });
     }
 };
+
+
+
+exports.getClassAvailable = async (req, res) => {
+    try{
+        let queryString = {
+            state: {$ne: "Chưa hoạt động"},
+            active: true
+        };
+        const data = await SchoolYear.find(queryString)
+        return res.status(HTTP_STATUS.OK).json({data: data})
+    }catch(error){
+        console.error("Error getClassAvailable:", error);
+        res.status(500).json({ success: false, message: "Lỗi server!" });
+    }
+}

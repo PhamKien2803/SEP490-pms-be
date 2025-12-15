@@ -253,6 +253,23 @@ exports.updateSchoolYearController = async (req, res) => {
     }
 };
 
+exports.deletedSchoolYearController = async (req, res) => {
+  try {
+    const data = await SchoolYear.findById(req.params.id);
+    if (!data) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json(RESPONSE_MESSAGE.NOT_FOUND);
+    }
+    if(data.state === "Đang hoạt động") {
+          return res.status(HTTP_STATUS.BAD_REQUEST).json({message: "Không thể xóa năm học đang diễn ra"});
+    }
+    data.active = false;
+    await data.save();
+    return res.status(HTTP_STATUS.OK).json(RESPONSE_MESSAGE.DELETED);
+  } catch (err) {
+    res.status(HTTP_STATUS.SERVER_ERROR).json({ message: err.message });
+  }
+}
+
 
 exports.getByIdController = async (req, res) => {
     try {

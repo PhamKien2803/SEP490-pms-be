@@ -141,39 +141,38 @@ const updateGeneric = (Model) => {
   return async (req, res) => {
     try {
       const { id } = req.params;
-      console.log("[Bthieu] ~ updateGeneric ~ id:", id)
 
-    const data = await Model.findById(id);
-    if (!data) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json(RESPONSE_MESSAGE.NOT_FOUND);
-    }
-    Object.assign(data, req.body);
-
-    const uniqueFields = Object.keys(Model.schema.paths).filter(
-      key => Model.schema.paths[key].options.unique
-    );
-
-    for (const field of uniqueFields) {
-      const exists = await Model.findOne({ [field]: data[field], _id: { $ne: id }, active: true });
-      if (exists) {
-        const fieldLabel = i18n.t(`fields.${field}`);
-        const message = i18n.t("messages.alreadyExists", { field: fieldLabel });
-        return res.status(400).json({ message: `${message}` });
+      const data = await Model.findById(id);
+      if (!data) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json(RESPONSE_MESSAGE.NOT_FOUND);
       }
-    }
-    await data.save();
+      Object.assign(data, req.body);
 
-    return res.status(HTTP_STATUS.UPDATED).json(RESPONSE_MESSAGE.UPDATED);
-  } catch (error) {
-    console.log("error updateGeneric", error);
+      const uniqueFields = Object.keys(Model.schema.paths).filter(
+        key => Model.schema.paths[key].options.unique
+      );
 
-    if (error.name === "ValidationError") {
-      const messages = Object.values(error.errors).map(e => e.message);
-      return res.status(400).json({ message: messages.join(", ") });
+      for (const field of uniqueFields) {
+        const exists = await Model.findOne({ [field]: data[field], _id: { $ne: id }, active: true });
+        if (exists) {
+          const fieldLabel = i18n.t(`fields.${field}`);
+          const message = i18n.t("messages.alreadyExists", { field: fieldLabel });
+          return res.status(400).json({ message: `${message}` });
+        }
+      }
+      await data.save();
+
+      return res.status(HTTP_STATUS.UPDATED).json(RESPONSE_MESSAGE.UPDATED);
+    } catch (error) {
+      console.log("error updateGeneric", error);
+
+      if (error.name === "ValidationError") {
+        const messages = Object.values(error.errors).map(e => e.message);
+        return res.status(400).json({ message: messages.join(", ") });
+      }
+      res.status(HTTP_STATUS.SERVER_ERROR).json({ message: error.message });
     }
-    res.status(HTTP_STATUS.SERVER_ERROR).json({ message: error.message });
-  }
-};
+  };
 };
 
 const getByIdGeneric = (Model) => async (req, res) => {

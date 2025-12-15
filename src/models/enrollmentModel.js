@@ -15,6 +15,7 @@ const EnrollmentSchema = new mongoose.Schema(
     studentNation: { type: String, required: true },
     studentReligion: { type: String, required: true },
     address: { type: String, required: true },
+    nickname: { type: String },
     birthCertId: { type: mongoose.Schema.Types.ObjectId },
     healthCertId: { type: mongoose.Schema.Types.ObjectId, },
 

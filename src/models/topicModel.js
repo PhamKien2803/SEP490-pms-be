@@ -3,10 +3,10 @@ const SchoolYear = require("./schoolYearModel");
 const TopicSchema = new mongoose.Schema(
     {
         topicCode: { type: String, required: true, unique: true },
-        topicName: { type: String, required: true, unique: true },
-        month: { type: String, required: true, unique: true },
+        topicName: { type: String, required: true },
+        month: { type: String, required: true },
         schoolYear: { type: mongoose.Types.ObjectId, ref: "SchoolYear" },
-        age: { type: String, required: true, unique: true },
+        age: { type: String, required: true },
         activitiFix: [
             {
                 activity: { type: mongoose.Schema.Types.ObjectId, ref: "Activity" },

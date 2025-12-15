@@ -132,6 +132,25 @@ exports.createStudentEnroll = async (req, res) => {
             fatherDob
         } = req.body;
 
+        const dataCheckEmailDad = await User.findOne({
+            active: true,
+            email: fatherEmail
+        });
+
+        if (dataCheckEmailDad) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                message: "Email của bố đã được sử dụng"
+            });
+        }
+        const dataCheckEmailMom = await User.findOne({
+            active: true,
+            email: motherEmail
+        });
+        if (dataCheckEmailMom) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                message: "Email của mẹ đã được sử dụng"
+            });
+        }
         const date = new Date();
         const year = date.getFullYear();
         const nextYear = year + 1;

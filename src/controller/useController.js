@@ -137,9 +137,11 @@ const deletedSoftGeneric = (Model) => async (req, res) => {
   }
 }
 
-const updateGeneric = (Model) => async (req, res) => {
-  try {
-    const { id } = req.params;
+const updateGeneric = (Model) => {
+  return async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log("[Bthieu] ~ updateGeneric ~ id:", id)
 
     const data = await Model.findById(id);
     if (!data) {
@@ -171,6 +173,7 @@ const updateGeneric = (Model) => async (req, res) => {
     }
     res.status(HTTP_STATUS.SERVER_ERROR).json({ message: error.message });
   }
+};
 };
 
 const getByIdGeneric = (Model) => async (req, res) => {

@@ -178,7 +178,7 @@ exports.confirmReceiptController = async (req, res) => {
             });
 
             for (const item of results) {
-                if(!dadEmail || !momEmail) continue;
+                if (!dadEmail || !momEmail) continue;
                 const { dadEmail, momEmail, studentName, month } = item;
                 setImmediate(async () => {
                     try {
@@ -222,3 +222,20 @@ exports.confirmReceiptController = async (req, res) => {
         });
     }
 };
+
+exports.deletedReceiptController = async (req, res) => {
+    try {
+        const data = await Receipt.findById(req.params.id);
+        if (!data) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json(RESPONSE_MESSAGE.NOT_FOUND);
+        }
+        if (data.state === "Đã xác nhận") {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Không thể xóa biên lai đã xác nhận" });
+        }
+        data.active = false;
+        await data.save();
+        return res.status(HTTP_STATUS.OK).json(RESPONSE_MESSAGE.DELETED);
+    } catch (err) {
+        res.status(HTTP_STATUS.SERVER_ERROR).json({ message: err.message });
+    }
+}

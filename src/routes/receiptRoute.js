@@ -3,7 +3,7 @@ const router = express.Router();
 const Receipt = require("../models/receiptModel");
 const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware");
 const { createGeneric, deletedSoftGeneric, findAllGeneric, updateGeneric, getByIdGeneric } = require("../controller/useController");
-const { getListController, getRevenueController, getByIdController, confirmReceiptController } = require("../controller/receiptController")
+const { getListController, getRevenueController, getByIdController, confirmReceiptController, deletedReceiptController } = require("../controller/receiptController")
 
 router.get("/list",
     verifyToken,
@@ -32,7 +32,8 @@ router.put("/update/:id",
 router.post("/delete/:id",
     verifyToken,
     authorizeAction("delete"),
-    deletedSoftGeneric(Receipt)
+    // deletedSoftGeneric(Receipt)
+    deletedReceiptController
 );
 
 router.get("/getById/:id",

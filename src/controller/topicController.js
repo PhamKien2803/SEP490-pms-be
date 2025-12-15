@@ -79,7 +79,6 @@ exports.getAvailableActivityController = async (req, res) => {
     }
 };
 
-
 exports.getListController = async (req, res) => {
     try {
         let { limit, page, schoolYear } = req.query;
@@ -157,5 +156,88 @@ exports.getByIdController = async (req, res) => {
     } catch (error) {
         console.log("Error getByIdController", error);
         return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+    }
+};
+
+exports.createTopicController = async (req, res) => {
+    try {
+        const modelName = Topic.modelName.toLowerCase();
+        const sequence = await sequencePattern(Topic.modelName);
+
+        const lastRecord = await Topic.find({
+            topicCode: { $regex: `^${sequence}` }
+        })
+            .sort({ topicCode: -1 })
+            .limit(1);
+
+        let topicCode;
+        if (!lastRecord.length) {
+            topicCode = `${sequence}001`;
+        } else {
+            const lastNumber = parseInt(lastRecord[0].topicCode.slice(-3));
+            topicCode = `${sequence}${String(lastNumber + 1).padStart(3, "0")}`;
+        }
+
+        const newData = {
+            topicCode,
+            active: true,
+            ...req.body
+        };
+
+        const requiredFields = ["topicName", "month", "age"];
+        const missingFields = requiredFields.filter(
+            (field) => !newData[field]
+        );
+
+        if (missingFields.length) {
+            const messages = missingFields.map(field =>
+                i18n.t("messages.required", { field: i18n.t(`fields.${field}`) })
+            );
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: messages.join(", ") });
+        }
+
+        const dataSchoolYear = await SchoolYear.findOne({
+            active: true,
+            state: "Đang hoạt động"
+        })
+        if (!dataSchoolYear) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                message: "Không có năm học hoạt động"
+            });
+        }
+        const existedTopic = await Topic.findOne({
+            month: newData.month,
+            age: newData.age,
+            schoolYear: dataSchoolYear._id,
+            active: true
+        });
+
+        if (existedTopic) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                message: `Chủ đề của độ tuổi ${newData.age} đã được tạo`
+            });
+        }
+
+        const codeExists = await Topic.findOne({ topicCode });
+        if (codeExists) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                message: i18n.t("messages.alreadyExists", {
+                    field: i18n.t("fields.topicCode")
+                })
+            });
+        }
+
+        // const created = await Topic.create(newData);
+        return res.status(HTTP_STATUS.CREATED).json(created);
+
+    } catch (error) {
+        console.log("error createTopic", error);
+
+        if (error.name === "ValidationError") {
+            const messages = Object.values(error.errors).map(e => e.message);
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: messages.join(", ") });
+        }
+
+        return res.status(HTTP_STATUS.SERVER_ERROR).json({ message: error.message });
     }
 };

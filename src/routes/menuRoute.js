@@ -4,8 +4,9 @@ const { verifyToken, authorizeAction } = require("../middlewares/auth.middleware
 const { getMenuByDateFromTo, createMenu, updateMenu, getMenuById,
     approveMenuById, rejectMenuById,
     getMenuByQuery,
-    getMenuByAgeGroupAndWeekNumber, 
-    pendingById} = require("../controller/menuController");
+    getMenuByAgeGroupAndWeekNumber,
+    deleteMenuController, pendingById
+} = require("../controller/menuController");
 const Menu = require("../models/menuModel");
 const { deletedSoftGeneric } = require("../controller/useController");
 
@@ -43,7 +44,7 @@ router.post(
     "/delete/:id",
     verifyToken,
     authorizeAction("delete"),
-    deletedSoftGeneric(Menu)
+    deleteMenuController
 );
 
 router.put("/approve-menu/:id",

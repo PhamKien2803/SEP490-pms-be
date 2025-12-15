@@ -79,7 +79,9 @@
     "address": "Địa chỉ",
     "activityName": "Tên hoạt động",
     "month": "Chủ đề tháng",
-    "topic": "Chủ đề"
+    "topic": "Chủ đề",
+    "receiptName": "Tên biên lai",
+    "functionName": "Tên chức năng"
   },
   "messages": {
     "alreadyExists": "{{field}} đã tồn tại",

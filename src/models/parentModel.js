@@ -21,10 +21,14 @@ const ParentSchema = new mongoose.Schema(
         phoneNumber: {
             type: String,
             match: [/^[0-9]{9,11}$/, "Phone number must be 9-15 digits"],
+            unique: true,
+            trim: true
         },
         email: {
             type: String,
             match: [/^\S+@\S+\.\S+$/, "Invalid email format"],
+            unique: true,
+            trim: true
         },
         IDCard: {
             type: String,

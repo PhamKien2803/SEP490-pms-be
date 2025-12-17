@@ -33,7 +33,7 @@ exports.getAttendanceByClassAndDate = async (req, res) => {
       })
       .populate({
         path: "students.student",
-        select: "studentCode fullName gender classGroup dob address"
+        select: "studentCode fullName gender classGroup dob address nickname"
       })
       .select("class schoolYear date students takenBy generalNote takenAt");
 
@@ -77,7 +77,7 @@ exports.getAttendanceByClassAndSchoolYear = async (req, res) => {
       })
       .populate({
         path: "students.student",
-        select: "studentCode fullName gender classGroup dob address",
+        select: "studentCode fullName gender classGroup dob address nickname",
       })
       .select("class schoolYear date students takenBy generalNote takenAt")
       .lean();
@@ -116,7 +116,7 @@ exports.getAttendanceBySchoolYearAndTeacher = async (req, res) => {
       })
       .populate({
         path: "students.student",
-        select: "studentCode fullName gender classGroup dob address"
+        select: "studentCode fullName gender classGroup dob address nickname"
       })
       .select("class schoolYear date students takenBy generalNote takenAt");
 
@@ -153,7 +153,7 @@ exports.getAllAttendance = async (req, res) => {
       })
       .populate({
         path: "students.student",
-        select: "studentCode fullName gender classGroup dob address"
+        select: "studentCode fullName gender classGroup dob address nickname"
       })
       .select("class schoolYear date students takenBy generalNote takenAt");
 
@@ -213,7 +213,7 @@ exports.getByIdController = async (req, res) => {
       })
       .populate({
         path: "students.student",
-        select: "studentCode fullName gender classGroup dob address imageStudent"
+        select: "studentCode fullName gender classGroup dob address imageStudent nickname"
       })
       .populate({
         path: "students.guardian",
@@ -388,7 +388,7 @@ exports.getAttendanceByStudentAndDate = async (req, res) => {
       })
       .populate({
         path: "students.student",
-        select: "studentCode fullName gender",
+        select: "studentCode fullName gender nickname",
       })
       .populate({
         path: "students.guardian",

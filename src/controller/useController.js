@@ -20,6 +20,7 @@ const findAllGeneric = (Model) => async (req, res) => {
     const totalCount = await Model.countDocuments(queryString);
 
     const data = await Model.find(queryString)
+      .sort({ "createdAt": -1 })
       .skip(offset)
       .limit(limit);
 

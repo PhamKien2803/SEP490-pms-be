@@ -235,7 +235,7 @@ exports.getClassAndStudentByTeacherController = async (req, res) => {
     })
       .populate({
         path: "students",
-        select: "studentCode fullName gender dob address parent healthCertId birthCertId imageStudent",
+        select: "studentCode fullName gender dob address parent healthCertId birthCertId imageStudent nickname",
       })
 
       .populate("room", "roomName facilities")

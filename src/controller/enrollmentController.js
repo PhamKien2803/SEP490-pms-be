@@ -52,7 +52,8 @@ exports.registerEnrollController = async (req, res) => {
             motherPhoneNumber,
             isCheck,
             motherDob,
-            fatherDob
+            fatherDob,
+            nickName
         } = req.body;
 
         const date = new Date();
@@ -63,7 +64,6 @@ exports.registerEnrollController = async (req, res) => {
         const dataSchoolYear = await SchoolYear.findOne({
             active: true,
             state: "Đang hoạt động",
-            schoolYear: `${year}-${nextYear}`
         });
 
         if (!dataSchoolYear) {
@@ -725,7 +725,7 @@ exports.approvedEnrollAllController = async (req, res) => {
                     try {
                         const {
                             studentName, studentDob, studentGender, studentIdCard,
-                            studentNation, studentReligion, address, birthCertId, healthCertId,
+                            studentNation, studentReligion, address, birthCertId, healthCertId, nickname,
                             fatherName, fatherGender, fatherPhoneNumber, fatherEmail, fatherIdCard, fatherJob, fatherDob,
                             motherName, motherGender, motherPhoneNumber, motherEmail, motherIdCard, motherJob, motherDob,
                             imageStudent
@@ -739,6 +739,7 @@ exports.approvedEnrollAllController = async (req, res) => {
                             [`${modelStudentName}Code`]: sequenceCodeStudent,
                             fullName: studentName,
                             dob: studentDob,
+                            nickname: nickname,
                             gender: studentGender,
                             idCard: studentIdCard,
                             nation: studentNation,

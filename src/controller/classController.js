@@ -482,7 +482,7 @@ exports.getClassByStudentAndSchoolYear = async (req, res) => {
         })
             .populate({
                 path: "students",
-                select: "studentCode fullName gender",
+                select: "studentCode fullName gender nickname",
             })
             .populate({
                 path: "teachers",

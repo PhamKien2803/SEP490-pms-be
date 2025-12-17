@@ -15,6 +15,7 @@ const StudentSchema = new mongoose.Schema(
                 message: props => `Số căn cước công dân không hợp lệ.`
             }
         },
+        nickname: { type: String },
         gender: { type: String, enum: ["Nam", "Nữ", "Khác"], required: true },
         address: { type: String, required: true },
         nation: { type: String, required: true },

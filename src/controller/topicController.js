@@ -227,7 +227,7 @@ exports.createTopicController = async (req, res) => {
             });
         }
 
-        // const created = await Topic.create(newData);
+        const created = await Topic.create(newData);
         return res.status(HTTP_STATUS.CREATED).json(created);
 
     } catch (error) {

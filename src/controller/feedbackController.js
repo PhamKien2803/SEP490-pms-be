@@ -22,9 +22,17 @@ exports.createMultipleFeedbacks = async (req, res) => {
 
     // const targetDate = new Date(date || new Date()).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
     // targetDate.setHours(0, 0, 0, 0);
-    const targetDate = new Date(
-      new Date(date || new Date()).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })
-    );
+    // const targetDate = new Date(
+    //   new Date(date || new Date()).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })
+    // );
+    const targetDateStr = new Date(new Date(date || new Date()).toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
+
+    // Kiểm tra xem targetDate có hợp lệ không
+    if (isNaN(targetDateStr.getTime())) {
+      return res.status(400).json({
+        message: "Ngày không hợp lệ.",
+      });
+    }
     targetDate.setHours(0, 0, 0, 0);
 
     const existingFeedbacks = await Feedback.find({

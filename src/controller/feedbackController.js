@@ -20,7 +20,7 @@ exports.createMultipleFeedbacks = async (req, res) => {
       });
     }
 
-    const targetDate = new Date(date || new Date());
+    const targetDate = new Date(date || new Date()).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
     targetDate.setHours(0, 0, 0, 0);
 
     const existingFeedbacks = await Feedback.find({

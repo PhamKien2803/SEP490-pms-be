@@ -8,10 +8,108 @@ const Class = require('../models/classModel');
 const { getGFS } = require("../configs/gridfs");
 const mongoose = require("mongoose");
 
+// exports.createMultipleFeedbacks = async (req, res) => {
+//   try {
+//     const { students, classId, teacherId, date, reminders, teacherNote,
+//       dailyHighlight, health, social, learning, hygiene, sleeping, eating
+//     } = req.body;
+
+//     if (!students?.length || !classId || !teacherId) {
+//       return res.status(400).json({
+//         message: "Thiếu students, classId hoặc teacherId",
+//       });
+//     }
+
+//     // const targetDate = new Date(date || new Date()).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
+//     // targetDate.setHours(0, 0, 0, 0);
+//     // const targetDate = new Date(
+//     //   new Date(date || new Date()).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })
+//     // );
+//     const targetDateStr = new Date(new Date(date || new Date()).toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
+
+//     // Kiểm tra xem targetDate có hợp lệ không
+//     if (isNaN(targetDateStr.getTime())) {
+//       return res.status(400).json({
+//         message: "Ngày không hợp lệ.",
+//       });
+//     }
+//     targetDate.setHours(0, 0, 0, 0);
+
+//     const existingFeedbacks = await Feedback.find({
+//       studentId: { $in: students },
+//       classId,
+//       teacherId,
+//       date: {
+//         $gte: targetDate,
+//         $lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000),
+//       },
+//     }).select("studentId");
+
+//     const existingStudentIds = existingFeedbacks.map((f) =>
+//       f.studentId.toString()
+//     );
+
+//     const newStudents = students.filter(
+//       (id) => !existingStudentIds.includes(id)
+//     );
+
+//     if (newStudents.length === 0) {
+//       return res.status(400).json({
+//         message: "Tất cả học sinh đã có feedback trong ngày này.",
+//       });
+//     }
+
+//     const feedbacks = newStudents.map((studentId) => ({
+//       studentId,
+//       classId,
+//       teacherId,
+//       date: targetDate,
+//       reminders: reminders || [],
+//       teacherNote: teacherNote || "",
+//       dailyHighlight: dailyHighlight || "",
+//       health: health || {},
+//       social: social || {},
+//       learning: learning || {},
+//       hygiene: hygiene || {},
+//       sleeping: sleeping || {},
+//       eating: eating || {},
+//     }));
+
+//     const result = await Feedback.insertMany(feedbacks);
+
+//     return res.status(201).json({
+//       message: `Đã tạo ${result.length} bản ghi feedback mới. ${existingStudentIds.length
+//         ? `${existingStudentIds.length} học sinh đã có feedback trước đó.`
+//         : ""
+//         }`,
+//       alreadyExisted: existingStudentIds,
+//       newCreated: result.map((f) => f.studentId),
+//       data: result,
+//     });
+//   } catch (error) {
+//     console.error("Lỗi khi tạo nhiều feedback:", error);
+//     return res
+//       .status(500)
+//       .json({ message: "Lỗi server", error: error.message });
+//   }
+// };
+
 exports.createMultipleFeedbacks = async (req, res) => {
   try {
-    const { students, classId, teacherId, date, reminders, teacherNote,
-      dailyHighlight, health, social, learning, hygiene, sleeping, eating
+    const {
+      students,
+      classId,
+      teacherId,
+      date,
+      reminders,
+      teacherNote,
+      dailyHighlight,
+      health,
+      social,
+      learning,
+      hygiene,
+      sleeping,
+      eating,
     } = req.body;
 
     if (!students?.length || !classId || !teacherId) {
@@ -20,20 +118,22 @@ exports.createMultipleFeedbacks = async (req, res) => {
       });
     }
 
-    // const targetDate = new Date(date || new Date()).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
-    // targetDate.setHours(0, 0, 0, 0);
-    // const targetDate = new Date(
-    //   new Date(date || new Date()).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })
-    // );
-    const targetDateStr = new Date(new Date(date || new Date()).toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
+    const inputDate = date ? new Date(date) : new Date();
 
-    // Kiểm tra xem targetDate có hợp lệ không
-    if (isNaN(targetDateStr.getTime())) {
+    if (isNaN(inputDate.getTime())) {
       return res.status(400).json({
-        message: "Ngày không hợp lệ.",
+        message: "Ngày không hợp lệ (Invalid Date).",
       });
     }
-    targetDate.setHours(0, 0, 0, 0);
+
+    const vnDateString = inputDate.toLocaleDateString("en-US", {
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+
+    const targetDate = new Date(vnDateString);
+
+    const nextDay = new Date(targetDate);
+    nextDay.setDate(targetDate.getDate() + 1);
 
     const existingFeedbacks = await Feedback.find({
       studentId: { $in: students },
@@ -41,7 +141,7 @@ exports.createMultipleFeedbacks = async (req, res) => {
       teacherId,
       date: {
         $gte: targetDate,
-        $lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000),
+        $lt: nextDay,
       },
     }).select("studentId");
 
@@ -79,8 +179,8 @@ exports.createMultipleFeedbacks = async (req, res) => {
 
     return res.status(201).json({
       message: `Đã tạo ${result.length} bản ghi feedback mới. ${existingStudentIds.length
-        ? `${existingStudentIds.length} học sinh đã có feedback trước đó.`
-        : ""
+          ? `${existingStudentIds.length} học sinh đã có feedback trước đó.`
+          : ""
         }`,
       alreadyExisted: existingStudentIds,
       newCreated: result.map((f) => f.studentId),
@@ -93,6 +193,7 @@ exports.createMultipleFeedbacks = async (req, res) => {
       .json({ message: "Lỗi server", error: error.message });
   }
 };
+
 
 exports.getFeedbacksByClassAndDate = async (req, res) => {
   try {

@@ -399,7 +399,7 @@ exports.getMenuByQuery = async (req, res) => {
       .limit(limit);
 
     if (!data || data.length === 0) {
-      return res.status(400).json({ message: "Không tìm thấy dữ liệu." });
+      return res.status(400).json({ message: "Hiện chưa có thông tin thực đơn. " });
     }
 
     return res.status(200).json({

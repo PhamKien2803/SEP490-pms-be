@@ -17,7 +17,7 @@ exports.genAICaculateFoodNutrition = async (req, res) => {
     const foodsToProcess = await exports.getFoodsWithZeroTotalCalo();
 
     if (!foodsToProcess || foodsToProcess.length === 0) {
-      return res.status(200).json({ message: "Không có menu nào cần tính calo." });
+      return res.status(200).json({ message: "Không có món ăn nào cần tính calo." });
     }
 
     let genAIResult = await generateFoodWithGemini(foodsToProcess);
@@ -52,10 +52,10 @@ exports.genAICaculateFoodNutrition = async (req, res) => {
             .then(updated => {
             })
             .catch(err => {
-              console.error(`Lỗi khi cập nhật food ${originalFood._id}:`, err);
+              console.error(`Lỗi khi cập nhật món ăn ${originalFood._id}:`, err);
             });
         } else {
-          console.warn(`Thông tin food không khớp: original ${originalFood.foodName} vs AI ${aiFood.foodName}`);
+          console.warn(`Thông tin món ăn không khớp: original ${originalFood.foodName} vs AI ${aiFood.foodName}`);
         }
       }
     } else {
@@ -63,7 +63,7 @@ exports.genAICaculateFoodNutrition = async (req, res) => {
       return res.status(500).json({ message: "Kết quả từ AI không hợp lệ." });
     }
     res.status(200).json({
-      message: `Đã tính calo cho ${foodsToProcess.length} menu thành công.`,
+      message: `Đã tính calo cho ${foodsToProcess.length} thực đơn thành công.`,
       ai_output: genAIResult
     });
 
@@ -82,7 +82,7 @@ exports.genAICaculateFoodNutritionById = async (req, res) => {
     const foodsToProcess = await Food.find({ _id: req.params.id });
 
     if (!foodsToProcess || foodsToProcess.length === 0) {
-      return res.status(200).json({ message: "Không có food nào cần tính calo." });
+      return res.status(200).json({ message: "Không có món ăn nào cần tính calo." });
     }
 
     let genAIResult = await generateFoodWithGemini(foodsToProcess);
@@ -120,7 +120,7 @@ exports.genAICaculateFoodNutritionById = async (req, res) => {
             { new: true, runValidators: true }
           );
         } else {
-          console.warn(`⚠️ Không tìm thấy food khớp với AI cho ${originalFood.foodName}`);
+          console.warn(`Không tìm thấy food khớp với AI cho ${originalFood.foodName}`);
         }
       }
     } else {
@@ -129,12 +129,12 @@ exports.genAICaculateFoodNutritionById = async (req, res) => {
     }
 
     res.status(200).json({
-      message: `Đã tính calo cho ${foodsToProcess.length} food thành công.`,
+      message: `Đã tính calo cho ${foodsToProcess.length} món ăn thành công.`,
       ai_output: genAIResult,
     });
 
   } catch (error) {
-    console.error("🔥 Lỗi khi chạy genAICaculateFoodNutritionById:", error);
+    console.error("Lỗi khi chạy genAICaculateFoodNutritionById:", error);
     const statusCode = error.message?.includes('503') ? 503 : 500;
     res.status(statusCode).json({
       message: "Lỗi xử lý tính toán dinh dưỡng.",

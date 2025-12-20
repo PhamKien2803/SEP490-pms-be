@@ -9,6 +9,8 @@ const path = require("path");
 const ejs = require("ejs");
 const { HTTP_STATUS, RESPONSE_MESSAGE } = require("../constants/useConstants");
 const mongoose = require("mongoose");
+const { sequencePattern } = require('../helpers/useHelpers');
+const { SEQUENCE_CODE } = require('../constants/useConstants');
 
 exports.getAttendanceByClassAndDate = async (req, res) => {
   try {
@@ -313,7 +315,7 @@ exports.updateAttendanceController = async (req, res) => {
               reason: "Vắng mặt hôm nay",
               absentDate: attendance.date.toLocaleDateString("vi-VN"),
               teacherName: staff.fullName || "",
-              portalLink: "http://school-portal.example.com/login",
+              portalLink: "https://www.dolphin-pms.id.vn/",
             });
 
             await mail.send(
@@ -347,6 +349,130 @@ exports.updateAttendanceController = async (req, res) => {
 
     res.status(HTTP_STATUS.SERVER_ERROR).json({
       message: "Lỗi khi cập nhật điểm danh.",
+      error: error.message,
+    });
+  }
+};
+
+exports.createAttendance = async (req, res) => {
+  try {
+    const modelName = Attendance.modelName.toLowerCase();
+    const sequence = await sequencePattern(Attendance.modelName);
+
+    const lastRecord = await Attendance.find({
+      [`${modelName}Code`]: { $regex: `^${sequence}` },
+    })
+      .sort({ [`${modelName}Code`]: -1 })
+      .limit(1);
+
+    let attendanceCode;
+    if (lastRecord.length === 0) {
+      attendanceCode = `${sequence}001`;
+    } else {
+      const lastCode = lastRecord[0][`${modelName}Code`];
+      const lastNumber = parseInt(lastCode.slice(-3));
+      attendanceCode = `${sequence}${String(lastNumber + 1).padStart(3, "0")}`;
+    }
+
+    const students = (req.body.students || []).map((s) => {
+      if (s.status === "Vắng mặt") {
+        return {
+          ...s,
+          timeCheckIn: null,
+          timeCheckOut: null,
+          guardian: null,
+        };
+      }
+
+      if (s.status === "Có mặt") {
+        return {
+          ...s,
+          timeCheckOut: null,
+        };
+      }
+
+      return s;
+    });
+
+    const attendance = await Attendance.create({
+      ...req.body,
+      students,
+      active: true,
+      [`${modelName}Code`]: attendanceCode,
+    });
+
+    await attendance.populate([
+      { path: "students.student", select: "fullName studentCode" },
+      { path: "class", select: "className" },
+      { path: "takenBy", select: "fullName" },
+    ]);
+
+    const absentStudents = attendance.students.filter(
+      (s) => s.status === "Vắng mặt"
+    );
+
+    if (absentStudents.length > 0) {
+      setImmediate(async () => {
+        try {
+          const templatePath = path.join(
+            __dirname,
+            "..",
+            "templates",
+            "absentNoticeMail.ejs"
+          );
+
+          const mail = new SMTP(SMTP_CONFIG);
+          const staff = attendance.takenBy;
+          const className = attendance.class?.className || "Không xác định";
+
+          for (const item of absentStudents) {
+            const studentId = item.student._id;
+
+            const parent = await Parent.findOne({
+              students: new mongoose.Types.ObjectId(studentId),
+              active: true,
+            });
+
+            if (!parent || !parent.email) continue;
+
+            const html = await ejs.renderFile(templatePath, {
+              parentName: parent.fullName || "",
+              studentName: item.student.fullName || "",
+              className,
+              absentDate: attendance.date.toLocaleDateString("vi-VN"),
+              reason: "Vắng mặt hôm nay",
+              teacherName: staff?.fullName || "",
+              portalLink: "https://www.dolphin-pms.id.vn/",
+            });
+            console.log(`Gửi email đến phụ huynh ${parent.fullName} tại ${parent.email}`);
+            await mail.send(
+              parent.email,
+              `Thông báo vắng mặt của học sinh ${item.student.fullName} - lớp ${className}`,
+              "",
+              html,
+              ""
+            );
+          }
+        } catch (err) {
+          console.error("Lỗi gửi mail vắng mặt:", err);
+        }
+      });
+    }
+
+    return res.status(HTTP_STATUS.CREATED).json({
+      message: "Tạo điểm danh thành công.",
+      data: attendance,
+    });
+  } catch (error) {
+    console.error("createAttendance error:", error);
+
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((e) => e.message);
+      return res.status(400).json({ message: messages.join(", ") });
+    }
+
+    return res.status(500).json({
+      message: "Lỗi khi tạo điểm danh.",
       error: error.message,
     });
   }

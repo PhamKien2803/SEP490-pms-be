@@ -18,7 +18,7 @@ exports.getPreviewServiceController = async (req, res) => {
             active: true,
         });
         if (!revenue) {
-            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy khoản thu Đồng phục" });
+            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Hiện không có dịch vụ nào" });
         }
 
         const newObject = {
@@ -48,7 +48,7 @@ exports.getByStudentId = async (req, res) => {
             active: true,
         });
         if (!revenue) {
-            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy khoản thu Đồng phục" });
+            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Hiện không có dịch vụ nào" });
         }
 
         const services = await Service.findOne({ student: studentId, active: true, schoolYearId: schoolYearData._id });

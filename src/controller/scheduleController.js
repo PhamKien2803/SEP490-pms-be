@@ -49,6 +49,47 @@ const splitWeeks = (days) => {
   return weeks;
 };
 
+const getFreeSlots = (activities, slotMinutes = 30, minTime = 435, maxTime = 1050) => {
+  const freeSlots = [];
+  const sorted = [...activities]
+    .filter(a => a.startTime != null && a.endTime != null)
+    .sort((a, b) => a.startTime - b.startTime);
+
+  let prevEnd = minTime;
+
+  for (const act of sorted) {
+    if (act.startTime > prevEnd) {
+      let start = prevEnd;
+      while (start + slotMinutes <= act.startTime) {
+        freeSlots.push({ startTime: start, endTime: start + slotMinutes });
+        start += slotMinutes;
+      }
+    }
+    prevEnd = Math.max(prevEnd, act.endTime);
+  }
+
+  let start = prevEnd;
+  while (start + slotMinutes <= maxTime) {
+    freeSlots.push({ startTime: start, endTime: start + slotMinutes });
+    start += slotMinutes;
+  }
+
+  return freeSlots;
+};
+
+const mergeActivitiesAndFreeSlots = (activities) => {
+  const freeSlots = getFreeSlots(activities);
+  const freeActivities = freeSlots.map(slot => ({
+    startTime: slot.startTime,
+    endTime: slot.endTime,
+    type: "Trống",
+  }));
+
+  return [...activities, ...freeActivities].sort(
+    (a, b) => (a.startTime || 0) - (b.startTime || 0)
+  );
+};
+
 // exports.createScheduleController = async (req, res) => {
 //   try {
 //     const { year, month, age } = req.body;
@@ -299,11 +340,12 @@ exports.getByParamsController = async (req, res) => {
     }
 
     const schoolYearDoc = await SchoolYear.findOne({
-      schoolYear: { $regex: '^' + schoolYearString }
+      active: true,
+      state: "Đang hoạt động",
     });
 
     if (!schoolYearDoc) {
-      return res.status(404).json({ message: `Không tìm thấy năm học nào bắt đầu bằng ${schoolYearString}` });
+      return res.status(404).json({ message: `Không tìm thấy năm học đang hoạt động` });
     }
 
     const schedule = await Schedule.findOne({
@@ -397,223 +439,445 @@ exports.getByParamsController = async (req, res) => {
 
 
 
+// exports.previewScheduleController = async (req, res) => {
+//   try {
+//     const { year, month, classId } = req.query;
+//     if (!year || !month || !classId)
+//       return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Yêu cầu nhập năm, tháng, lớp học" });
+
+//     const cls = await ClassModel.findById(classId);
+//     if (!cls) return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy lớp học" });
+
+//     const dataSchoolYear = await SchoolYear.findOne({ active: true, state: "Đang hoạt động" });
+//     if (!dataSchoolYear) return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy năm học đang hoạt động" });
+
+//     const dataTopic = await Topic.findOne({ active: true, schoolYear: dataSchoolYear._id, age: cls.age, month })
+//       .populate("activitiFix.activity")
+//       .populate("activitiCore.activity")
+//       .populate("activitiEvent.activity");
+
+//     if (!dataTopic) return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy chủ đề tháng" });
+
+//     const { activitiFix: activityFix, activitiCore: activityCore, activitiEvent } = dataTopic;
+
+//     const allDays = getDaysInMonth(year, month);
+//     const weeks = splitWeeks(allDays);
+
+//     const eventList = await Event.find({ active: true, schoolYear: dataSchoolYear._id });
+//     const holidayDates = [];
+//     eventList.filter(e => e.isHoliday).forEach(ev => {
+//       if (ev.holidayStartDate && ev.holidayEndDate) {
+//         let d = new Date(ev.holidayStartDate);
+//         const end = new Date(ev.holidayEndDate);
+//         while (d <= end) {
+//           const dateStr = d.toISOString().split("T")[0];
+//           if (!holidayDates.includes(dateStr)) holidayDates.push(dateStr);
+//           d.setDate(d.getDate() + 1);
+//         }
+//       }
+//     });
+
+//     const categoriesMorning = ["Phát triển nhận thức"];
+//     const categoriesAfternoon = ["Phát triển thể chất"];
+//     const categoriesOther = ["Phát triển ngôn ngữ", "Phát triển tình cảm", "Phát triển thẩm mỹ", "Phát triển kỹ năng xã hội"];
+
+//     const scheduleDays = allDays.map(date => {
+//       const dateStr = date.toISOString().split("T")[0];
+//       const isOfficialHoliday = holidayDates.includes(dateStr);
+//       const isSunday = date.getDay() === 0;
+
+//       let activities = [];
+//       if (!isOfficialHoliday && !isSunday && Array.isArray(activityFix)) {
+//         activityFix.forEach(item => {
+//           if (item.activity && item.activity._id) {
+//             activities.push({
+//               activity: item.activity._id,
+//               activityName: item.activity.activityName,
+//               type: "Cố định",
+//               startTime: item.activity.startTime,
+//               endTime: item.activity.endTime
+//             });
+//           }
+//         });
+//       }
+
+//       return {
+//         date,
+//         dayName: getDayName(date),
+//         activities,
+//         isHoliday: isOfficialHoliday,
+//         notes: ""
+//       };
+//     });
+
+//     if (activitiEvent.length > 0) {
+//       const mappedEvents = activitiEvent.map(evAct => {
+//         const matchEvent = eventList.find(e => e.eventName === evAct.activity.eventName);
+//         if (matchEvent) {
+//           return {
+//             activity: evAct.activity,
+//             sessionsPerWeek: evAct.sessionsPerWeek || 1,
+//             holidayStartDate: matchEvent.holidayStartDate,
+//             holidayEndDate: matchEvent.holidayEndDate
+//           };
+//         }
+//         return null;
+//       }).filter(Boolean);
+
+//       mappedEvents.forEach(ev => {
+//         if (!ev.holidayStartDate || !ev.holidayEndDate) return;
+//         let currentDate = new Date(ev.holidayStartDate);
+//         const endDate = new Date(ev.holidayEndDate);
+
+//         while (currentDate <= endDate) {
+//           const dateStr = currentDate.toISOString().split("T")[0];
+//           const target = scheduleDays.find(d => d.date.toISOString().split("T")[0] === dateStr && !d.isHoliday && d.dayName !== "Chủ nhật");
+//           if (!target) { currentDate.setDate(currentDate.getDate() + 1); continue; }
+
+//           const occupied = target.activities.map(a => ({ start: a.startTime, end: a.endTime }));
+//           for (let i = 0; i < ev.sessionsPerWeek; i++) {
+//             const slot = findAvailableSlot(occupied, 30, 435, 1050);
+//             if (!slot) break;
+//             target.activities.push({
+//               activity: ev.activity._id,
+//               activityName: ev.activity.activityName,
+//               startTime: slot.start,
+//               endTime: slot.end,
+//               type: "Sự kiện"
+//             });
+//             occupied.push(slot);
+//           }
+//           currentDate.setDate(currentDate.getDate() + 1);
+//         }
+//       });
+//     }
+
+//     weeks.forEach(weekDays => {
+//       const normalDays = weekDays
+//         .map(d => scheduleDays.find(s => s.date.toISOString().split("T")[0] === d.toISOString().split("T")[0]))
+//         .filter(d => !d.isHoliday && d.dayName !== "Chủ nhật");
+
+//       const fillActivities = (categories) => {
+//         categories.forEach(cat => {
+//           const acts = activityCore.filter(a => a.activity && a.activity._id && a.activity.category === cat);
+//           if (acts.length === 0) return;
+
+//           acts.forEach(act => {
+//             const id = act.activity._id.toString();
+//             const maxSessions = act.sessionsPerWeek || 1;
+
+//             const availableDays = normalDays.filter(d =>
+//               !d.activities.some(a => a.activityName === act.activity.activityName)
+//             );
+
+//             const sessionsToAdd = Math.min(maxSessions, availableDays.length);
+
+//             const step = Math.floor(availableDays.length / sessionsToAdd) || 1;
+
+//             for (let i = 0; i < sessionsToAdd; i++) {
+//               const day = availableDays[i * step];
+//               const occupied = day.activities.map(a => ({ start: a.startTime, end: a.endTime }));
+//               const slot = findAvailableSlot(occupied, 30, 435, 1050);
+//               if (!slot) continue;
+
+//               day.activities.push({
+//                 activity: act.activity._id,
+//                 activityName: act.activity.activityName,
+//                 startTime: slot.start,
+//                 endTime: slot.end,
+//                 type: "Bình thường",
+//                 category: cat
+//               });
+//             }
+//           });
+//         });
+//       };
+
+//       fillActivities(categoriesMorning);
+//       fillActivities(categoriesAfternoon);
+//       fillActivities(categoriesOther);
+//     });
+
+//     scheduleDays.forEach(day => day.activities.sort((a, b) => (a.startTime || 0) - (b.startTime || 0)));
+
+//     const getFreeSlots = (activities, slotMinutes = 30, minTime = 435, maxTime = 1050) => {
+//       const freeSlots = [];
+//       const sorted = [...activities]
+//         .filter(a => a.startTime && a.endTime)
+//         .sort((a, b) => a.startTime - b.startTime);
+
+//       let prevEnd = minTime;
+
+//       for (const act of sorted) {
+//         if (act.startTime > prevEnd) {
+//           let start = prevEnd;
+//           while (start + slotMinutes <= act.startTime) {
+//             freeSlots.push({ startTime: start, endTime: start + slotMinutes });
+//             start += slotMinutes;
+//           }
+//         }
+//         prevEnd = Math.max(prevEnd, act.endTime);
+//       }
+
+//       let start = prevEnd;
+//       while (start + slotMinutes <= maxTime) {
+//         freeSlots.push({ startTime: start, endTime: start + slotMinutes });
+//         start += slotMinutes;
+//       }
+
+//       return freeSlots;
+//     };
+
+//     const mergeActivitiesAndFreeSlots = activities => {
+//       const freeSlots = getFreeSlots(activities, 30);
+//       const freeActivities = freeSlots.map(slot => ({
+//         startTime: slot.startTime,
+//         endTime: slot.endTime,
+//       }));
+//       return [...activities, ...freeActivities].sort((a, b) => a.startTime - b.startTime);
+//     };
+
+//     scheduleDays.forEach(day => {
+//       if (!day.isHoliday && day.dayName !== "Chủ nhật") {
+//         day.activities = mergeActivitiesAndFreeSlots(day.activities);
+//       }
+//     });
+
+//     return res.status(HTTP_STATUS.OK).json({
+//       message: "Xem trước lịch thành công",
+//       schedule: {
+//         schoolYear: dataSchoolYear._id,
+//         class: cls._id,
+//         month,
+//         scheduleDays
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("Error previewScheduleController", error);
+//     return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+//   }
+// };
+
+
 exports.previewScheduleController = async (req, res) => {
   try {
     const { year, month, classId } = req.query;
-    if (!year || !month || !classId)
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Yêu cầu nhập năm, tháng, lớp học" });
+
+    if (!year || !month || !classId) {
+      return res.status(400).json({ message: "Yêu cầu nhập năm, tháng, lớp học" });
+    }
+
+    if(year === "2024") {
+      return res.status(400).json({ message: "Chức năng xem trước lịch tạm thời không khả dụng cho năm 2024" });
+    }
 
     const cls = await ClassModel.findById(classId);
-    if (!cls) return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy lớp học" });
+    if (!cls) {
+      return res.status(404).json({ message: "Không tìm thấy lớp học" });
+    }
 
-    const dataSchoolYear = await SchoolYear.findOne({ active: true, state: "Đang hoạt động" });
-    if (!dataSchoolYear) return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy năm học đang hoạt động" });
+    const schoolYear = await SchoolYear.findOne({
+      active: true,
+      state: "Đang hoạt động",
+    });
+    if (!schoolYear) {
+      return res.status(404).json({ message: "Không tìm thấy năm học đang hoạt động" });
+    }
 
-    const dataTopic = await Topic.findOne({ active: true, schoolYear: dataSchoolYear._id, age: cls.age, month })
+    const topic = await Topic.findOne({
+      active: true,
+      schoolYear: schoolYear._id,
+      age: cls.age,
+      month,
+    })
       .populate("activitiFix.activity")
       .populate("activitiCore.activity")
       .populate("activitiEvent.activity");
 
-    if (!dataTopic) return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy chủ đề tháng" });
+    if (!topic) {
+      return res.status(404).json({ message: "Không tìm thấy chủ đề tháng" });
+    }
 
-    const { activitiFix: activityFix, activitiCore: activityCore, activitiEvent } = dataTopic;
+    const { activitiFix, activitiCore, activitiEvent } = topic;
 
     const allDays = getDaysInMonth(year, month);
     const weeks = splitWeeks(allDays);
 
-    const eventList = await Event.find({ active: true, schoolYear: dataSchoolYear._id });
-    const holidayDates = [];
-    eventList.filter(e => e.isHoliday).forEach(ev => {
-      if (ev.holidayStartDate && ev.holidayEndDate) {
-        let d = new Date(ev.holidayStartDate);
-        const end = new Date(ev.holidayEndDate);
-        while (d <= end) {
-          const dateStr = d.toISOString().split("T")[0];
-          if (!holidayDates.includes(dateStr)) holidayDates.push(dateStr);
-          d.setDate(d.getDate() + 1);
-        }
+    const events = await Event.find({
+      active: true,
+      schoolYear: schoolYear._id,
+    });
+
+    const holidayDates = new Set();
+
+    events.filter(e => e.isHoliday).forEach(ev => {
+      if (!ev.holidayStartDate || !ev.holidayEndDate) return;
+      let d = new Date(ev.holidayStartDate);
+      const end = new Date(ev.holidayEndDate);
+      while (d <= end) {
+        holidayDates.add(d.toISOString().split("T")[0]);
+        d.setDate(d.getDate() + 1);
       }
     });
 
-    const categoriesMorning = ["Phát triển nhận thức"];
-    const categoriesAfternoon = ["Phát triển thể chất"];
-    const categoriesOther = ["Phát triển ngôn ngữ", "Phát triển tình cảm", "Phát triển thẩm mỹ", "Phát triển kỹ năng xã hội"];
-
     const scheduleDays = allDays.map(date => {
       const dateStr = date.toISOString().split("T")[0];
-      const isOfficialHoliday = holidayDates.includes(dateStr);
+      const isHoliday = holidayDates.has(dateStr);
       const isSunday = date.getDay() === 0;
 
-      let activities = [];
-      if (!isOfficialHoliday && !isSunday && Array.isArray(activityFix)) {
-        activityFix.forEach(item => {
-          if (item.activity && item.activity._id) {
-            activities.push({
-              activity: item.activity._id,
-              activityName: item.activity.activityName,
-              type: "Cố định",
-              startTime: item.activity.startTime,
-              endTime: item.activity.endTime
-            });
-          }
+      const activities = [];
+
+      if (!isHoliday && !isSunday) {
+        activitiFix.forEach(item => {
+          if (!item.activity) return;
+          activities.push({
+            activity: item.activity._id,
+            activityName: item.activity.activityName,
+            startTime: item.activity.startTime,
+            endTime: item.activity.endTime,
+            type: "Cố định",
+          });
         });
       }
 
       return {
         date,
         dayName: getDayName(date),
+        isHoliday,
         activities,
-        isHoliday: isOfficialHoliday,
-        notes: ""
+        notes: "",
       };
     });
 
-    if (activitiEvent.length > 0) {
-      const mappedEvents = activitiEvent.map(evAct => {
-        const matchEvent = eventList.find(e => e.eventName === evAct.activity.eventName);
-        if (matchEvent) {
-          return {
-            activity: evAct.activity,
-            sessionsPerWeek: evAct.sessionsPerWeek || 1,
-            holidayStartDate: matchEvent.holidayStartDate,
-            holidayEndDate: matchEvent.holidayEndDate
-          };
-        }
-        return null;
-      }).filter(Boolean);
+    activitiEvent.forEach(evAct => {
+      const matchEvent = events.find(e => e.eventName === evAct.activity?.eventName);
+      if (!matchEvent) return;
 
-      mappedEvents.forEach(ev => {
-        if (!ev.holidayStartDate || !ev.holidayEndDate) return;
-        let currentDate = new Date(ev.holidayStartDate);
-        const endDate = new Date(ev.holidayEndDate);
+      let d = new Date(matchEvent.holidayStartDate);
+      const end = new Date(matchEvent.holidayEndDate);
+      const sessions = evAct.sessionsPerWeek || 1;
 
-        while (currentDate <= endDate) {
-          const dateStr = currentDate.toISOString().split("T")[0];
-          const target = scheduleDays.find(d => d.date.toISOString().split("T")[0] === dateStr && !d.isHoliday && d.dayName !== "Chủ nhật");
-          if (!target) { currentDate.setDate(currentDate.getDate() + 1); continue; }
+      while (d <= end) {
+        const dateStr = d.toISOString().split("T")[0];
+        const day = scheduleDays.find(
+          s =>
+            s.date.toISOString().split("T")[0] === dateStr &&
+            !s.isHoliday &&
+            s.dayName !== "Chủ nhật"
+        );
 
-          const occupied = target.activities.map(a => ({ start: a.startTime, end: a.endTime }));
-          for (let i = 0; i < ev.sessionsPerWeek; i++) {
+        if (day) {
+          const occupied = day.activities.map(a => ({
+            start: a.startTime,
+            end: a.endTime,
+          }));
+
+          for (let i = 0; i < sessions; i++) {
             const slot = findAvailableSlot(occupied, 30, 435, 1050);
             if (!slot) break;
-            target.activities.push({
-              activity: ev.activity._id,
-              activityName: ev.activity.activityName,
+
+            day.activities.push({
+              activity: evAct.activity._id,
+              activityName: evAct.activity.activityName,
               startTime: slot.start,
               endTime: slot.end,
-              type: "Sự kiện"
+              type: "Sự kiện",
             });
+
             occupied.push(slot);
           }
-          currentDate.setDate(currentDate.getDate() + 1);
         }
-      });
-    }
-
-    weeks.forEach(weekDays => {
-      const normalDays = weekDays
-        .map(d => scheduleDays.find(s => s.date.toISOString().split("T")[0] === d.toISOString().split("T")[0]))
-        .filter(d => !d.isHoliday && d.dayName !== "Chủ nhật");
-
-      const fillActivities = (categories) => {
-        categories.forEach(cat => {
-          const acts = activityCore.filter(a => a.activity && a.activity._id && a.activity.category === cat);
-          if (acts.length === 0) return;
-
-          acts.forEach(act => {
-            const id = act.activity._id.toString();
-            const maxSessions = act.sessionsPerWeek || 1;
-
-            const availableDays = normalDays.filter(d =>
-              !d.activities.some(a => a.activityName === act.activity.activityName)
-            );
-
-            const sessionsToAdd = Math.min(maxSessions, availableDays.length);
-
-            const step = Math.floor(availableDays.length / sessionsToAdd) || 1;
-
-            for (let i = 0; i < sessionsToAdd; i++) {
-              const day = availableDays[i * step];
-              const occupied = day.activities.map(a => ({ start: a.startTime, end: a.endTime }));
-              const slot = findAvailableSlot(occupied, 30, 435, 1050);
-              if (!slot) continue;
-
-              day.activities.push({
-                activity: act.activity._id,
-                activityName: act.activity.activityName,
-                startTime: slot.start,
-                endTime: slot.end,
-                type: "Bình thường",
-                category: cat
-              });
-            }
-          });
-        });
-      };
-
-      fillActivities(categoriesMorning);
-      fillActivities(categoriesAfternoon);
-      fillActivities(categoriesOther);
+        d.setDate(d.getDate() + 1);
+      }
     });
 
-    scheduleDays.forEach(day => day.activities.sort((a, b) => (a.startTime || 0) - (b.startTime || 0)));
 
-    const getFreeSlots = (activities, slotMinutes = 30, minTime = 435, maxTime = 1050) => {
-      const freeSlots = [];
-      const sorted = [...activities]
-        .filter(a => a.startTime && a.endTime)
-        .sort((a, b) => a.startTime - b.startTime);
+    const categories = [
+      "Phát triển nhận thức",
+      "Phát triển thể chất",
+      "Phát triển ngôn ngữ",
+      "Phát triển tình cảm",
+      "Phát triển thẩm mỹ",
+      "Phát triển kỹ năng xã hội",
+    ];
 
-      let prevEnd = minTime;
+    weeks.forEach((week, weekIndex) => {
+      const normalDays = week
+        .map(d =>
+          scheduleDays.find(
+            s => s.date.toISOString().split("T")[0] === d.toISOString().split("T")[0]
+          )
+        )
+        .filter(d => d && !d.isHoliday && d.dayName !== "Chủ nhật");
 
-      for (const act of sorted) {
-        if (act.startTime > prevEnd) {
-          let start = prevEnd;
-          while (start + slotMinutes <= act.startTime) {
-            freeSlots.push({ startTime: start, endTime: start + slotMinutes });
-            start += slotMinutes;
+      if (normalDays.length === 0) return;
+
+      categories.forEach(cat => {
+        const acts = activitiCore.filter(
+          a => a.activity && a.activity.category === cat
+        );
+
+        if (acts.length === 0) return;
+
+        acts.forEach(act => {
+          const sessions = act.sessionsPerWeek || 1;
+
+          for (let s = 0; s < sessions; s++) {
+            const dayIndex = (weekIndex + s) % normalDays.length;
+            const day = normalDays[dayIndex];
+
+            const existed = day.activities.some(
+              a => a.activity?.toString() === act.activity._id.toString()
+            );
+            if (existed) continue;
+
+            const existedCategory = day.activities.some(
+              a => a.category === cat
+            );
+            if (existedCategory) continue;
+
+            const occupied = day.activities.map(a => ({
+              start: a.startTime,
+              end: a.endTime,
+            }));
+
+            const slot = findAvailableSlot(occupied, 30, 435, 1050);
+            if (!slot) continue;
+
+            day.activities.push({
+              activity: act.activity._id,
+              activityName: act.activity.activityName,
+              startTime: slot.start,
+              endTime: slot.end,
+              type: "Bình thường",
+              category: cat,
+            });
           }
-        }
-        prevEnd = Math.max(prevEnd, act.endTime);
-      }
-
-      let start = prevEnd;
-      while (start + slotMinutes <= maxTime) {
-        freeSlots.push({ startTime: start, endTime: start + slotMinutes });
-        start += slotMinutes;
-      }
-
-      return freeSlots;
-    };
-
-    const mergeActivitiesAndFreeSlots = activities => {
-      const freeSlots = getFreeSlots(activities, 30);
-      const freeActivities = freeSlots.map(slot => ({
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-      }));
-      return [...activities, ...freeActivities].sort((a, b) => a.startTime - b.startTime);
-    };
+        });
+      });
+    });
 
     scheduleDays.forEach(day => {
       if (!day.isHoliday && day.dayName !== "Chủ nhật") {
+        day.activities.sort((a, b) => (a.startTime || 0) - (b.startTime || 0));
         day.activities = mergeActivitiesAndFreeSlots(day.activities);
       }
     });
 
-    return res.status(HTTP_STATUS.OK).json({
+    return res.json({
       message: "Xem trước lịch thành công",
       schedule: {
-        schoolYear: dataSchoolYear._id,
+        schoolYear: schoolYear._id,
         class: cls._id,
         month,
-        scheduleDays
-      }
+        scheduleDays,
+      },
     });
 
-  } catch (error) {
-    console.error("Error previewScheduleController", error);
-    return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+  } catch (err) {
+    console.error("previewScheduleController error:", err);
+    return res.status(500).json(err);
   }
 };
 

@@ -33,95 +33,117 @@ const getWeekRange = async (year, month, weekNumber) => {
 }
 
 exports.getScheduleByWeek = async (req, res) => {
-    try {
-        const { teacherId, month, week } = req.query;
+  try {
+    const { teacherId, month, week } = req.query;
 
-        const schoolYearData = await SchoolYear.findOne({
-            active: true,
-            state: "Đang hoạt động"
-        });
-
-        if (!schoolYearData) {
-            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy năm học" });
-        }
-
-        const classData = await Class.findOne({
-            active: true,
-            schoolYear: schoolYearData._id,
-            teachers: teacherId
-        });
-
-        if (!classData) {
-            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy lớp học" });
-        }
-
-        const topicData = await Topic.findOne({
-            active: { $eq: true },
-            age: classData.age,
-            schoolYear: schoolYearData._id
-        })
-
-        const scheduleData = await Schedule.findOne({
-            schoolYear: schoolYearData._id,
-            class: classData._id,
-            month: Number(month),
-            status: "Xác nhận"
-        })
-            .populate({
-                path: "scheduleDays.activities.activity",
-                select: "activityCode activityName type category"
-            })
-            .lean();
-
-        if (!scheduleData) {
-            return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Không tìm thấy thời khóa biểu" });
-        }
-
-        const year = new Date().getFullYear();
-        const { startDate, endDate } = await getWeekRange(year, Number(month), Number(week));
-
-        const filteredDays = scheduleData.scheduleDays
-            .filter(dayItem => {
-                const dateObj = new Date(dayItem.date);
-                return dateObj >= startDate && dateObj <= endDate;
-            })
-            .map(dayItem => ({
-                ...dayItem,
-                activities: dayItem.activities.map(act => {
-                    if (act.activity && typeof act.activity === "object") {
-                        return {
-                            activity: act.activity._id,
-                            activityCode: act.activity.activityCode,
-                            activityName: act.activity.activityName,
-                            type: act.activity.type,
-                            category: act.activity.category,
-                            startTime: act.startTime,
-                            endTime: act.endTime,
-                            isFix: act.isFix,
-                            tittle: act.tittle,
-                            description: act.description
-                        };
-                    }
-                    return {
-                        startTime: act.startTime,
-                        endTime: act.endTime
-                    };
-                })
-            }));
-
-        return res.status(HTTP_STATUS.OK).json({
-            classId: classData._id,
-            schoolYearId: schoolYearData._id,
-            month: Number(month),
-            week: Number(week),
-            topic: topicData.topicName,
-            scheduleDays: filteredDays
-        });
-
-    } catch (error) {
-        console.log("Error getScheduleByWeek", error);
-        return res.status(HTTP_STATUS.SERVER_ERROR).json(error);
+    if (!teacherId || !month || !week) {
+      return res.status(400).json({ message: "Thiếu teacherId / month / week" });
     }
+
+  
+    const schoolYearData = await SchoolYear.findOne({
+      active: true,
+      state: "Đang hoạt động",
+    });
+
+    if (!schoolYearData) {
+      return res.status(404).json({ message: "Không tìm thấy năm học" });
+    }
+
+
+    const classData = await Class.findOne({
+      active: true,
+      schoolYear: schoolYearData._id,
+      teachers: teacherId,
+    });
+
+    if (!classData) {
+      return res.status(404).json({ message: "Không tìm thấy lớp học" });
+    }
+
+  
+    const topicData = await Topic.findOne({
+      active: true,
+      age: classData.age,
+      schoolYear: schoolYearData._id,
+      month: Number(month),
+    });
+
+
+    const scheduleData = await Schedule.findOne({
+      schoolYear: schoolYearData._id,
+      class: classData._id,
+      month: Number(month),
+      status: "Xác nhận",
+    })
+      .populate({
+        path: "scheduleDays.activities.activity",
+        select: "activityCode activityName type category",
+      })
+      .lean();
+
+    if (!scheduleData) {
+      return res.status(404).json({ message: "Không tìm thấy thời khóa biểu" });
+    }
+
+
+    const [startYear, endYear] = schoolYearData.schoolYear
+      .split("-")
+      .map(Number);
+
+    const targetYear = Number(month) >= 8 ? startYear : endYear;
+
+
+    const { startDate, endDate } = await getWeekRange(
+      targetYear,
+      Number(month),
+      Number(week)
+    );
+
+
+    const filteredDays = scheduleData.scheduleDays
+      .filter(day => {
+        const d = new Date(day.date);
+        return d >= startDate && d <= endDate;
+      })
+      .map(day => ({
+        ...day,
+        activities: day.activities.map(act => {
+          if (act.activity && typeof act.activity === "object") {
+            return {
+              activity: act.activity._id,
+              activityCode: act.activity.activityCode,
+              activityName: act.activity.activityName,
+              type: act.activity.type,
+              category: act.activity.category,
+              startTime: act.startTime,
+              endTime: act.endTime,
+              isFix: act.isFix,
+              title: act.title,
+              description: act.description,
+            };
+          }
+          return {
+            startTime: act.startTime,
+            endTime: act.endTime,
+          };
+        }),
+      }));
+
+
+    return res.status(200).json({
+      classId: classData._id,
+      schoolYearId: schoolYearData._id,
+      month: Number(month),
+      week: Number(week),
+      topic: topicData?.topicName || null,
+      scheduleDays: filteredDays,
+    });
+
+  } catch (error) {
+    console.error("Error getScheduleByWeek:", error);
+    return res.status(500).json(error);
+  }
 };
 
 exports.getLessonList = async (req, res) => {

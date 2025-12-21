@@ -763,7 +763,8 @@ exports.approvedEnrollAllController = async (req, res) => {
                                 email: fatherEmail,
                                 idCard: fatherIdCard,
                                 dob: fatherDob,
-                                job: fatherJob
+                                job: fatherJob,
+                                address: address,
                             },
                             {
                                 type: "mother",
@@ -773,7 +774,8 @@ exports.approvedEnrollAllController = async (req, res) => {
                                 email: motherEmail,
                                 dob: motherDob,
                                 idCard: motherIdCard,
-                                job: motherJob
+                                job: motherJob,
+                                address: address
                             }
                         ];
 
